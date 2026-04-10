@@ -187,6 +187,26 @@ export const useCharacterStore = defineStore('character', () => {
     char.currentHP = char.maxHP
   }
 
+  /**
+   * Sells a batch of inventory items by ID.
+   * Returns total gold earned.
+   */
+  function sellItems(ids: string[]): number {
+    const char = character.value
+    if (!char || ids.length === 0) return 0
+    const idSet = new Set(ids)
+    let totalGold = 0
+    char.inventory = char.inventory.filter((item) => {
+      if (idSet.has(item.id)) {
+        totalGold += getSellPrice(item.rarity)
+        return false
+      }
+      return true
+    })
+    char.gold += totalGold
+    return totalGold
+  }
+
   function setZone(zone: ZoneId): void {
     const char = character.value
     if (!char) return
@@ -218,6 +238,7 @@ export const useCharacterStore = defineStore('character', () => {
     equipItem,
     unequipItem,
     addToInventory,
+    sellItems,
     applyXP,
     applyDeathPenalty,
     setZone,

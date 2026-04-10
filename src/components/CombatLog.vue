@@ -51,6 +51,7 @@ const log = computed(() => [...combatStore.combatLog].reverse())
   display: flex;
   flex-direction: column-reverse;
   min-height: 0;
+  max-height: 300px;
   scrollbar-width: thin;
   scrollbar-color: #40386a transparent;
 }
