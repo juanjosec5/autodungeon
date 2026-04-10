@@ -54,7 +54,7 @@ export interface Character {
 export interface Enemy {
   id: string
   name: string
-  zone: 'forest' | 'dungeon' | 'volcano'
+  zone: ZoneId
   hp: number
   maxHp: number
   atk: [number, number]
