@@ -1,0 +1,83 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { supabase } from '../lib/supabase'
+import { useAuthStore } from './auth'
+import { useCharacterStore } from './character'
+
+const LS_KEY = 'autodungeon_character'
+const AUTOSAVE_INTERVAL_MS = 30_000
+
+export const useSaveStore = defineStore('save', () => {
+  const lastSaved = ref<string | null>(null)
+  const isSaving = ref(false)
+
+  // Auto-save every 30s
+  setInterval(() => saveCharacter(), AUTOSAVE_INTERVAL_MS)
+
+  async function saveCharacter(): Promise<void> {
+    const characterStore = useCharacterStore()
+    const authStore = useAuthStore()
+    const char = characterStore.character
+    if (!char) return
+
+    isSaving.value = true
+    char.lastSaved = new Date().toISOString()
+
+    try {
+      // Always write to localStorage as fallback
+      localStorage.setItem(LS_KEY, JSON.stringify(char))
+
+      // Persist to Supabase if authenticated
+      if (!authStore.isGuest && authStore.session) {
+        const { error } = await supabase.from('characters').upsert(
+          {
+            user_id: authStore.session.user.id,
+            data: char,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' },
+        )
+        if (error) console.error('[save] Supabase upsert failed:', error.message)
+      }
+
+      lastSaved.value = char.lastSaved
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  async function loadCharacter(): Promise<boolean> {
+    const characterStore = useCharacterStore()
+    const authStore = useAuthStore()
+
+    // Try Supabase first if authenticated
+    if (!authStore.isGuest && authStore.session) {
+      const { data, error } = await supabase
+        .from('characters')
+        .select('data')
+        .eq('user_id', authStore.session.user.id)
+        .single()
+
+      if (!error && data?.data) {
+        characterStore.restoreCharacter(data.data)
+        return true
+      }
+    }
+
+    // Fallback: localStorage
+    const raw = localStorage.getItem(LS_KEY)
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw)
+        characterStore.restoreCharacter(parsed)
+        return true
+      } catch {
+        // Corrupt data — ignore
+      }
+    }
+
+    return false
+  }
+
+  return { lastSaved, isSaving, saveCharacter, loadCharacter }
+})
