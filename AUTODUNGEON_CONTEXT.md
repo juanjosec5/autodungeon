@@ -364,7 +364,7 @@ Engine is pure — no Vue or Pinia imports. Stores wrap it.
 
 ---
 
-### [PENDING] Step 2a — useCharacterStore
+### [DONE] Step 2a — useCharacterStore
 
 Create src/stores/character.ts as a Pinia store.
 
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 1c completion*
+*Last updated: after Step 2a completion*
