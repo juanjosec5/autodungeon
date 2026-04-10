@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Character, Item, ZoneId, ClassId } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
-import { getItemById, getSellPrice } from '../game/items'
+import { getItemById, getSellPrice, getBuyPrice } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
@@ -207,6 +207,26 @@ export const useCharacterStore = defineStore('character', () => {
     return totalGold
   }
 
+  /**
+   * Buys an item from the shop by its template ID.
+   * Returns 'bought', 'no_gold', or 'inv_full'.
+   */
+  function buyItem(itemId: string): 'bought' | 'no_gold' | 'inv_full' {
+    const char = character.value
+    if (!char) return 'inv_full'
+
+    const template = getItemById(itemId)
+    if (!template) return 'inv_full'
+
+    const price = getBuyPrice(template.rarity)
+    if (char.gold < price) return 'no_gold'
+    if (char.inventory.length >= 20) return 'inv_full'
+
+    char.gold -= price
+    char.inventory.push({ ...structuredClone(template), id: crypto.randomUUID() })
+    return 'bought'
+  }
+
   function setZone(zone: ZoneId): void {
     const char = character.value
     if (!char) return
@@ -239,6 +259,7 @@ export const useCharacterStore = defineStore('character', () => {
     unequipItem,
     addToInventory,
     sellItems,
+    buyItem,
     applyXP,
     applyDeathPenalty,
     setZone,

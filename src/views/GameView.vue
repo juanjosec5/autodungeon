@@ -14,6 +14,7 @@ import Inventory from '../components/Inventory.vue'
 import ZoneSelector from '../components/ZoneSelector.vue'
 import SpeedControl from '../components/SpeedControl.vue'
 import DeathModal from '../components/DeathModal.vue'
+import ShopPanel from '../components/ShopPanel.vue'
 
 const router = useRouter()
 const saveStore = useSaveStore()
@@ -76,9 +77,10 @@ onUnmounted(() => {
         <CombatLog class="flex-1" />
       </div>
 
-      <!-- Col 3: Inventory + Speed -->
+      <!-- Col 3: Inventory + Shop + Speed -->
       <div class="flex flex-col gap-4 md:col-span-2 lg:col-span-1">
         <Inventory />
+        <ShopPanel />
         <SpeedControl />
       </div>
 

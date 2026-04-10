@@ -314,3 +314,39 @@ export function getSellPrice(rarity: RarityId): number {
   }
   return prices[rarity]
 }
+
+export function getBuyPrice(rarity: RarityId): number {
+  const prices: Record<RarityId, number> = {
+    common: 15,
+    uncommon: 45,
+    rare: 120,
+    epic: 360,
+    legendary: 1500,
+  }
+  return prices[rarity]
+}
+
+/** Items available in the shop, keyed by zone they become available */
+export const SHOP_ITEMS: { itemId: string; minZone: ZoneId }[] = [
+  // Always available (forest)
+  { itemId: 'iron-sword',    minZone: 'forest' },
+  { itemId: 'twin-daggers',  minZone: 'forest' },
+  { itemId: 'arcane-wand',   minZone: 'forest' },
+  { itemId: 'chainmail',     minZone: 'forest' },
+  { itemId: 'shadow-cloak',  minZone: 'forest' },
+  { itemId: 'mage-robes',    minZone: 'forest' },
+  // Dungeon
+  { itemId: 'broad-sword',      minZone: 'dungeon' },
+  { itemId: 'venomblade',       minZone: 'dungeon' },
+  { itemId: 'spellbreaker',     minZone: 'dungeon' },
+  { itemId: 'plate-armor',      minZone: 'dungeon' },
+  { itemId: 'assassins-garb',   minZone: 'dungeon' },
+  { itemId: 'arcane-vestment',  minZone: 'dungeon' },
+  // Volcano
+  { itemId: 'shadowblade',       minZone: 'volcano' },
+  { itemId: 'deathwhisper',      minZone: 'volcano' },
+  { itemId: 'voidstaff',         minZone: 'volcano' },
+  { itemId: 'dragonscale-mail',  minZone: 'volcano' },
+  { itemId: 'phantom-shroud',    minZone: 'volcano' },
+  { itemId: 'starweave-robe',    minZone: 'volcano' },
+]
