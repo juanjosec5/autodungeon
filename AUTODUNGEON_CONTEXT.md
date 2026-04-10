@@ -523,7 +523,7 @@ Layout:
 
 ---
 
-### [PENDING] Step 3b — CharacterPanel.vue
+### [DONE] Step 3b — CharacterPanel.vue
 
 src/components/CharacterPanel.vue
 
@@ -537,7 +537,7 @@ Displays from characterStore:
 
 ---
 
-### [PENDING] Step 3c — EnemyPanel.vue
+### [DONE] Step 3c — EnemyPanel.vue
 
 src/components/EnemyPanel.vue
 
@@ -550,7 +550,7 @@ Displays from combatStore.currentEnemy:
 
 ---
 
-### [PENDING] Step 3d — CombatLog.vue
+### [DONE] Step 3d — CombatLog.vue
 
 src/components/CombatLog.vue
 
@@ -570,7 +570,7 @@ Displays combatStore.combatLog:
 
 ---
 
-### [PENDING] Step 3e — GearPanel.vue + Inventory.vue
+### [DONE] Step 3e — GearPanel.vue + Inventory.vue
 
 src/components/GearPanel.vue:
 - Shows equipped weapon and armor
@@ -588,7 +588,7 @@ src/components/Inventory.vue:
 
 ---
 
-### [PENDING] Step 3f — ZoneSelector.vue + SpeedControl.vue
+### [DONE] Step 3f — ZoneSelector.vue + SpeedControl.vue
 
 src/components/ZoneSelector.vue:
 - 3 zone buttons: Forest / Dungeon / Volcano
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 3a completion*
+*Last updated: after Step 3f completion*
