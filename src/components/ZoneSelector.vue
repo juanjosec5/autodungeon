@@ -26,27 +26,50 @@ function select(zone: ZoneId) {
 </script>
 
 <template>
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-    <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-3">Zone</span>
-    <div class="flex flex-col gap-2">
+  <div class="pixel-panel">
+    <div class="panel-title">Zone</div>
+    <div class="inner">
       <button
         v-for="zone in ZONES"
         :key="zone.id"
-        @click="select(zone.id)"
+        class="zone-btn"
+        :class="{
+          'zone-active': zoneStore.activeZone === zone.id,
+          'zone-locked': !isUnlocked(zone.id),
+        }"
         :disabled="!isUnlocked(zone.id)"
-        :class="[
-          'flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all border',
-          zoneStore.activeZone === zone.id
-            ? 'bg-amber-900/30 border-amber-600/60 text-amber-300'
-            : isUnlocked(zone.id)
-              ? 'border-gray-700 text-gray-300 hover:border-gray-600 hover:bg-gray-800/50'
-              : 'border-gray-800 text-gray-600 cursor-not-allowed opacity-50',
-        ]"
+        @click="select(zone.id)"
       >
-        <span>{{ zone.icon }} {{ zone.label }}</span>
-        <span v-if="!isUnlocked(zone.id)" class="text-xs text-gray-600">Lv. {{ zone.unlockLevel }}</span>
-        <span v-else-if="zoneStore.activeZone === zone.id" class="text-xs text-amber-600">active</span>
+        <span>{{ zone.icon }} {{ zone.label.toUpperCase() }}</span>
+        <span v-if="!isUnlocked(zone.id)" class="zone-lock">LV.{{ zone.unlockLevel }}</span>
+        <span v-else-if="zoneStore.activeZone === zone.id" class="zone-active-label">active</span>
       </button>
     </div>
   </div>
 </template>
+
+<style scoped>
+.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 5px; }
+.zone-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--text);
+  background: #1e1c38;
+  border: 2px solid var(--border);
+  padding: 7px 8px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  top: 0; left: 0;
+  width: 100%;
+}
+.zone-btn:hover:not(:disabled) { border-color: var(--border-hi); }
+.zone-btn:active:not(:disabled) { top: 2px; left: 2px; box-shadow: none; }
+.zone-active { border-color: var(--gold); color: var(--gold); background: rgba(100,70,20,0.15); }
+.zone-locked { opacity: 0.45; cursor: not-allowed; color: var(--text-dim); }
+.zone-lock   { font-size: 7px; color: var(--text-dim); }
+.zone-active-label { font-size: 7px; color: var(--gold-dim); }
+</style>

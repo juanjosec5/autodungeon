@@ -14,70 +14,65 @@ const xpPercent = computed(() => {
   if (!char.value) return 0
   return Math.max(0, Math.min(100, (char.value.xp / char.value.xpToNext) * 100))
 })
-
-const hpBarColor = computed(() => {
-  const pct = hpPercent.value
-  if (pct > 50) return 'bg-green-500'
-  if (pct > 25) return 'bg-yellow-400'
-  return 'bg-red-500'
-})
-
-const classBadgeColor: Record<string, string> = {
-  warrior: 'bg-orange-900/50 text-orange-300 border-orange-700/50',
-  rogue:   'bg-purple-900/50 text-purple-300 border-purple-700/50',
-  mage:    'bg-blue-900/50   text-blue-300   border-blue-700/50',
-}
 </script>
 
 <template>
-  <div v-if="char" class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-3">
-    <!-- Name + class + level -->
-    <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="font-bold text-gray-100 truncate">{{ char.name }}</span>
-        <span
-          :class="['text-xs px-2 py-0.5 rounded border font-semibold uppercase tracking-wide', classBadgeColor[char.class]]"
-        >{{ char.class }}</span>
+  <div v-if="char" class="pixel-panel">
+    <div class="panel-title">Player</div>
+    <div class="inner">
+      <div class="char-header">
+        <div class="char-name-row">
+          <span class="char-name">{{ char.name }}</span>
+          <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+        </div>
+        <span class="char-level">LV.{{ char.level }}</span>
       </div>
-      <span class="text-amber-400 font-bold text-sm shrink-0">Lv. {{ char.level }}</span>
-    </div>
-
-    <!-- HP bar -->
-    <div>
-      <div class="flex justify-between text-xs text-gray-400 mb-1">
-        <span>HP</span>
-        <span>{{ char.currentHP }} / {{ char.maxHP }}</span>
+      <div class="bars">
+        <div class="bar-row">
+          <span class="bar-lbl">HP</span>
+          <div class="bar-track"><div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div></div>
+          <span class="bar-val">{{ char.currentHP }}/{{ char.maxHP }}</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lbl">XP</span>
+          <div class="bar-track"><div class="bar-fill bar-xp" :style="{ width: xpPercent + '%' }"></div></div>
+          <span class="bar-val">{{ char.xp }}/{{ char.xpToNext }}</span>
+        </div>
       </div>
-      <div class="h-2.5 bg-gray-800 rounded-full overflow-hidden">
-        <div
-          :class="['h-full rounded-full transition-all duration-300', hpBarColor]"
-          :style="{ width: hpPercent + '%' }"
-        />
+      <div class="stats-row">
+        <div class="stats">
+          <span class="stat">STR <b>{{ char.stats.str }}</b></span>
+          <span class="stat">DEX <b>{{ char.stats.dex }}</b></span>
+          <span class="stat">INT <b>{{ char.stats.int }}</b></span>
+        </div>
+        <span class="gold">{{ char.gold }}g</span>
       </div>
-    </div>
-
-    <!-- XP bar -->
-    <div>
-      <div class="flex justify-between text-xs text-gray-400 mb-1">
-        <span>XP</span>
-        <span>{{ char.xp }} / {{ char.xpToNext }}</span>
-      </div>
-      <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-        <div
-          class="h-full bg-amber-500 rounded-full transition-all duration-300"
-          :style="{ width: xpPercent + '%' }"
-        />
-      </div>
-    </div>
-
-    <!-- Stats + gold -->
-    <div class="flex items-center justify-between pt-1 border-t border-gray-800">
-      <div class="flex gap-4 text-xs">
-        <span class="text-gray-400">STR <span class="text-gray-200 font-mono">{{ char.stats.str }}</span></span>
-        <span class="text-gray-400">DEX <span class="text-gray-200 font-mono">{{ char.stats.dex }}</span></span>
-        <span class="text-gray-400">INT <span class="text-gray-200 font-mono">{{ char.stats.int }}</span></span>
-      </div>
-      <span class="text-amber-400 text-xs font-semibold">{{ char.gold }}g</span>
     </div>
   </div>
 </template>
+
+<style scoped>
+.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 10px; }
+.char-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
+.char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; }
+.char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
+.class-badge {
+  font-size: 7px;
+  padding: 2px 4px;
+  border: 1px solid;
+  line-height: 1;
+}
+.class-warrior { color: #e88040; border-color: #804020; background: rgba(80,30,0,0.4); }
+.class-rogue   { color: #a060d8; border-color: #502880; background: rgba(40,10,60,0.4); }
+.class-mage    { color: #4090e0; border-color: #204880; background: rgba(10,20,60,0.4); }
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }
+.bar-val { font-size: 8px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
+.stats-row { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); }
+.stats { display: flex; gap: 12px; }
+.stat { font-size: 8px; color: var(--text-dim); }
+.stat b { color: var(--text); font-weight: normal; }
+.gold { font-size: 8px; color: var(--gold); }
+</style>

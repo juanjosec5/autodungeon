@@ -5,6 +5,7 @@ import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { useAuthStore } from '../stores/auth'
+import { useCharacterStore } from '../stores/character'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
@@ -19,6 +20,7 @@ const saveStore = useSaveStore()
 const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
 const authStore = useAuthStore()
+const characterStore = useCharacterStore()
 
 // Restart combat whenever the active zone changes
 watch(() => zoneStore.activeZone, () => {
@@ -26,10 +28,13 @@ watch(() => zoneStore.activeZone, () => {
 })
 
 onMounted(async () => {
-  const found = await saveStore.loadCharacter()
-  if (!found) {
-    router.push('/')
-    return
+  // Character already set means we just came from character creation — skip load
+  if (!characterStore.character) {
+    const found = await saveStore.loadCharacter()
+    if (!found) {
+      router.push('/')
+      return
+    }
   }
   combatStore.startCombat()
 })
@@ -40,21 +45,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 text-gray-100 p-4">
+  <div class="game-root">
     <!-- Header -->
-    <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between gap-4">
-      <h1 class="text-xl font-black tracking-widest text-amber-400 uppercase">Autodungeon</h1>
-      <div class="flex items-center gap-4 text-xs">
-        <span v-if="saveStore.isSaving" class="text-amber-600">Saving...</span>
-        <span v-else-if="saveStore.lastSaved" class="text-gray-600">
+    <div class="game-header">
+      <h1 class="game-title">Autodungeon</h1>
+      <div class="game-meta">
+        <span v-if="saveStore.isSaving" class="meta-saving">Saving...</span>
+        <span v-else-if="saveStore.lastSaved" class="meta-saved">
           Saved {{ new Date(saveStore.lastSaved).toLocaleTimeString() }}
         </span>
-        <span v-if="!authStore.isGuest" class="text-gray-500">{{ authStore.session?.user.email }}</span>
-        <span v-else class="text-gray-600">Guest</span>
-        <button
-          @click="router.push('/')"
-          class="text-gray-600 hover:text-gray-400 transition-colors"
-        >← Menu</button>
+        <span v-if="!authStore.isGuest" class="meta-user">{{ authStore.session?.user.email }}</span>
+        <span v-else class="meta-user">Guest</span>
+        <button class="pixel-btn" @click="router.push('/')">← Menu</button>
       </div>
     </div>
 
@@ -85,3 +87,34 @@ onUnmounted(() => {
     <DeathModal />
   </div>
 </template>
+
+<style scoped>
+.game-root {
+  min-height: 100vh;
+  padding: 16px;
+}
+.game-header {
+  max-width: 72rem;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.game-title {
+  font-size: 16px;
+  letter-spacing: 4px;
+  color: var(--gold);
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 #000, 0 0 20px rgba(200,160,40,0.4);
+}
+.game-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 8px;
+}
+.meta-saving { color: var(--gold); }
+.meta-saved  { color: var(--text-dim); }
+.meta-user   { color: var(--text-dim); }
+</style>
