@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
+import { useAuthStore } from '../stores/auth'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
@@ -17,6 +18,7 @@ const router = useRouter()
 const saveStore = useSaveStore()
 const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
+const authStore = useAuthStore()
 
 // Restart combat whenever the active zone changes
 watch(() => zoneStore.activeZone, () => {
@@ -40,13 +42,19 @@ onUnmounted(() => {
 <template>
   <div class="min-h-screen bg-gray-950 text-gray-100 p-4">
     <!-- Header -->
-    <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between">
+    <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between gap-4">
       <h1 class="text-xl font-black tracking-widest text-amber-400 uppercase">Autodungeon</h1>
-      <div class="flex items-center gap-3 text-xs text-gray-600">
+      <div class="flex items-center gap-4 text-xs">
         <span v-if="saveStore.isSaving" class="text-amber-600">Saving...</span>
-        <span v-else-if="saveStore.lastSaved">
+        <span v-else-if="saveStore.lastSaved" class="text-gray-600">
           Saved {{ new Date(saveStore.lastSaved).toLocaleTimeString() }}
         </span>
+        <span v-if="!authStore.isGuest" class="text-gray-500">{{ authStore.session?.user.email }}</span>
+        <span v-else class="text-gray-600">Guest</span>
+        <button
+          @click="router.push('/')"
+          class="text-gray-600 hover:text-gray-400 transition-colors"
+        >← Menu</button>
       </div>
     </div>
 

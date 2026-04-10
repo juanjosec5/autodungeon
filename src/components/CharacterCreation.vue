@@ -4,11 +4,22 @@ import { useRouter } from 'vue-router'
 import type { ClassId } from '../types/index'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
+import { useAuthStore } from '../stores/auth'
 import { getStatsAtLevel } from '../game/classes'
+import AuthModal from './AuthModal.vue'
 
 const router = useRouter()
 const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
+const authStore = useAuthStore()
+
+// ── Auth modal ────────────────────────────────────────────────────────────────
+
+const showAuthModal = ref(false)
+const supabaseAvailable = computed(() => {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  return typeof url === 'string' && url.length > 0
+})
 
 // ── Saved character check ────────────────────────────────────────────────────
 
@@ -78,10 +89,31 @@ function begin() {
   characterStore.createCharacter(name.value.trim(), selectedClass.value)
   router.push('/game')
 }
+
+async function signOut() {
+  await authStore.signOut()
+  hasSaved.value = false
+  savedName.value = ''
+}
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center px-4 py-12">
+
+    <!-- Auth bar -->
+    <div class="w-full max-w-lg mb-4 flex justify-end items-center gap-3 text-xs">
+      <template v-if="!authStore.isGuest">
+        <span class="text-gray-500">{{ authStore.session?.user.email }}</span>
+        <button @click="signOut" class="text-gray-500 hover:text-gray-300 transition-colors">Sign out</button>
+      </template>
+      <button
+        v-else-if="supabaseAvailable"
+        @click="showAuthModal = true"
+        class="text-amber-500 hover:text-amber-400 font-semibold transition-colors"
+      >
+        Sign in to sync saves
+      </button>
+    </div>
 
     <!-- Title -->
     <h1 class="text-5xl font-black tracking-widest text-amber-400 mb-2 uppercase">
@@ -94,7 +126,9 @@ function begin() {
       <div class="bg-amber-900/30 border border-amber-700/50 rounded-xl p-5 flex items-center justify-between gap-4">
         <div>
           <p class="text-amber-300 font-semibold">Continue as {{ savedName }}</p>
-          <p class="text-gray-400 text-xs mt-0.5">Your progress has been saved</p>
+          <p class="text-gray-400 text-xs mt-0.5">
+            {{ authStore.isGuest ? 'Saved in this browser' : 'Cloud save' }}
+          </p>
         </div>
         <button
           @click="continueAdventure"
@@ -146,7 +180,6 @@ function begin() {
                 <p class="text-gray-400 text-xs mt-1">{{ card.flavor }}</p>
                 <p class="text-amber-600/80 text-xs mt-2 italic">{{ card.passive }}</p>
               </div>
-              <!-- Base stats -->
               <div class="shrink-0 text-right">
                 <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-gray-400">
                   <span class="text-gray-500">HP</span>
@@ -179,4 +212,7 @@ function begin() {
       </button>
     </div>
   </div>
+
+  <!-- Auth modal -->
+  <AuthModal v-if="showAuthModal" @close="showAuthModal = false" />
 </template>
