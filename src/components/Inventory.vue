@@ -249,8 +249,8 @@ function statSummary(item: Item): string {
 .slot-equippable:hover { border-color: var(--border-hi); }
 .slot-locked  { opacity: 0.5; cursor: not-allowed; }
 .slot-empty   { opacity: 0.2; }
-.slot-active   { outline: 2px solid var(--gold); outline-offset: -2px; }
-.slot-selected { outline: 2px solid var(--gold); outline-offset: -2px; }
+.slot-active   { outline: 2px solid #f07020; outline-offset: -2px; }
+.slot-selected { outline: 2px solid #f07020; outline-offset: -2px; }
 .slot-offclass { filter: hue-rotate(30deg); }
 
 .slot-icon { font-size: 16px; line-height: 1; }
