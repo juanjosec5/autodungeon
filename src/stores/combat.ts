@@ -102,10 +102,12 @@ export const useCombatStore = defineStore('combat', () => {
           })
         }
         _triggerSave()
-        // Update currentEnemy to the newly spawned one
-        _syncEnemy()
         break
       }
+
+      case 'enemy_spawned':
+        currentEnemy.value = p.enemy as Enemy
+        break
 
       case 'hp_regen':
         addLogEntry({
@@ -143,14 +145,6 @@ export const useCombatStore = defineStore('combat', () => {
   engine.on(handleEvent)
 
   // ── Private helpers ───────────────────────────────────────────────────────
-
-  function _syncEnemy(): void {
-    // engine.state is internal; read via a cast — state is set when running
-    const engineAny = engine as unknown as { state: { enemy: Enemy } | null }
-    if (engineAny.state) {
-      currentEnemy.value = engineAny.state.enemy
-    }
-  }
 
   function _triggerSave(): void {
     // Lazy import to avoid circular dep with saveStore
