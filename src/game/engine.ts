@@ -20,6 +20,7 @@ export type CombatEventType =
   | 'player_crit'
   | 'enemy_hit'
   | 'enemy_dead'
+  | 'enemy_spawned'
   | 'player_dead'
   | 'loot_dropped'
   | 'loot_sold'
@@ -324,6 +325,7 @@ export class CombatEngine {
     // Spawn next enemy
     const newEnemy = spawnEnemy(this.state.zone)
     this.state.enemy = newEnemy
+    this.emit({ type: 'enemy_spawned', payload: { enemy: newEnemy } })
     this.schedulePlayerTick()
     this.scheduleEnemyTick()
   }
