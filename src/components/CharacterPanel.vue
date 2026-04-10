@@ -55,10 +55,10 @@ const xpPercent = computed(() => {
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 10px; }
 .char-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
 .char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.char-name { font-size: 9px; color: var(--text-hi); line-height: 1.6; }
-.char-level { font-size: 7px; color: var(--gold); white-space: nowrap; }
+.char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; }
+.char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
 .class-badge {
-  font-size: 5px;
+  font-size: 7px;
   padding: 2px 4px;
   border: 1px solid;
   line-height: 1;
@@ -68,11 +68,11 @@ const xpPercent = computed(() => {
 .class-mage    { color: #4090e0; border-color: #204880; background: rgba(10,20,60,0.4); }
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-lbl { font-size: 6px; color: var(--text); width: 18px; flex-shrink: 0; }
-.bar-val { font-size: 6px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
+.bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }
+.bar-val { font-size: 8px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
 .stats-row { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); }
 .stats { display: flex; gap: 12px; }
-.stat { font-size: 6px; color: var(--text-dim); }
+.stat { font-size: 8px; color: var(--text-dim); }
 .stat b { color: var(--text); font-weight: normal; }
-.gold { font-size: 6px; color: var(--gold); }
+.gold { font-size: 8px; color: var(--gold); }
 </style>

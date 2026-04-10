@@ -52,7 +52,7 @@ function select(zone: ZoneId) {
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 5px; }
 .zone-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
+  font-size: 8px;
   color: var(--text);
   background: #1e1c38;
   border: 2px solid var(--border);
@@ -70,6 +70,6 @@ function select(zone: ZoneId) {
 .zone-btn:active:not(:disabled) { top: 2px; left: 2px; box-shadow: none; }
 .zone-active { border-color: var(--gold); color: var(--gold); background: rgba(100,70,20,0.15); }
 .zone-locked { opacity: 0.45; cursor: not-allowed; color: var(--text-dim); }
-.zone-lock   { font-size: 5px; color: var(--text-dim); }
-.zone-active-label { font-size: 5px; color: var(--gold-dim); }
+.zone-lock   { font-size: 7px; color: var(--text-dim); }
+.zone-active-label { font-size: 7px; color: var(--gold-dim); }
 </style>

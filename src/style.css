@@ -51,7 +51,7 @@ html, body {
 .pixel-panel::after  { bottom: -2px; right: -2px; }
 
 .panel-title {
-  font-size: 7px;
+  font-size: 9px;
   letter-spacing: 1px;
   color: var(--gold);
   padding: 6px 10px 5px;
@@ -97,7 +97,7 @@ html, body {
 /* ── Pixel button ── */
 .pixel-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: 9px;
   color: var(--text-hi);
   background: #1e1c38;
   border: 2px solid var(--border);

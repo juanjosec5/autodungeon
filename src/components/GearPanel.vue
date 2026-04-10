@@ -94,11 +94,11 @@ function unequip(slot: 'weapon' | 'armor') {
 .slot-empty { border-style: dashed; opacity: 0.45; cursor: default; }
 .slot-content { flex: 1; min-width: 0; }
 .slot-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.slot-name { font-size: 7px; }
-.slot-stat { font-size: 6px; color: var(--text-dim); }
-.slot-placeholder { font-size: 7px; color: var(--text-dim); }
-.slot-hint { font-size: 5px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
-.off-class { font-size: 6px; color: #d8a060; }
+.slot-name { font-size: 9px; }
+.slot-stat { font-size: 8px; color: var(--text-dim); }
+.slot-placeholder { font-size: 9px; color: var(--text-dim); }
+.slot-hint { font-size: 7px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+.off-class { font-size: 8px; color: #d8a060; }
 .r-common    { color: var(--text); }
 .r-uncommon  { color: var(--blue); }
 .r-rare      { color: var(--gold); }

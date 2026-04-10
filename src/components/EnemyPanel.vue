@@ -122,7 +122,7 @@ const spriteStyle = computed(() => {
   animation: float 2.8s ease-in-out infinite;
 }
 .sprite-name {
-  font-size: 8px;
+  font-size: 10px;
   color: #fff;
   letter-spacing: 1px;
   text-shadow: 2px 2px 0 #000, 0 0 12px rgba(160,80,255,0.8);
@@ -130,12 +130,12 @@ const spriteStyle = computed(() => {
 }
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-lbl { font-size: 6px; color: var(--text); width: 18px; flex-shrink: 0; }
-.bar-val { font-size: 6px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
+.bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }
+.bar-val { font-size: 8px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
 .enemy-stats { display: flex; gap: 10px; padding-top: 6px; border-top: 1px solid var(--border); }
-.stat { font-size: 6px; color: var(--text-dim); }
+.stat { font-size: 8px; color: var(--text-dim); }
 .stat b { color: var(--text); font-weight: normal; }
-.no-enemy { padding: 20px; text-align: center; font-size: 7px; color: var(--text-dim); }
+.no-enemy { padding: 20px; text-align: center; font-size: 9px; color: var(--text-dim); }
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-5px); }

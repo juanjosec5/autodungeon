@@ -80,17 +80,17 @@ watch(
   border-color: #6a1818;
 }
 .skull { font-size: 36px; margin-bottom: 12px; display: block; }
-.modal-title { font-size: 16px; color: var(--red); margin-bottom: 10px; letter-spacing: 2px; }
-.modal-msg { font-size: 7px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.8; }
+.modal-title { font-size: 18px; color: var(--red); margin-bottom: 10px; letter-spacing: 2px; }
+.modal-msg { font-size: 9px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.8; }
 .slain-by { color: #f08888; }
 .losses { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
 .loss-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.loss-val { font-size: 11px; }
-.loss-lbl { font-size: 5px; color: var(--text-dim); }
+.loss-val { font-size: 13px; }
+.loss-lbl { font-size: 7px; color: var(--text-dim); }
 .loss-xp   { color: var(--red); }
 .loss-gold { color: var(--gold); }
 .loss-divider { width: 1px; height: 32px; background: var(--border); }
-.respawn { font-size: 6px; color: var(--text-dim); }
+.respawn { font-size: 8px; color: var(--text-dim); }
 /* transition */
 .death-enter-active { transition: opacity 0.2s, transform 0.2s; }
 .death-leave-active { transition: opacity 0.3s, transform 0.3s; }

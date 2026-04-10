@@ -228,10 +228,10 @@ function statSummary(item: Item): string {
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
 
 .inv-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.inv-count  { font-size: 6px; color: var(--text-dim); }
+.inv-count  { font-size: 8px; color: var(--text-dim); }
 .inv-actions { display: flex; gap: 5px; align-items: center; }
 
-.btn-scrap { font-size: 6px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; }
+.btn-scrap { font-size: 8px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; }
 .btn-scrap:hover:not(:disabled) { border-color: #d8a060; }
 
 .inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -253,13 +253,13 @@ function statSummary(item: Item): string {
 .slot-selected { outline: 2px solid var(--gold); outline-offset: -2px; }
 .slot-offclass { filter: hue-rotate(30deg); }
 
-.slot-icon { font-size: 10px; line-height: 1; }
+.slot-icon { font-size: 16px; line-height: 1; }
 
 .class-tag {
   position: absolute;
   bottom: 1px;
   left: 2px;
-  font-size: 5px;
+  font-size: 7px;
   color: var(--text-dim);
   line-height: 1;
 }
@@ -289,20 +289,20 @@ function statSummary(item: Item): string {
   gap: 6px;
 }
 .detail-header { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
-.detail-name   { font-size: 7px; line-height: 1.4; }
-.detail-price  { font-size: 6px; color: var(--gold); white-space: nowrap; }
-.detail-stats  { font-size: 6px; color: var(--text); }
+.detail-name   { font-size: 9px; line-height: 1.4; }
+.detail-price  { font-size: 8px; color: var(--gold); white-space: nowrap; }
+.detail-stats  { font-size: 8px; color: var(--text); }
 .detail-specials { display: flex; flex-wrap: wrap; gap: 4px; }
-.detail-special  { font-size: 6px; color: var(--purple); }
+.detail-special  { font-size: 8px; color: var(--purple); }
 .detail-class {
-  font-size: 6px;
+  font-size: 8px;
   color: var(--text-dim);
   text-transform: capitalize;
 }
 .detail-class-warn   { color: #d8a060; }
 .detail-class-locked { color: var(--red); }
 .detail-btns { display: flex; gap: 6px; }
-.detail-btns .pixel-btn { flex: 1; text-align: center; font-size: 6px; padding: 5px 4px; }
+.detail-btns .pixel-btn { flex: 1; text-align: center; font-size: 8px; padding: 5px 4px; }
 
 /* sell bar */
 .sell-bar {
@@ -313,5 +313,5 @@ function statSummary(item: Item): string {
   border: 1px solid var(--border);
   background: #0e0c1c;
 }
-.sell-info { font-size: 6px; color: var(--text); }
+.sell-info { font-size: 8px; color: var(--text); }
 </style>

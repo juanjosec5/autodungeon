@@ -59,12 +59,12 @@ const log = computed(() => [...combatStore.combatLog].reverse())
 .log-body::-webkit-scrollbar-track { background: #100e20; }
 .log-body::-webkit-scrollbar-thumb { background: #40386a; }
 .log-entry {
-  font-size: 6.5px;
+  font-size: 8.5px;
   line-height: 2.2;
   padding: 0 2px;
   border-bottom: 1px solid rgba(255,255,255,0.03);
 }
-.log-empty { font-size: 7px; color: var(--text-dim); text-align: center; padding: 20px 0; }
+.log-empty { font-size: 9px; color: var(--text-dim); text-align: center; padding: 20px 0; }
 .l-hit    { color: #e0d8f0; }
 .l-crit   { color: #f0d820; }
 .l-miss   { color: #7868a0; }

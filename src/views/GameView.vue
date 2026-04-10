@@ -102,7 +102,7 @@ onUnmounted(() => {
   gap: 16px;
 }
 .game-title {
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 4px;
   color: var(--gold);
   text-transform: uppercase;
@@ -112,7 +112,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 6px;
+  font-size: 8px;
 }
 .meta-saving { color: var(--gold); }
 .meta-saved  { color: var(--text-dim); }
