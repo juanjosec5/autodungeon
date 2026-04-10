@@ -638,7 +638,7 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-### [PENDING] Step 4c — Vercel Deploy Config
+### [DONE] Step 4c — Vercel Deploy Config
 
 - Confirm vercel.json exists with SPA rewrite rule
 - Add .env.example with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 4b completion*
+*Last updated: after Step 4c completion — MVP COMPLETE*

@@ -6,6 +6,7 @@ import type { CombatEvent } from '../game/engine'
 import { spawnEnemy } from '../game/enemies'
 import { useCharacterStore } from './character'
 import { useZoneStore } from './zone'
+import { useSaveStore } from './save'
 
 const MAX_LOG = 100
 
@@ -143,10 +144,7 @@ export const useCombatStore = defineStore('combat', () => {
   // ── Private helpers ───────────────────────────────────────────────────────
 
   function _triggerSave(): void {
-    // Lazy import to avoid circular dep with saveStore
-    import('./save').then(({ useSaveStore }) => {
-      useSaveStore().saveCharacter()
-    })
+    useSaveStore().saveCharacter()
   }
 
   // ── Public actions ────────────────────────────────────────────────────────
