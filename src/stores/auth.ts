@@ -7,27 +7,30 @@ export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null)
   const isGuest = computed(() => session.value === null)
 
-  // Hydrate on init
-  supabase.auth.getSession().then(({ data }) => {
-    session.value = data.session
-  })
+  if (supabase) {
+    supabase.auth.getSession().then(({ data }) => {
+      session.value = data.session
+    })
 
-  // Keep in sync with Supabase auth state changes
-  supabase.auth.onAuthStateChange((_event, newSession) => {
-    session.value = newSession
-  })
+    supabase.auth.onAuthStateChange((_event, newSession) => {
+      session.value = newSession
+    })
+  }
 
   async function signUp(email: string, password: string) {
+    if (!supabase) throw new Error('Supabase not configured')
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
   }
 
   async function signIn(email: string, password: string) {
+    if (!supabase) throw new Error('Supabase not configured')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
   }
 
   async function signOut() {
+    if (!supabase) throw new Error('Supabase not configured')
     const { error } = await supabase.auth.signOut()
     if (error) throw error
   }
