@@ -5,6 +5,7 @@ import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { useAuthStore } from '../stores/auth'
+import { useCharacterStore } from '../stores/character'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
@@ -19,6 +20,7 @@ const saveStore = useSaveStore()
 const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
 const authStore = useAuthStore()
+const characterStore = useCharacterStore()
 
 // Restart combat whenever the active zone changes
 watch(() => zoneStore.activeZone, () => {
@@ -26,10 +28,13 @@ watch(() => zoneStore.activeZone, () => {
 })
 
 onMounted(async () => {
-  const found = await saveStore.loadCharacter()
-  if (!found) {
-    router.push('/')
-    return
+  // Character already set means we just came from character creation — skip load
+  if (!characterStore.character) {
+    const found = await saveStore.loadCharacter()
+    if (!found) {
+      router.push('/')
+      return
+    }
   }
   combatStore.startCombat()
 })
