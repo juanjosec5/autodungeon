@@ -38,7 +38,9 @@ export const useCombatStore = defineStore('combat', () => {
 
     switch (event.type) {
       case 'player_hit':
-        if (currentEnemy.value) currentEnemy.value.hp = p.enemyHP as number
+        if (currentEnemy.value) {
+          currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
+        }
         addLogEntry({
           type: 'hit',
           message: `You hit ${p.enemyName} for ${p.damage} damage. (${p.enemyHP}/${p.enemyMaxHP})`,
@@ -46,7 +48,9 @@ export const useCombatStore = defineStore('combat', () => {
         break
 
       case 'player_crit':
-        if (currentEnemy.value) currentEnemy.value.hp = p.enemyHP as number
+        if (currentEnemy.value) {
+          currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
+        }
         addLogEntry({
           type: 'crit',
           message: `⚡ CRIT! You hit ${p.enemyName} for ${p.damage} damage!`,
