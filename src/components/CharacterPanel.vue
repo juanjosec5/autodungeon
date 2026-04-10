@@ -21,7 +21,10 @@ const xpPercent = computed(() => {
     <div class="panel-title">Player</div>
     <div class="inner">
       <div class="char-header">
-        <span class="char-name">{{ char.name }}</span>
+        <div class="char-name-row">
+          <span class="char-name">{{ char.name }}</span>
+          <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+        </div>
         <span class="char-level">LV.{{ char.level }}</span>
       </div>
       <div class="bars">
@@ -51,8 +54,18 @@ const xpPercent = computed(() => {
 <style scoped>
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 10px; }
 .char-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
+.char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .char-name { font-size: 9px; color: var(--text-hi); line-height: 1.6; }
 .char-level { font-size: 7px; color: var(--gold); white-space: nowrap; }
+.class-badge {
+  font-size: 5px;
+  padding: 2px 4px;
+  border: 1px solid;
+  line-height: 1;
+}
+.class-warrior { color: #e88040; border-color: #804020; background: rgba(80,30,0,0.4); }
+.class-rogue   { color: #a060d8; border-color: #502880; background: rgba(40,10,60,0.4); }
+.class-mage    { color: #4090e0; border-color: #204880; background: rgba(10,20,60,0.4); }
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
 .bar-lbl { font-size: 6px; color: var(--text); width: 18px; flex-shrink: 0; }
