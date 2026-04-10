@@ -61,29 +61,33 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Main grid -->
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="content">
+      <!-- Enemy — full width -->
+      <EnemyPanel class="enemy-row" />
 
-      <!-- Col 1: Character + Gear -->
-      <div class="flex flex-col gap-4">
-        <CharacterPanel />
-        <GearPanel />
-        <ZoneSelector />
+      <!-- Main grid -->
+      <div class="main-grid">
+
+        <!-- Col 1: Character + Gear + Zone + Speed -->
+        <div class="col">
+          <CharacterPanel />
+          <GearPanel />
+          <ZoneSelector />
+          <SpeedControl />
+        </div>
+
+        <!-- Col 2: Combat Log -->
+        <div class="col">
+          <CombatLog class="log-fill" />
+        </div>
+
+        <!-- Col 3: Inventory + Shop -->
+        <div class="col col-wide">
+          <Inventory />
+          <ShopPanel />
+        </div>
+
       </div>
-
-      <!-- Col 2: Enemy + Combat Log -->
-      <div class="flex flex-col gap-4">
-        <EnemyPanel />
-        <CombatLog class="flex-1" />
-      </div>
-
-      <!-- Col 3: Inventory + Shop + Speed -->
-      <div class="flex flex-col gap-4 md:col-span-2 lg:col-span-1">
-        <Inventory />
-        <ShopPanel />
-        <SpeedControl />
-      </div>
-
     </div>
 
     <DeathModal />
@@ -93,19 +97,21 @@ onUnmounted(() => {
 <style scoped>
 .game-root {
   min-height: 100vh;
-  padding: 16px;
+  padding: 12px;
 }
+
 .game-header {
   max-width: 72rem;
-  margin: 0 auto 16px;
+  margin: 0 auto 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .game-title {
-  font-size: 16px;
-  letter-spacing: 4px;
+  font-size: 14px;
+  letter-spacing: 3px;
   color: var(--gold);
   text-transform: uppercase;
   text-shadow: 2px 2px 0 #000, 0 0 20px rgba(200,160,40,0.4);
@@ -113,10 +119,56 @@ onUnmounted(() => {
 .game-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-size: 8px;
+  flex-wrap: wrap;
 }
 .meta-saving { color: var(--gold); }
 .meta-saved  { color: var(--text-dim); }
 .meta-user   { color: var(--text-dim); }
+
+.content {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.main-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.log-fill {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Tablet: 2 columns */
+@media (min-width: 640px) {
+  .main-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .col-wide {
+    grid-column: span 2;
+  }
+}
+
+/* Desktop: 3 columns */
+@media (min-width: 1024px) {
+  .main-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .col-wide {
+    grid-column: span 1;
+  }
+}
 </style>
