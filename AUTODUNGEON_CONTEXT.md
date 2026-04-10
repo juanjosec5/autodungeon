@@ -396,7 +396,7 @@ Responsibilities:
 
 ---
 
-### [PENDING] Step 2b — useCombatStore + useZoneStore
+### [DONE] Step 2b — useCombatStore + useZoneStore
 
 Create src/stores/zone.ts:
 - Holds activeZone: ZoneId (default 'forest')
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 2a completion*
+*Last updated: after Step 2b completion*
