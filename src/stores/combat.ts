@@ -85,6 +85,10 @@ export const useCombatStore = defineStore('combat', () => {
 
       case 'loot_dropped': {
         const item = p.item as import('../types/index').Item
+        // Keep lootStore.lastDroppedItem reactive for UI observers
+        import('./loot').then(({ useLootStore }) => {
+          useLootStore().lastDroppedItem = item
+        })
         const result = characterStore.addToInventory(item)
         if (result.sold) {
           addLogEntry({

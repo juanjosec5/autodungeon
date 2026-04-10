@@ -452,7 +452,7 @@ Create src/stores/combat.ts:
 
 ---
 
-### [PENDING] Step 2c — useLootStore
+### [DONE] Step 2c — useLootStore
 
 Create src/stores/loot.ts:
 - Thin store, mostly delegates to items.ts helpers
@@ -464,7 +464,7 @@ Create src/stores/loot.ts:
 
 ---
 
-### [PENDING] Step 2d — useAuthStore + useSaveStore
+### [DONE] Step 2d — useAuthStore + useSaveStore
 
 Create src/lib/supabase.ts:
 - Initialize supabase client using:
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 2b completion*
+*Last updated: after Step 2d completion*
