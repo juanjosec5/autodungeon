@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
+import { useZoneStore } from '../stores/zone'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
@@ -15,6 +16,12 @@ import DeathModal from '../components/DeathModal.vue'
 const router = useRouter()
 const saveStore = useSaveStore()
 const combatStore = useCombatStore()
+const zoneStore = useZoneStore()
+
+// Restart combat whenever the active zone changes
+watch(() => zoneStore.activeZone, () => {
+  if (combatStore.isRunning) combatStore.restartCombat()
+})
 
 onMounted(async () => {
   const found = await saveStore.loadCharacter()

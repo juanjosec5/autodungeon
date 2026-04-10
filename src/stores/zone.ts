@@ -9,14 +9,9 @@ export const useZoneStore = defineStore('zone', () => {
   function setZone(zone: ZoneId): void {
     const characterStore = useCharacterStore()
     if (!characterStore.unlockedZones.includes(zone)) return
-
     activeZone.value = zone
     characterStore.setZone(zone)
-
-    // Combat store will react to zone change — imported lazily to avoid circular deps
-    const { useCombatStore } = require('./combat') as typeof import('./combat')
-    const combatStore = useCombatStore()
-    combatStore.restartCombat()
+    // GameView watches activeZone and calls combatStore.restartCombat()
   }
 
   return { activeZone, setZone }
