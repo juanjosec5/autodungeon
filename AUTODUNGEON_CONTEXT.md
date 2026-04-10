@@ -604,7 +604,7 @@ src/components/SpeedControl.vue:
 
 ---
 
-### [PENDING] Step 3g — DeathModal.vue
+### [DONE] Step 3g — DeathModal.vue
 
 src/components/DeathModal.vue:
 - Shows when player_dead event fires
@@ -615,7 +615,7 @@ src/components/DeathModal.vue:
 
 ---
 
-### [PENDING] Step 4a — GameView.vue + Full Wiring
+### [DONE] Step 4a — GameView.vue + Full Wiring
 
 Replace placeholder at src/views/GameView.vue.
 
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 3f completion*
+*Last updated: after Step 4a completion*
