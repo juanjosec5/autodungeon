@@ -131,10 +131,6 @@ export const useCombatStore = defineStore('combat', () => {
         break
       }
 
-      case 'loot_sold':
-        // Emitted directly by engine if needed in future; combat store covers it via loot_dropped
-        break
-
       case 'zone_cleared':
         // Reserved for MVP
         break

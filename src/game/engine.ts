@@ -23,7 +23,6 @@ export type CombatEventType =
   | 'enemy_spawned'
   | 'player_dead'
   | 'loot_dropped'
-  | 'loot_sold'
   | 'xp_gained'
   | 'level_up'
   | 'hp_regen'
