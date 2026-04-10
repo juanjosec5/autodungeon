@@ -46,7 +46,7 @@ export interface Character {
   }
   inventory: Item[]
   gold: number
-  currentZone: 'forest' | 'dungeon' | 'volcano'
+  currentZone: 'forest' | 'dungeon' | 'volcano' | 'abyss'
   createdAt: string
   lastSaved: string
 }
@@ -54,7 +54,7 @@ export interface Character {
 export interface Enemy {
   id: string
   name: string
-  zone: 'forest' | 'dungeon' | 'volcano'
+  zone: ZoneId
   hp: number
   maxHp: number
   atk: [number, number]
@@ -70,6 +70,6 @@ export interface CombatLogEntry {
   type: 'hit' | 'crit' | 'miss' | 'loot' | 'levelup' | 'death' | 'regen' | 'sell' | 'zone'
 }
 
-export type ZoneId = 'forest' | 'dungeon' | 'volcano'
+export type ZoneId = 'forest' | 'dungeon' | 'volcano' | 'abyss'
 export type ClassId = 'warrior' | 'rogue' | 'mage'
 export type RarityId = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'

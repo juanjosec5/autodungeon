@@ -301,8 +301,7 @@ export class CombatEngine {
     this.emit({ type: 'xp_gained', payload: { amount: enemy.xpReward } })
 
     // Loot
-    const isDragon = enemy.id === 'dragon'
-    const item = rollLoot(this.state.zone, isDragon)
+    const item = rollLoot(this.state.zone, enemy.id)
     this.emit({ type: 'loot_dropped', payload: { item } })
 
     // Regen on kill
