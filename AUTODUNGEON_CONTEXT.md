@@ -502,7 +502,7 @@ Create src/stores/save.ts:
 
 ---
 
-### [PENDING] Step 3a — CharacterCreation.vue
+### [DONE] Step 3a — CharacterCreation.vue
 
 Replace the placeholder at src/components/CharacterCreation.vue.
 
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 2d completion*
+*Last updated: after Step 3a completion*

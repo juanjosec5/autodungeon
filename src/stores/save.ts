@@ -11,7 +11,6 @@ export const useSaveStore = defineStore('save', () => {
   const lastSaved = ref<string | null>(null)
   const isSaving = ref(false)
 
-  // Auto-save every 30s
   setInterval(() => saveCharacter(), AUTOSAVE_INTERVAL_MS)
 
   async function saveCharacter(): Promise<void> {
@@ -24,11 +23,9 @@ export const useSaveStore = defineStore('save', () => {
     char.lastSaved = new Date().toISOString()
 
     try {
-      // Always write to localStorage as fallback
       localStorage.setItem(LS_KEY, JSON.stringify(char))
 
-      // Persist to Supabase if authenticated
-      if (!authStore.isGuest && authStore.session) {
+      if (supabase && !authStore.isGuest && authStore.session) {
         const { error } = await supabase.from('characters').upsert(
           {
             user_id: authStore.session.user.id,
@@ -50,8 +47,7 @@ export const useSaveStore = defineStore('save', () => {
     const characterStore = useCharacterStore()
     const authStore = useAuthStore()
 
-    // Try Supabase first if authenticated
-    if (!authStore.isGuest && authStore.session) {
+    if (supabase && !authStore.isGuest && authStore.session) {
       const { data, error } = await supabase
         .from('characters')
         .select('data')
@@ -64,7 +60,6 @@ export const useSaveStore = defineStore('save', () => {
       }
     }
 
-    // Fallback: localStorage
     const raw = localStorage.getItem(LS_KEY)
     if (raw) {
       try {
