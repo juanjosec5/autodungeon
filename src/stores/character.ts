@@ -15,6 +15,7 @@ const ZONE_UNLOCK_LEVELS: Record<ZoneId, number> = {
   forest: 1,
   dungeon: 5,
   volcano: 12,
+  abyss: 20,
 }
 
 export const useCharacterStore = defineStore('character', () => {
@@ -150,7 +151,7 @@ export const useCharacterStore = defineStore('character', () => {
     const char = character.value
     if (!char) return 0
 
-    const MAX_LEVEL = 20
+    const MAX_LEVEL = 40
     char.xp += amount
     let levelsGained = 0
 
