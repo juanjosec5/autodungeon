@@ -10,28 +10,20 @@ const tooltip = ref<{ item: Item; x: number; y: number } | null>(null)
 
 const SLOTS = 20
 
-const rarityBorder: Record<string, string> = {
-  common:    'border-gray-600',
-  uncommon:  'border-blue-500',
-  rare:      'border-yellow-500',
-  epic:      'border-purple-500',
-  legendary: 'border-amber-400',
+const rarityBorderClass: Record<string, string> = {
+  common:    'rb-common',
+  uncommon:  'rb-uncommon',
+  rare:      'rb-rare',
+  epic:      'rb-epic',
+  legendary: 'rb-legendary',
 }
 
-const rarityBg: Record<string, string> = {
-  common:    'bg-gray-800',
-  uncommon:  'bg-blue-950/60',
-  rare:      'bg-yellow-950/60',
-  epic:      'bg-purple-950/60',
-  legendary: 'bg-amber-950/60',
-}
-
-const rarityText: Record<string, string> = {
-  common:    'text-gray-400',
-  uncommon:  'text-blue-400',
-  rare:      'text-yellow-400',
-  epic:      'text-purple-400',
-  legendary: 'text-amber-400',
+const rarityTextClass: Record<string, string> = {
+  common:    'rt-common',
+  uncommon:  'rt-uncommon',
+  rare:      'rt-rare',
+  epic:      'rt-epic',
+  legendary: 'rt-legendary',
 }
 
 function canEquip(item: Item): boolean {
@@ -46,7 +38,8 @@ function equipItem(item: Item) {
 }
 
 function showTooltip(item: Item, e: MouseEvent) {
-  tooltip.value = { item, x: (e.target as HTMLElement).getBoundingClientRect().right + 8, y: (e.target as HTMLElement).getBoundingClientRect().top }
+  const rect = (e.target as HTMLElement).getBoundingClientRect()
+  tooltip.value = { item, x: rect.right + 8, y: rect.top }
 }
 
 function hideTooltip() {
@@ -69,56 +62,99 @@ const slots = computed(() => {
 </script>
 
 <template>
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Inventory</span>
-      <span class="text-xs text-gray-600">{{ char?.inventory.length ?? 0 }} / {{ SLOTS }}</span>
-    </div>
-
-    <div class="grid grid-cols-5 gap-1.5">
-      <div
-        v-for="(item, i) in slots"
-        :key="i"
-        class="aspect-square rounded-lg border flex items-center justify-center relative cursor-default transition-all"
-        :class="item
-          ? [rarityBorder[item.rarity], rarityBg[item.rarity], canEquip(item) ? 'cursor-pointer hover:brightness-125' : 'opacity-50 cursor-not-allowed']
-          : 'border-gray-800 bg-gray-800/30'"
-        @click="item && equipItem(item)"
-        @mouseenter="item && showTooltip(item, $event)"
-        @mouseleave="hideTooltip"
-      >
-        <span v-if="item" :class="['text-xs font-bold leading-none select-none', rarityText[item.rarity]]">
-          {{ item.type === 'weapon' ? '⚔' : '🛡' }}
-        </span>
+  <div class="pixel-panel">
+    <div class="panel-title">Inventory</div>
+    <div class="inner">
+      <div class="inv-header">
+        <span class="inv-count">{{ char?.inventory.length ?? 0 }} / {{ SLOTS }}</span>
+      </div>
+      <div class="inv-grid">
+        <div
+          v-for="(item, i) in slots"
+          :key="i"
+          class="inv-slot"
+          :class="item
+            ? [rarityBorderClass[item.rarity], canEquip(item) ? 'slot-equippable' : 'slot-locked']
+            : 'slot-empty'"
+          @click="item && equipItem(item)"
+          @mouseenter="item && showTooltip(item, $event)"
+          @mouseleave="hideTooltip"
+        >
+          <span v-if="item" :class="['slot-icon', rarityTextClass[item.rarity]]">
+            {{ item.type === 'weapon' ? '⚔' : '🛡' }}
+          </span>
+        </div>
       </div>
     </div>
 
-    <!-- Tooltip -->
     <Teleport to="body">
       <div
         v-if="tooltip"
-        class="fixed z-50 bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-2xl text-xs pointer-events-none w-48"
+        class="tooltip"
         :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
       >
-        <p :class="['font-bold mb-1', rarityText[tooltip.item.rarity]]">{{ tooltip.item.name }}</p>
-        <p class="text-gray-500 capitalize mb-1">{{ tooltip.item.rarity }} {{ tooltip.item.type }}</p>
-        <p class="text-gray-300">{{ statSummary(tooltip.item) }}</p>
-        <div v-if="tooltip.item.stats.special?.length" class="mt-1.5 flex flex-col gap-0.5">
-          <span
-            v-for="s in tooltip.item.stats.special"
-            :key="s.type"
-            class="text-purple-400"
-          >✦ {{ s.type }}</span>
+        <span :class="['tt-name', rarityTextClass[tooltip.item.rarity]]">{{ tooltip.item.name }}</span>
+        <span class="tt-sub">{{ tooltip.item.rarity }} {{ tooltip.item.type }}</span>
+        <span class="tt-stats">{{ statSummary(tooltip.item) }}</span>
+        <div v-if="tooltip.item.stats.special?.length" class="tt-specials">
+          <span v-for="s in tooltip.item.stats.special" :key="s.type" class="tt-special">✦ {{ s.type }}</span>
         </div>
-        <p
-          v-if="char && getOffClassPenalty(tooltip.item, char.class) === 0"
-          class="text-red-400 mt-1.5"
-        >Cannot equip (wrong class)</p>
-        <p
-          v-else-if="char && getOffClassPenalty(tooltip.item, char.class) < 1"
-          class="text-yellow-600 mt-1.5"
-        >⚠ 70% effectiveness</p>
+        <span v-if="char && getOffClassPenalty(tooltip.item, char.class) === 0" class="tt-warn-no">Cannot equip</span>
+        <span v-else-if="char && getOffClassPenalty(tooltip.item, char.class) < 1" class="tt-warn-off">⚠ 70% effectiveness</span>
       </div>
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.inner { padding: 8px 10px 10px; }
+.inv-header { margin-bottom: 8px; }
+.inv-count { font-size: 6px; color: var(--text-dim); }
+.inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.inv-slot {
+  aspect-ratio: 1;
+  border: 2px solid var(--border);
+  background: #0e0c1c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slot-equippable { cursor: pointer; }
+.slot-equippable:hover { border-color: var(--border-hi); }
+.slot-locked { opacity: 0.4; cursor: not-allowed; }
+.slot-empty  { opacity: 0.2; }
+.slot-icon { font-size: 10px; line-height: 1; }
+/* rarity borders */
+.rb-common    { border-color: #42387a; }
+.rb-uncommon  { border-color: #4080d0; }
+.rb-rare      { border-color: var(--gold); }
+.rb-epic      { border-color: #9050e0; }
+.rb-legendary { border-color: var(--gold); background: rgba(100,60,0,0.2); }
+/* rarity text */
+.rt-common    { color: var(--text); }
+.rt-uncommon  { color: var(--blue); }
+.rt-rare      { color: var(--gold); }
+.rt-epic      { color: var(--purple); }
+.rt-legendary { color: var(--gold); }
+/* tooltip */
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  box-shadow: 3px 3px 0 #000;
+  padding: 8px;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tt-name    { font-size: 7px; }
+.tt-sub     { font-size: 6px; color: var(--text-dim); text-transform: capitalize; }
+.tt-stats   { font-size: 6px; color: var(--text); }
+.tt-specials { display: flex; flex-direction: column; gap: 2px; }
+.tt-special  { font-size: 6px; color: var(--purple); }
+.tt-warn-no  { font-size: 6px; color: var(--red); }
+.tt-warn-off { font-size: 6px; color: #d8a060; }
+</style>

@@ -7,12 +7,12 @@ import type { Item } from '../types/index'
 const characterStore = useCharacterStore()
 const char = computed(() => characterStore.character)
 
-const rarityColor: Record<string, string> = {
-  common:    'text-gray-400',
-  uncommon:  'text-blue-400',
-  rare:      'text-yellow-400',
-  epic:      'text-purple-400',
-  legendary: 'text-amber-400',
+const rarityClass: Record<string, string> = {
+  common:    'r-common',
+  uncommon:  'r-uncommon',
+  rare:      'r-rare',
+  epic:      'r-epic',
+  legendary: 'r-legendary',
 }
 
 function isOffClass(item: Item): boolean {
@@ -37,53 +37,71 @@ function unequip(slot: 'weapon' | 'armor') {
 </script>
 
 <template>
-  <div v-if="char" class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-3">
-    <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Gear</span>
-
-    <!-- Weapon slot -->
-    <div
-      class="rounded-lg border p-3 flex items-center justify-between gap-2 cursor-pointer hover:border-gray-600 transition-colors"
-      :class="char.gear.weapon ? 'border-gray-700 bg-gray-800/50' : 'border-dashed border-gray-700'"
-      @click="char.gear.weapon && unequip('weapon')"
-    >
-      <div v-if="char.gear.weapon" class="min-w-0">
-        <div class="flex items-center gap-2">
-          <span :class="['text-sm font-semibold truncate', rarityColor[char.gear.weapon.rarity]]">
-            {{ char.gear.weapon.name }}
-          </span>
-          <span
-            v-if="isOffClass(char.gear.weapon)"
-            class="text-xs text-yellow-600 shrink-0"
-            title="Off-class: 70% effectiveness"
-          >⚠ 70%</span>
+  <div v-if="char" class="pixel-panel">
+    <div class="panel-title">Gear</div>
+    <div class="inner">
+      <div
+        class="slot"
+        :class="char.gear.weapon ? 'slot-filled' : 'slot-empty'"
+        @click="char.gear.weapon && unequip('weapon')"
+      >
+        <div v-if="char.gear.weapon" class="slot-content">
+          <div class="slot-head">
+            <span :class="['slot-name', rarityClass[char.gear.weapon.rarity]]">{{ char.gear.weapon.name }}</span>
+            <span v-if="isOffClass(char.gear.weapon)" class="off-class">⚠ 70%</span>
+          </div>
+          <span class="slot-stat">{{ weaponSummary(char.gear.weapon) }}</span>
         </div>
-        <span class="text-xs text-gray-500">{{ weaponSummary(char.gear.weapon) }}</span>
+        <span v-else class="slot-placeholder">Weapon — empty</span>
+        <span v-if="char.gear.weapon" class="slot-hint">unequip</span>
       </div>
-      <div v-else class="text-gray-600 text-sm">Weapon — empty</div>
-      <span v-if="char.gear.weapon" class="text-gray-600 text-xs shrink-0">click to unequip</span>
-    </div>
 
-    <!-- Armor slot -->
-    <div
-      class="rounded-lg border p-3 flex items-center justify-between gap-2 cursor-pointer hover:border-gray-600 transition-colors"
-      :class="char.gear.armor ? 'border-gray-700 bg-gray-800/50' : 'border-dashed border-gray-700'"
-      @click="char.gear.armor && unequip('armor')"
-    >
-      <div v-if="char.gear.armor" class="min-w-0">
-        <div class="flex items-center gap-2">
-          <span :class="['text-sm font-semibold truncate', rarityColor[char.gear.armor.rarity]]">
-            {{ char.gear.armor.name }}
-          </span>
-          <span
-            v-if="isOffClass(char.gear.armor)"
-            class="text-xs text-yellow-600 shrink-0"
-            title="Off-class: 70% effectiveness"
-          >⚠ 70%</span>
+      <div
+        class="slot"
+        :class="char.gear.armor ? 'slot-filled' : 'slot-empty'"
+        @click="char.gear.armor && unequip('armor')"
+      >
+        <div v-if="char.gear.armor" class="slot-content">
+          <div class="slot-head">
+            <span :class="['slot-name', rarityClass[char.gear.armor.rarity]]">{{ char.gear.armor.name }}</span>
+            <span v-if="isOffClass(char.gear.armor)" class="off-class">⚠ 70%</span>
+          </div>
+          <span class="slot-stat">{{ armorSummary(char.gear.armor) }}</span>
         </div>
-        <span class="text-xs text-gray-500">{{ armorSummary(char.gear.armor) }}</span>
+        <span v-else class="slot-placeholder">Armor — empty</span>
+        <span v-if="char.gear.armor" class="slot-hint">unequip</span>
       </div>
-      <div v-else class="text-gray-600 text-sm">Armor — empty</div>
-      <span v-if="char.gear.armor" class="text-gray-600 text-xs shrink-0">click to unequip</span>
     </div>
   </div>
 </template>
+
+<style scoped>
+.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.slot {
+  border: 2px solid var(--border);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: 2px 2px 0 #000;
+  position: relative;
+  top: 0; left: 0;
+}
+.slot-filled { background: #1e1c38; cursor: pointer; }
+.slot-filled:hover { border-color: var(--border-hi); }
+.slot-filled:active { top: 2px; left: 2px; box-shadow: none; }
+.slot-empty { border-style: dashed; opacity: 0.45; cursor: default; }
+.slot-content { flex: 1; min-width: 0; }
+.slot-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.slot-name { font-size: 7px; }
+.slot-stat { font-size: 6px; color: var(--text-dim); }
+.slot-placeholder { font-size: 7px; color: var(--text-dim); }
+.slot-hint { font-size: 5px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+.off-class { font-size: 6px; color: #d8a060; }
+.r-common    { color: var(--text); }
+.r-uncommon  { color: var(--blue); }
+.r-rare      { color: var(--gold); }
+.r-epic      { color: var(--purple); }
+.r-legendary { color: var(--gold); text-shadow: 0 0 6px rgba(224,184,78,0.6); }
+</style>

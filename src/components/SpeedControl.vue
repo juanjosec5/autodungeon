@@ -15,36 +15,33 @@ function togglePause() {
 </script>
 
 <template>
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-3 flex-wrap">
-    <!-- Play / Pause -->
-    <button
-      @click="togglePause"
-      :disabled="!combatStore.isRunning"
-      :class="[
-        'px-4 py-2 rounded-lg text-sm font-bold border transition-all',
-        combatStore.isRunning
-          ? 'border-amber-600/60 bg-amber-900/30 text-amber-300 hover:bg-amber-900/50'
-          : 'border-gray-700 text-gray-600 cursor-not-allowed opacity-50',
-      ]"
-    >
-      {{ combatStore.isPaused ? '▶ Resume' : '⏸ Pause' }}
-    </button>
-
-    <!-- Speed buttons -->
-    <div class="flex gap-1">
+  <div class="pixel-panel">
+    <div class="panel-title">Controls</div>
+    <div class="inner">
       <button
-        v-for="s in SPEEDS"
-        :key="s"
-        @click="combatStore.setSpeed(s)"
-        :class="[
-          'px-3 py-2 rounded-lg text-xs font-bold border transition-all',
-          combatStore.speed === s
-            ? 'bg-amber-500 border-amber-400 text-gray-950'
-            : 'border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-200',
-        ]"
+        class="pixel-btn pause-btn"
+        :class="combatStore.isPaused ? 'btn-purple' : ''"
+        :disabled="!combatStore.isRunning"
+        @click="togglePause"
       >
-        {{ s }}x
+        {{ combatStore.isPaused ? '▶ RESUME' : '⏸ PAUSE' }}
       </button>
+      <div class="speed-row">
+        <button
+          v-for="s in SPEEDS"
+          :key="s"
+          class="pixel-btn speed-btn"
+          :class="combatStore.speed === s ? 'btn-gold' : ''"
+          @click="combatStore.setSpeed(s)"
+        >{{ s }}×</button>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.pause-btn { width: 100%; text-align: center; }
+.speed-row { display: flex; gap: 6px; }
+.speed-btn { flex: 1; text-align: center; }
+</style>

@@ -6,19 +6,18 @@ import type { CombatLogEntry } from '../types/index'
 const combatStore = useCombatStore()
 const logEl = ref<HTMLElement | null>(null)
 
-const entryColor: Record<CombatLogEntry['type'], string> = {
-  hit:     'text-gray-300',
-  crit:    'text-yellow-300 font-semibold',
-  miss:    'text-gray-500',
-  loot:    'text-green-400',
-  levelup: 'text-amber-400 font-semibold',
-  death:   'text-red-400 font-semibold',
-  regen:   'text-teal-400',
-  sell:    'text-orange-400',
-  zone:    'text-blue-400',
+const entryClass: Record<CombatLogEntry['type'], string> = {
+  hit:     'l-hit',
+  crit:    'l-crit',
+  miss:    'l-miss',
+  loot:    'l-loot',
+  levelup: 'l-level',
+  death:   'l-death',
+  regen:   'l-regen',
+  sell:    'l-sell',
+  zone:    'l-zone',
 }
 
-// Auto-scroll to bottom on new entries
 watch(
   () => combatStore.combatLog.length,
   async () => {
@@ -27,37 +26,51 @@ watch(
   },
 )
 
-function relativeTime(timestamp: number): string {
-  const diff = Math.floor((Date.now() - timestamp) / 1000)
-  if (diff < 5) return 'now'
-  if (diff < 60) return `${diff}s ago`
-  return `${Math.floor(diff / 60)}m ago`
-}
-
 const log = computed(() => [...combatStore.combatLog].reverse())
 </script>
 
 <template>
-  <div class="bg-gray-900 border border-gray-800 rounded-xl flex flex-col h-full min-h-0">
-    <div class="px-4 py-2 border-b border-gray-800 shrink-0">
-      <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Combat Log</span>
-    </div>
-    <div
-      ref="logEl"
-      class="flex-1 overflow-y-auto px-4 py-3 flex flex-col-reverse gap-0.5 text-xs"
-      style="max-height: 280px;"
-    >
+  <div class="pixel-panel flex flex-col h-full min-h-0">
+    <div class="panel-title">Combat Log</div>
+    <div ref="logEl" class="log-body">
       <div
         v-for="entry in log"
         :key="entry.id"
-        class="flex items-baseline justify-between gap-2"
-      >
-        <span :class="entryColor[entry.type]">{{ entry.message }}</span>
-        <span class="text-gray-700 shrink-0 tabular-nums">{{ relativeTime(entry.timestamp) }}</span>
-      </div>
-      <div v-if="!combatStore.combatLog.length" class="text-gray-600 text-center py-4">
-        Awaiting combat...
-      </div>
+        :class="['log-entry', entryClass[entry.type]]"
+      >&gt; {{ entry.message }}</div>
+      <div v-if="!combatStore.combatLog.length" class="log-empty">Awaiting combat...</div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px 10px;
+  display: flex;
+  flex-direction: column-reverse;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #40386a transparent;
+}
+.log-body::-webkit-scrollbar       { width: 4px; }
+.log-body::-webkit-scrollbar-track { background: #100e20; }
+.log-body::-webkit-scrollbar-thumb { background: #40386a; }
+.log-entry {
+  font-size: 6.5px;
+  line-height: 2.2;
+  padding: 0 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.log-empty { font-size: 7px; color: var(--text-dim); text-align: center; padding: 20px 0; }
+.l-hit    { color: #e0d8f0; }
+.l-crit   { color: #f0d820; }
+.l-miss   { color: #7868a0; }
+.l-loot   { color: #58d880; }
+.l-death  { color: #e03838; }
+.l-regen  { color: #40d898; }
+.l-level  { color: var(--gold); }
+.l-sell   { color: #d8a060; }
+.l-zone   { color: #8898e0; }
+</style>

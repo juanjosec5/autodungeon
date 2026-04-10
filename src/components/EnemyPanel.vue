@@ -10,46 +10,134 @@ const hpPercent = computed(() => {
   return Math.max(0, Math.min(100, (enemy.value.hp / enemy.value.maxHp) * 100))
 })
 
-const zoneBadgeColor: Record<string, string> = {
-  forest:  'bg-green-900/50 text-green-300 border-green-700/50',
-  dungeon: 'bg-gray-700/50  text-gray-300  border-gray-600/50',
-  volcano: 'bg-red-900/50   text-red-300   border-red-700/50',
-}
+// Pixel sprite — 12×13 wraith, 5px per pixel, drawn via CSS box-shadow
+const PX = 5
+const B = '#6030b8'
+const S = '#3d1a78'
+const D = '#150a30'
+const E = '#ee66ff'
+const _ = null
+
+const SPRITE = [
+  [_,_,_,_,B,B,B,B,_,_,_,_],
+  [_,_,_,B,B,B,B,B,B,_,_,_],
+  [_,_,B,B,B,B,B,B,B,B,_,_],
+  [_,B,B,B,B,B,B,B,B,B,B,_],
+  [B,B,B,B,B,B,B,B,B,B,B,B],
+  [B,B,S,S,B,B,B,B,S,S,B,B],
+  [B,B,D,D,B,B,B,B,D,D,B,B],
+  [B,B,E,E,B,B,B,B,E,E,B,B],
+  [B,B,D,D,B,B,B,B,D,D,B,B],
+  [B,B,B,B,B,B,B,B,B,B,B,B],
+  [B,B,B,B,B,B,B,B,B,B,B,B],
+  [B,B,B,B,B,B,B,B,B,B,B,B],
+  [_,B,_,B,_,B,_,B,_,B,_,_],
+]
+
+const spriteStyle = computed(() => {
+  const shadows: string[] = []
+  for (let r = 0; r < SPRITE.length; r++) {
+    for (let c = 0; c < SPRITE[r].length; c++) {
+      const color = SPRITE[r][c]
+      if (color) shadows.push(`${c * PX}px ${r * PX}px 0 0 ${color}`)
+    }
+  }
+  return { boxShadow: shadows.join(',') }
+})
 </script>
 
 <template>
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-3">
+  <div class="pixel-panel flex flex-col">
+    <div class="panel-title">Enemy</div>
     <template v-if="enemy">
-      <!-- Name + zone badge -->
-      <div class="flex items-center justify-between gap-2">
-        <span class="font-bold text-gray-100 animate-pulse">{{ enemy.name }}</span>
-        <span
-          :class="['text-xs px-2 py-0.5 rounded border font-semibold uppercase tracking-wide', zoneBadgeColor[enemy.zone]]"
-        >{{ enemy.zone }}</span>
-      </div>
-
-      <!-- HP bar -->
-      <div>
-        <div class="flex justify-between text-xs text-gray-400 mb-1">
-          <span>HP</span>
-          <span>{{ enemy.hp }} / {{ enemy.maxHp }}</span>
-        </div>
-        <div class="h-2.5 bg-gray-800 rounded-full overflow-hidden">
-          <div
-            class="h-full bg-red-500 rounded-full transition-all duration-300"
-            :style="{ width: hpPercent + '%' }"
-          />
+      <div class="arena">
+        <div class="arena-glow"></div>
+        <div class="sprite-wrap">
+          <div class="pixel-sprite" :style="spriteStyle"></div>
+          <div class="sprite-name">{{ enemy.name }}</div>
         </div>
       </div>
-
-      <!-- ATK + DEF -->
-      <div class="flex gap-4 text-xs pt-1 border-t border-gray-800">
-        <span class="text-gray-400">ATK <span class="text-gray-200 font-mono">{{ enemy.atk[0] }}–{{ enemy.atk[1] }}</span></span>
-        <span class="text-gray-400">DEF <span class="text-gray-200 font-mono">{{ enemy.def }}</span></span>
-        <span class="text-gray-400">SPD <span class="text-gray-200 font-mono">{{ (enemy.attackSpeed / 1000).toFixed(1) }}s</span></span>
+      <div class="inner">
+        <div class="bar-row">
+          <span class="bar-lbl">HP</span>
+          <div class="bar-track"><div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div></div>
+          <span class="bar-val">{{ enemy.hp }}/{{ enemy.maxHp }}</span>
+        </div>
+        <div class="enemy-stats">
+          <span class="stat">ATK <b>{{ enemy.atk[0] }}–{{ enemy.atk[1] }}</b></span>
+          <span class="stat">DEF <b>{{ enemy.def }}</b></span>
+          <span class="stat">SPD <b>{{ (enemy.attackSpeed / 1000).toFixed(1) }}s</b></span>
+        </div>
       </div>
     </template>
-
-    <div v-else class="text-gray-600 text-sm text-center py-2">No enemy</div>
+    <div v-else class="no-enemy">No enemy</div>
   </div>
 </template>
+
+<style scoped>
+.arena {
+  height: 120px;
+  background: #0e0c1c;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.arena::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.18) 3px,
+    rgba(0,0,0,0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+.arena-glow {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 150px; height: 40px;
+  background: radial-gradient(ellipse, rgba(120,40,220,0.5) 0%, transparent 70%);
+  pointer-events: none;
+}
+.sprite-wrap {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.pixel-sprite {
+  width: 5px;
+  height: 5px;
+  image-rendering: pixelated;
+  animation: float 2.8s ease-in-out infinite;
+}
+.sprite-name {
+  font-size: 8px;
+  color: #fff;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 0 #000, 0 0 12px rgba(160,80,255,0.8);
+  text-align: center;
+}
+.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-lbl { font-size: 6px; color: var(--text); width: 18px; flex-shrink: 0; }
+.bar-val { font-size: 6px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
+.enemy-stats { display: flex; gap: 10px; padding-top: 6px; border-top: 1px solid var(--border); }
+.stat { font-size: 6px; color: var(--text-dim); }
+.stat b { color: var(--text); font-weight: normal; }
+.no-enemy { padding: 20px; text-align: center; font-size: 7px; color: var(--text-dim); }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+</style>

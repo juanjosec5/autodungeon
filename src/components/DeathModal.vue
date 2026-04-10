@@ -11,7 +11,6 @@ const slainBy = ref('')
 const xpLost = ref(0)
 const goldLost = ref(0)
 
-// Watch combat log for the most recent death entry
 watch(
   () => combatStore.combatLog,
   (log) => {
@@ -19,15 +18,13 @@ watch(
     if (latest?.type === 'death') {
       const char = characterStore.character
       if (char) {
-        xpLost.value = Math.floor((char.xp + (char.xp * 0.1)) * 0.1) // approx before penalty applied
+        xpLost.value = Math.floor((char.xp + (char.xp * 0.1)) * 0.1)
         goldLost.value = Math.floor((char.gold + (char.gold * 0.15)) * 0.15)
       }
-      // Parse enemy name from log message
       const match = latest.message.match(/slain by (.+?)!/)
       slainBy.value = match ? match[1] : 'an enemy'
       xpLost.value = 0
       goldLost.value = 0
-      // Re-parse directly from the message which has the values
       const xpMatch = latest.message.match(/Lost (\d+)xp/)
       const goldMatch = latest.message.match(/and (\d+)g/)
       if (xpMatch) xpLost.value = parseInt(xpMatch[1])
@@ -42,37 +39,60 @@ watch(
 </script>
 
 <template>
-  <Transition
-    enter-active-class="transition duration-200 ease-out"
-    enter-from-class="opacity-0 scale-95"
-    enter-to-class="opacity-100 scale-100"
-    leave-active-class="transition duration-300 ease-in"
-    leave-from-class="opacity-100 scale-100"
-    leave-to-class="opacity-0 scale-95"
-  >
-    <div
-      v-if="visible"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-    >
-      <div class="bg-gray-950 border border-red-800/60 rounded-2xl p-8 shadow-2xl text-center max-w-sm w-full mx-4">
-        <div class="text-5xl mb-4">☠️</div>
-        <h2 class="text-2xl font-black text-red-400 mb-2 uppercase tracking-wide">You Died</h2>
-        <p class="text-gray-400 mb-4">
-          You were slain by <span class="text-red-300 font-semibold">{{ slainBy }}</span>.
-        </p>
-        <div class="flex justify-center gap-6 text-sm mb-6">
-          <div class="flex flex-col items-center">
-            <span class="text-red-500 font-bold text-lg">-{{ xpLost }} XP</span>
-            <span class="text-gray-600 text-xs">experience lost</span>
+  <Transition name="death">
+    <div v-if="visible" class="modal-overlay">
+      <div class="modal pixel-panel">
+        <div class="skull">☠</div>
+        <div class="modal-title">YOU DIED</div>
+        <p class="modal-msg">Slain by <span class="slain-by">{{ slainBy }}</span></p>
+        <div class="losses">
+          <div class="loss-item">
+            <span class="loss-val loss-xp">-{{ xpLost }} XP</span>
+            <span class="loss-lbl">experience</span>
           </div>
-          <div class="w-px bg-gray-800" />
-          <div class="flex flex-col items-center">
-            <span class="text-yellow-600 font-bold text-lg">-{{ goldLost }}g</span>
-            <span class="text-gray-600 text-xs">gold lost</span>
+          <div class="loss-divider"></div>
+          <div class="loss-item">
+            <span class="loss-val loss-gold">-{{ goldLost }}g</span>
+            <span class="loss-lbl">gold</span>
           </div>
         </div>
-        <p class="text-gray-600 text-xs">Respawning...</p>
+        <p class="respawn">Respawning...</p>
       </div>
     </div>
   </Transition>
 </template>
+
+<style scoped>
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.75);
+}
+.modal {
+  padding: 28px 32px;
+  text-align: center;
+  max-width: 320px;
+  width: calc(100% - 32px);
+  border-color: #6a1818;
+}
+.skull { font-size: 36px; margin-bottom: 12px; display: block; }
+.modal-title { font-size: 16px; color: var(--red); margin-bottom: 10px; letter-spacing: 2px; }
+.modal-msg { font-size: 7px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.8; }
+.slain-by { color: #f08888; }
+.losses { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
+.loss-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.loss-val { font-size: 11px; }
+.loss-lbl { font-size: 5px; color: var(--text-dim); }
+.loss-xp   { color: var(--red); }
+.loss-gold { color: var(--gold); }
+.loss-divider { width: 1px; height: 32px; background: var(--border); }
+.respawn { font-size: 6px; color: var(--text-dim); }
+/* transition */
+.death-enter-active { transition: opacity 0.2s, transform 0.2s; }
+.death-leave-active { transition: opacity 0.3s, transform 0.3s; }
+.death-enter-from, .death-leave-to { opacity: 0; transform: scale(0.95); }
+</style>
