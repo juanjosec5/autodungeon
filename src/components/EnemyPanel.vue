@@ -54,10 +54,10 @@ const spriteStyle = computed(() => {
         <div class="arena-glow"></div>
         <div class="sprite-wrap">
           <div class="pixel-sprite" :style="spriteStyle"></div>
-          <div class="sprite-name">{{ enemy.name }}</div>
         </div>
       </div>
       <div class="inner">
+        <div class="sprite-name">{{ enemy.name }}</div>
         <div class="bar-row">
           <span class="bar-lbl">HP</span>
           <div class="bar-track"><div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div></div>
@@ -110,10 +110,6 @@ const spriteStyle = computed(() => {
 .sprite-wrap {
   position: relative;
   z-index: 5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
 }
 .pixel-sprite {
   width: 5px;
@@ -123,10 +119,9 @@ const spriteStyle = computed(() => {
 }
 .sprite-name {
   font-size: 10px;
-  color: #fff;
+  color: var(--text-hi);
   letter-spacing: 1px;
-  text-shadow: 2px 2px 0 #000, 0 0 12px rgba(160,80,255,0.8);
-  text-align: center;
+  text-shadow: 2px 2px 0 #000;
 }
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
