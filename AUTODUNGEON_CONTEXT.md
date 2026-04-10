@@ -628,7 +628,7 @@ Compose all components into the game layout:
 
 ---
 
-### [PENDING] Step 4b — Supabase Auth UI + Save Sync
+### [DONE] Step 4b — Supabase Auth UI + Save Sync
 
 Add to CharacterCreation.vue or as a separate AuthModal.vue:
 - Optional sign in / sign up form (email + password)
@@ -667,4 +667,4 @@ Add to CharacterCreation.vue or as a separate AuthModal.vue:
 
 ---
 
-*Last updated: after Step 4a completion*
+*Last updated: after Step 4b completion*
