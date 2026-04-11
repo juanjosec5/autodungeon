@@ -18,8 +18,17 @@ const ZONE_UNLOCK_LEVELS: Record<ZoneId, number> = {
   abyss: 20,
 }
 
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
+
 export const useCharacterStore = defineStore('character', () => {
   const character = ref<Character | null>(null)
+
+  const autoScrap = ref(localStorage.getItem('autoScrap') === 'true')
+
+  function toggleAutoScrap(): void {
+    autoScrap.value = !autoScrap.value
+    localStorage.setItem('autoScrap', String(autoScrap.value))
+  }
 
   // ── Getters ──────────────────────────────────────────────────────────────
 
@@ -126,17 +135,32 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   /**
-   * Returns { sold: true, gold } if inventory was full (item auto-sold),
+   * Returns { sold: true, gold, reason } if item was auto-sold,
    * otherwise returns { sold: false }.
    */
-  function addToInventory(item: Item): { sold: true; gold: number } | { sold: false } {
+  function addToInventory(item: Item): { sold: true; gold: number; reason: 'full' | 'scrap' } | { sold: false } {
     const char = character.value
     if (!char) return { sold: false }
+
+    // Auto-scrap: sell if item is lower tier than currently equipped slot
+    if (autoScrap.value) {
+      const itemTier = RARITY_ORDER.indexOf(item.rarity)
+      const weaponTier = char.gear.weapon ? RARITY_ORDER.indexOf(char.gear.weapon.rarity) : -1
+      const armorTier  = char.gear.armor  ? RARITY_ORDER.indexOf(char.gear.armor.rarity)  : -1
+      const isJunk =
+        (item.type === 'weapon' && weaponTier >= 0 && itemTier < weaponTier) ||
+        (item.type === 'armor'  && armorTier  >= 0 && itemTier < armorTier)
+      if (isJunk) {
+        const gold = getSellPrice(item.rarity)
+        char.gold += gold
+        return { sold: true, gold, reason: 'scrap' }
+      }
+    }
 
     if (char.inventory.length >= 20) {
       const gold = getSellPrice(item.rarity)
       char.gold += gold
-      return { sold: true, gold }
+      return { sold: true, gold, reason: 'full' }
     }
 
     char.inventory.push(item)
@@ -251,6 +275,8 @@ export const useCharacterStore = defineStore('character', () => {
 
   return {
     character,
+    autoScrap,
+    toggleAutoScrap,
     unlockedZones,
     effectiveWeaponStats,
     effectiveArmorStats,

@@ -110,10 +110,10 @@ export const useCombatStore = defineStore('combat', () => {
         })
         const result = characterStore.addToInventory(item)
         if (result.sold) {
-          addLogEntry({
-            type: 'sell',
-            message: `💰 Inventory full — sold ${item.name} for ${result.gold}g`,
-          })
+          const msg = result.reason === 'scrap'
+            ? `🗑 Auto-scrapped ${item.name} for ${result.gold}g`
+            : `💰 Inventory full — sold ${item.name} for ${result.gold}g`
+          addLogEntry({ type: 'sell', message: msg })
         } else {
           addLogEntry({
             type: 'loot',

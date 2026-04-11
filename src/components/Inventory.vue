@@ -150,6 +150,10 @@ function statSummary(item: Item): string {
       <div class="inv-header">
         <span class="inv-count">{{ char?.inventory.length ?? 0 }} / {{ SLOTS }}</span>
         <div class="inv-actions">
+          <label class="autoscrap-toggle" :class="{ active: characterStore.autoScrap }">
+            <input type="checkbox" :checked="characterStore.autoScrap" @change="characterStore.toggleAutoScrap()" />
+            Auto-scrap
+          </label>
           <button
             v-if="junkIds.length > 0 && !selectMode"
             class="pixel-btn btn-scrap"
@@ -236,6 +240,28 @@ function statSummary(item: Item): string {
 .inv-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .inv-count  { font-size: 8px; color: var(--text-dim); }
 .inv-actions { display: flex; gap: 5px; align-items: center; }
+
+.autoscrap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 7px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.autoscrap-toggle input { display: none; }
+.autoscrap-toggle::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--border);
+  background: #0e0c1c;
+  flex-shrink: 0;
+}
+.autoscrap-toggle.active { color: #d8a060; }
+.autoscrap-toggle.active::before { background: #d8a060; border-color: #d8a060; }
 
 .btn-scrap { font-size: 8px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; }
 .btn-scrap:hover:not(:disabled) { border-color: #d8a060; }

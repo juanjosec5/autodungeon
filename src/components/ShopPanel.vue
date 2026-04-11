@@ -128,13 +128,69 @@ function specialLine(item: Item): string {
 const RARITY_LABEL: Record<string, string> = {
   common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary',
 }
+
+// ── Zone preview (codex tab) ──────────────────────────────────────────────────
+
+const activeTab = ref<'shop' | 'codex'>('shop')
+
+const ZONE_META = [
+  { name: 'Forest',  minZoneIdx: 0, unlockLevel: 1  },
+  { name: 'Dungeon', minZoneIdx: 1, unlockLevel: 5  },
+  { name: 'Volcano', minZoneIdx: 2, unlockLevel: 12 },
+  { name: 'Abyss',   minZoneIdx: 3, unlockLevel: 20 },
+] as const
+
+type ZoneSection = {
+  name: string
+  unlockLevel: number
+  unlocked: boolean
+  weapons: Item[]
+  armor: Item[]
+}
+
+const codexZones = computed<ZoneSection[]>(() => {
+  const currentZoneIdx = ZONE_ORDER.indexOf(zoneStore.activeZone)
+  const charLevel = characterStore.character?.level ?? 1
+
+  return ZONE_META.map(({ name, minZoneIdx, unlockLevel }) => {
+    const items = SHOP_ITEMS
+      .filter(({ minZone }) => minZone === minZoneIdx || (minZoneIdx === 3 && minZone >= 3))
+      .map(({ id }) => ITEM_DEFINITIONS.find((i) => i.id === id)!)
+      .filter(Boolean)
+    return {
+      name,
+      unlockLevel,
+      unlocked: charLevel >= unlockLevel && currentZoneIdx >= minZoneIdx,
+      weapons: items.filter((i) => i.type === 'weapon'),
+      armor:   items.filter((i) => i.type === 'armor'),
+    }
+  })
+})
+
+const previewItem = ref<Item | null>(null)
+const previewLocked = ref(false)
+
+function selectPreview(item: Item, locked: boolean) {
+  if (previewItem.value?.id === item.id) {
+    previewItem.value = null
+  } else {
+    previewItem.value = item
+    previewLocked.value = locked
+  }
+}
 </script>
 
 <template>
   <div class="pixel-panel shop-panel">
     <div class="panel-title">Shop</div>
 
-    <div class="inner">
+    <!-- Tabs -->
+    <div class="shop-tabs">
+      <button class="shop-tab" :class="{ active: activeTab === 'shop' }" @click="activeTab = 'shop'">Buy</button>
+      <button class="shop-tab" :class="{ active: activeTab === 'codex' }" @click="activeTab = 'codex'">Codex</button>
+    </div>
+
+    <div class="inner" v-if="activeTab === 'shop'">
       <!-- Gold + flash -->
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
@@ -250,6 +306,67 @@ const RARITY_LABEL: Record<string, string> = {
             {{ invFull() ? 'Inv Full' : !canAfford(selectedItem) ? 'No Gold' : 'Buy' }}
           </button>
           <button class="pixel-btn" @click="selectedItem = null">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Codex tab -->
+    <div class="inner" v-if="activeTab === 'codex'">
+      <div
+        v-for="zone in codexZones"
+        :key="zone.name"
+        class="codex-zone"
+        :class="{ 'zone-locked': !zone.unlocked }"
+      >
+        <div class="codex-zone-header">
+          <span class="codex-zone-name">{{ zone.name }}</span>
+          <span v-if="!zone.unlocked" class="codex-zone-lock">Lv {{ zone.unlockLevel }}</span>
+        </div>
+
+        <template v-for="[label, items] in [['Weapons', zone.weapons], ['Armor', zone.armor]] as const" :key="label">
+          <div v-if="(items as Item[]).length" class="codex-type-label">{{ label }}</div>
+          <div class="codex-grid">
+            <button
+              v-for="item in (items as Item[])"
+              :key="item.id"
+              class="codex-slot"
+              :class="[rarityClass(item.rarity), { 'slot-selected': previewItem?.id === item.id }]"
+              @click="selectPreview(item, !zone.unlocked)"
+            >
+              <div class="slot-sprite-wrap">
+                <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+              </div>
+              <span class="slot-name">{{ item.name }}</span>
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- Preview detail panel -->
+      <div v-if="previewItem" class="detail-panel" :class="rarityClass(previewItem.rarity)">
+        <div class="detail-header">
+          <div class="detail-sprite-wrap">
+            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(previewItem.id, 4) }"></div>
+          </div>
+          <div class="detail-text">
+            <div class="detail-name" :class="rarityClass(previewItem.rarity)">{{ previewItem.name }}</div>
+            <div class="detail-rarity">{{ previewItem.rarity.toUpperCase() }} {{ previewItem.type.toUpperCase() }}</div>
+          </div>
+        </div>
+        <div class="detail-stats">{{ statLine(previewItem) }}</div>
+        <div v-if="specialLine(previewItem)" class="detail-special">{{ specialLine(previewItem) }}</div>
+        <div v-if="isOffClass(previewItem)" class="detail-warn">⚠ Off-class: 70% effectiveness</div>
+        <div class="detail-actions">
+          <button
+            v-if="!previewLocked"
+            class="pixel-btn btn-gold"
+            :disabled="!canAfford(previewItem) || invFull()"
+            @click="buy(previewItem); previewItem = null"
+          >
+            {{ invFull() ? 'Inv Full' : !canAfford(previewItem) ? 'No Gold' : 'Buy' }}
+          </button>
+          <span v-else class="codex-locked-label">🔒 Zone locked</span>
+          <button class="pixel-btn" @click="previewItem = null">✕</button>
         </div>
       </div>
     </div>
@@ -445,4 +562,69 @@ const RARITY_LABEL: Record<string, string> = {
 .r-rare .detail-name      { color: #4488dd; }
 .r-epic .detail-name      { color: #00e676; }
 .r-legendary .detail-name { color: #daa520; }
+
+/* Tabs */
+.shop-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+}
+.shop-tab {
+  flex: 1;
+  background: #0e0c1c;
+  border: none;
+  border-right: 2px solid var(--border);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--text-dim);
+  padding: 6px 4px;
+  cursor: pointer;
+}
+.shop-tab:last-child { border-right: none; }
+.shop-tab:hover { background: #16142a; color: var(--text); }
+.shop-tab.active { background: #16142a; color: var(--text-hi); border-bottom: 2px solid var(--text-hi); margin-bottom: -2px; }
+
+/* Codex */
+.codex-zone {
+  border: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+}
+.codex-zone.zone-locked { opacity: 0.45; }
+
+.codex-zone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.codex-zone-name { font-size: 8px; color: var(--text-hi); }
+.codex-zone-lock { font-size: 7px; color: var(--text-dim); }
+
+.codex-type-label { font-size: 6px; color: var(--text-dim); margin-top: 2px; }
+
+.codex-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.codex-slot {
+  width: 100%;
+  background: #0e0c1c;
+  border: 2px solid var(--border);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--text);
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+}
+.codex-slot:hover { border-color: var(--border-hi); }
+
+.codex-locked-label { font-size: 7px; color: var(--text-dim); }
 </style>
