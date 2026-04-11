@@ -270,6 +270,7 @@ function statSummary(item: Item): string {
   height: 3px;
   image-rendering: pixelated;
   flex-shrink: 0;
+  transform: translate(-12px, -15px);
 }
 
 .detail-sprite-wrap {
@@ -286,6 +287,7 @@ function statSummary(item: Item): string {
   height: 4px;
   image-rendering: pixelated;
   flex-shrink: 0;
+  transform: translate(-16px, -20px);
 }
 
 .class-tag {
