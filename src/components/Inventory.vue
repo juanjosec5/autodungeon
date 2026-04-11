@@ -174,7 +174,6 @@ function statSummary(item: Item): string {
             cannotEquip(item) ? 'slot-locked' : 'slot-equippable',
             !selectMode && activeItem?.id === item.id ? 'slot-active' : '',
             selectMode && selected.has(item.id) ? 'slot-selected' : '',
-            isOffClass(item) ? 'slot-offclass' : '',
           ] : 'slot-empty'"
           @click="item && (selectMode ? toggleSelect(item) : selectItem(item))"
         >
@@ -258,7 +257,6 @@ function statSummary(item: Item): string {
 .slot-empty   { opacity: 0.2; }
 .slot-active   { outline: 2px solid #f07020; outline-offset: -2px; }
 .slot-selected { outline: 2px solid #f07020; outline-offset: -2px; }
-.slot-offclass { filter: hue-rotate(30deg); }
 
 .slot-sprite-wrap {
   width: 26px;
@@ -304,18 +302,18 @@ function statSummary(item: Item): string {
 .class-warn { color: #d8a060; }
 
 /* rarity borders */
-.rb-common    { border-color: #42387a; }
-.rb-uncommon  { border-color: #4080d0; }
-.rb-rare      { border-color: var(--gold); }
-.rb-epic      { border-color: #9050e0; }
-.rb-legendary { border-color: var(--gold); background: rgba(100,60,0,0.2); }
+.rb-common    { border-color: #555560; }
+.rb-uncommon  { border-color: #2d7a30; }
+.rb-rare      { border-color: #2a5898; }
+.rb-epic      { border-color: #00a854; }
+.rb-legendary { border-color: #987820; background: rgba(100,70,0,0.2); }
 
 /* rarity text */
-.rt-common    { color: var(--text); }
-.rt-uncommon  { color: var(--blue); }
-.rt-rare      { color: var(--gold); }
-.rt-epic      { color: var(--purple); }
-.rt-legendary { color: var(--gold); }
+.rt-common    { color: #909090; }
+.rt-uncommon  { color: #4caf50; }
+.rt-rare      { color: #4488dd; }
+.rt-epic      { color: #00e676; }
+.rt-legendary { color: #daa520; }
 
 /* detail panel */
 .detail-panel {

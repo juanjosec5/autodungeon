@@ -329,11 +329,11 @@ const RARITY_LABEL: Record<string, string> = {
   border-left: 2px solid currentColor;
   margin-top: 2px;
 }
-.r-common    { color: #808090; border-color: #505060; }
-.r-uncommon  { color: #60c060; border-color: #308030; }
-.r-rare      { color: #6090e0; border-color: #304898; }
-.r-epic      { color: #b060e0; border-color: #702898; }
-.r-legendary { color: var(--gold); border-color: #987020; }
+.r-common    { color: #909090; border-color: #555560; }
+.r-uncommon  { color: #4caf50; border-color: #2d7a30; }
+.r-rare      { color: #4488dd; border-color: #2a5898; }
+.r-epic      { color: #00e676; border-color: #00a854; }
+.r-legendary { color: #daa520; border-color: #987820; }
 
 /* Shop grid */
 .shop-grid {
@@ -385,11 +385,11 @@ const RARITY_LABEL: Record<string, string> = {
 .slot-cant-afford  { opacity: 0.55; }
 
 /* Rarity borders on slots */
-.r-common    .shop-slot, .shop-slot.r-common    { border-color: #505060; }
-.r-uncommon  .shop-slot, .shop-slot.r-uncommon  { border-color: #308030; }
-.r-rare      .shop-slot, .shop-slot.r-rare      { border-color: #304898; }
-.r-epic      .shop-slot, .shop-slot.r-epic      { border-color: #702898; }
-.r-legendary .shop-slot, .shop-slot.r-legendary { border-color: #987020; }
+.r-common    .shop-slot, .shop-slot.r-common    { border-color: #555560; }
+.r-uncommon  .shop-slot, .shop-slot.r-uncommon  { border-color: #2d7a30; }
+.r-rare      .shop-slot, .shop-slot.r-rare      { border-color: #2a5898; }
+.r-epic      .shop-slot, .shop-slot.r-epic      { border-color: #00a854; }
+.r-legendary .shop-slot, .shop-slot.r-legendary { border-color: #987820; }
 
 .class-tag {
   position: absolute;
@@ -440,9 +440,9 @@ const RARITY_LABEL: Record<string, string> = {
 .detail-price   { font-size: 7px; color: var(--gold); }
 .detail-actions { display: flex; gap: 6px; margin-top: 2px; }
 
-.r-common .detail-name    { color: #c0c0c8; }
-.r-uncommon .detail-name  { color: #60c060; }
-.r-rare .detail-name      { color: #6090e0; }
-.r-epic .detail-name      { color: #b060e0; }
-.r-legendary .detail-name { color: var(--gold); }
+.r-common .detail-name    { color: #909090; }
+.r-uncommon .detail-name  { color: #4caf50; }
+.r-rare .detail-name      { color: #4488dd; }
+.r-epic .detail-name      { color: #00e676; }
+.r-legendary .detail-name { color: #daa520; }
 </style>
