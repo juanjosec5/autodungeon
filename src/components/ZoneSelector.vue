@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useZoneStore } from '../stores/zone'
 import { useCharacterStore } from '../stores/character'
 import type { ZoneId } from '../types/index'
@@ -24,12 +24,21 @@ function select(zone: ZoneId) {
   if (!isUnlocked(zone)) return
   zoneStore.setZone(zone)
 }
+
+const collapsed = ref(localStorage.getItem('collapsed_zone') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_zone', String(collapsed.value))
+}
 </script>
 
 <template>
   <div class="pixel-panel">
-    <div class="panel-title">Zone</div>
-    <div class="inner">
+    <div class="panel-title" @click="toggleCollapse">
+      Zone
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
+    <div v-if="!collapsed" class="inner">
       <button
         v-for="zone in ZONES"
         :key="zone.id"

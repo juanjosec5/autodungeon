@@ -57,6 +57,25 @@ html, body {
   padding: 6px 10px 5px;
   border-bottom: 2px solid var(--border);
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title { cursor: pointer; }
+.panel-title:hover .collapse-btn { color: var(--gold); }
+
+.collapse-btn {
+  background: none;
+  border: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 15px;
+  color: var(--text-dim);
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
 }
 
 /* ── Pixel bar ── */

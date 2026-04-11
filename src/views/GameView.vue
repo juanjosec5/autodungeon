@@ -70,21 +70,21 @@ onUnmounted(() => {
 
         <!-- Col 1: Character + Gear + Zone + Speed -->
         <div class="col">
-          <CharacterPanel />
-          <GearPanel />
-          <ZoneSelector />
-          <SpeedControl />
+          <CharacterPanel class="mo-1" />
+          <GearPanel class="mo-2" />
+          <ZoneSelector class="mo-4" />
+          <SpeedControl class="mo-5" />
         </div>
 
-        <!-- Col 2: Combat Log -->
-        <div class="col">
-          <CombatLog class="log-fill" />
-        </div>
-
-        <!-- Col 3: Inventory + Shop -->
+        <!-- Col 2: Inventory + Shop -->
         <div class="col col-wide">
-          <Inventory />
-          <ShopPanel />
+          <Inventory class="mo-3" />
+          <ShopPanel class="mo-7" />
+        </div>
+
+        <!-- Col 3: Combat Log -->
+        <div class="col">
+          <CombatLog class="log-fill mo-6" />
         </div>
 
       </div>
@@ -150,6 +150,18 @@ onUnmounted(() => {
 .log-fill {
   flex: 1;
   min-height: 0;
+}
+
+/* Mobile: flatten cols so panels can be reordered */
+@media (max-width: 639px) {
+  .col { display: contents; }
+  .mo-1 { order: 1; }
+  .mo-2 { order: 2; }
+  .mo-3 { order: 3; }
+  .mo-4 { order: 4; }
+  .mo-5 { order: 5; }
+  .mo-6 { order: 6; }
+  .mo-7 { order: 7; }
 }
 
 /* Tablet: 2 columns */

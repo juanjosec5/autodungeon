@@ -170,6 +170,12 @@ const codexZones = computed<ZoneSection[]>(() => {
 const previewItem = ref<Item | null>(null)
 const previewLocked = ref(false)
 
+const collapsed = ref(localStorage.getItem('collapsed_shop') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_shop', String(collapsed.value))
+}
+
 function selectPreview(item: Item, locked: boolean) {
   if (previewItem.value?.id === item.id) {
     previewItem.value = null
@@ -182,15 +188,18 @@ function selectPreview(item: Item, locked: boolean) {
 
 <template>
   <div class="pixel-panel shop-panel">
-    <div class="panel-title">Shop</div>
+    <div class="panel-title" @click="toggleCollapse">
+      Shop
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
 
     <!-- Tabs -->
-    <div class="shop-tabs">
+    <div v-if="!collapsed" class="shop-tabs">
       <button class="shop-tab" :class="{ active: activeTab === 'shop' }" @click="activeTab = 'shop'">Buy</button>
       <button class="shop-tab" :class="{ active: activeTab === 'codex' }" @click="activeTab = 'codex'">Codex</button>
     </div>
 
-    <div class="inner" v-if="activeTab === 'shop'">
+    <div class="inner" v-if="!collapsed && activeTab === 'shop'">
       <!-- Gold + flash -->
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
@@ -311,7 +320,7 @@ function selectPreview(item: Item, locked: boolean) {
     </div>
 
     <!-- Codex tab -->
-    <div class="inner" v-if="activeTab === 'codex'">
+    <div class="inner" v-if="!collapsed && activeTab === 'codex'">
       <div
         v-for="zone in codexZones"
         :key="zone.name"
@@ -449,7 +458,7 @@ function selectPreview(item: Item, locked: boolean) {
 .r-common    { color: #909090; border-color: #555560; }
 .r-uncommon  { color: #4caf50; border-color: #2d7a30; }
 .r-rare      { color: #4488dd; border-color: #2a5898; }
-.r-epic      { color: #00e676; border-color: #00a854; }
+.r-epic      { color: #d060b8; border-color: #80306a; }
 .r-legendary { color: #daa520; border-color: #987820; }
 
 /* Shop grid */
@@ -505,7 +514,7 @@ function selectPreview(item: Item, locked: boolean) {
 .r-common    .shop-slot, .shop-slot.r-common    { border-color: #555560; }
 .r-uncommon  .shop-slot, .shop-slot.r-uncommon  { border-color: #2d7a30; }
 .r-rare      .shop-slot, .shop-slot.r-rare      { border-color: #2a5898; }
-.r-epic      .shop-slot, .shop-slot.r-epic      { border-color: #00a854; }
+.r-epic      .shop-slot, .shop-slot.r-epic      { border-color: #80306a; }
 .r-legendary .shop-slot, .shop-slot.r-legendary { border-color: #987820; }
 
 .class-tag {
@@ -560,7 +569,7 @@ function selectPreview(item: Item, locked: boolean) {
 .r-common .detail-name    { color: #909090; }
 .r-uncommon .detail-name  { color: #4caf50; }
 .r-rare .detail-name      { color: #4488dd; }
-.r-epic .detail-name      { color: #00e676; }
+.r-epic .detail-name      { color: #d060b8; }
 .r-legendary .detail-name { color: #daa520; }
 
 /* Tabs */

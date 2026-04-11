@@ -1,7 +1,14 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useCombatStore } from '../stores/combat'
 
 const combatStore = useCombatStore()
+
+const collapsed = ref(localStorage.getItem('collapsed_controls') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_controls', String(collapsed.value))
+}
 
 const SPEEDS = [0.5, 1, 2, 4] as const
 
@@ -16,8 +23,11 @@ function togglePause() {
 
 <template>
   <div class="pixel-panel">
-    <div class="panel-title">Controls</div>
-    <div class="inner">
+    <div class="panel-title" @click="toggleCollapse">
+      Controls
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
+    <div v-if="!collapsed" class="inner">
       <button
         class="pixel-btn pause-btn"
         :class="combatStore.isPaused ? 'btn-purple' : ''"

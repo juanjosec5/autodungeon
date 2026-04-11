@@ -12,8 +12,21 @@ const char = computed(() => characterStore.character)
 const SLOTS = 20
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
-// ── Active item (single-click reveals details) ─────────────────────────────
+// ── Collapse ──────────────────────────────────────────────────────────────
+const collapsed = ref(localStorage.getItem('collapsed_inventory') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_inventory', String(collapsed.value))
+}
+
+// ── Hovered item (shows detail on hover) ──────────────────────────────────
+const hoveredItem = ref<Item | null>(null)
+
+// ── Active item (single-click → action buttons) ───────────────────────────
 const activeItem = ref<Item | null>(null)
+
+// What the detail panel displays — hover takes priority for quick comparison
+const displayedItem = computed(() => hoveredItem.value ?? activeItem.value)
 
 function selectItem(item: Item) {
   activeItem.value = activeItem.value?.id === item.id ? null : item
@@ -109,10 +122,48 @@ function scrapJunk() {
   characterStore.sellItems(junkIds.value)
 }
 
+// ── Sort ──────────────────────────────────────────────────────────────────
+const sortMode = ref<'default' | 'rarity' | 'type'>('default')
+
+const sortedInventory = computed(() => {
+  const inv = [...(char.value?.inventory ?? [])]
+  if (sortMode.value === 'rarity') {
+    inv.sort((a, b) => RARITY_ORDER.indexOf(b.rarity) - RARITY_ORDER.indexOf(a.rarity))
+  } else if (sortMode.value === 'type') {
+    inv.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name))
+  }
+  return inv
+})
+
 // ── Slot grid ──────────────────────────────────────────────────────────────
 const slots = computed(() => {
-  const inv = char.value?.inventory ?? []
+  const inv = sortedInventory.value
   return Array.from({ length: SLOTS }, (_, i) => inv[i] ?? null)
+})
+
+// ── Equipment comparison ──────────────────────────────────────────────────
+interface StatDelta { label: string; value: number }
+
+const comparisonDeltas = computed<StatDelta[]>(() => {
+  const item = displayedItem.value
+  const c = char.value
+  if (!item || !c) return []
+  const slot = item.type === 'weapon' ? 'weapon' : 'armor'
+  const equipped = c.gear[slot]
+  if (!equipped) return []
+  const deltas: StatDelta[] = []
+  if (item.type === 'weapon') {
+    const newAvg = ((item.stats.minDmg ?? 0) + (item.stats.maxDmg ?? 0)) / 2
+    const eqAvg  = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2
+    const diff = Math.round(newAvg - eqAvg)
+    if (diff !== 0) deltas.push({ label: 'DMG', value: diff })
+  } else {
+    const defDiff = (item.stats.defBonus ?? 0) - (equipped.stats.defBonus ?? 0)
+    const hpDiff  = (item.stats.hpBonus  ?? 0) - (equipped.stats.hpBonus  ?? 0)
+    if (defDiff !== 0) deltas.push({ label: 'DEF', value: defDiff })
+    if (hpDiff  !== 0) deltas.push({ label: 'HP',  value: hpDiff })
+  }
+  return deltas
 })
 
 const rarityBorderClass: Record<string, string> = {
@@ -143,8 +194,11 @@ function statSummary(item: Item): string {
 
 <template>
   <div class="pixel-panel">
-    <div class="panel-title">Inventory</div>
-    <div class="inner">
+    <div class="panel-title" @click="toggleCollapse">
+      Inventory
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
+    <div v-if="!collapsed" class="inner">
 
       <!-- Header -->
       <div class="inv-header">
@@ -153,6 +207,10 @@ function statSummary(item: Item): string {
           <label class="autoscrap-toggle" :class="{ active: characterStore.autoScrap }">
             <input type="checkbox" :checked="characterStore.autoScrap" @change="characterStore.toggleAutoScrap()" />
             Auto-scrap
+          </label>
+          <label class="autoscrap-toggle" :class="{ active: characterStore.autoEquip }">
+            <input type="checkbox" :checked="characterStore.autoEquip" @change="characterStore.toggleAutoEquip()" />
+            Auto-equip
           </label>
           <button
             v-if="junkIds.length > 0 && !selectMode"
@@ -165,6 +223,14 @@ function statSummary(item: Item): string {
             @click="toggleSelectMode"
           >{{ selectMode ? 'Cancel' : 'Multi-sell' }}</button>
         </div>
+      </div>
+
+      <!-- Sort controls -->
+      <div class="sort-bar">
+        <span class="sort-label">Sort:</span>
+        <button class="sort-btn" :class="{ 'sort-active': sortMode === 'default' }" @click="sortMode = 'default'">Default</button>
+        <button class="sort-btn" :class="{ 'sort-active': sortMode === 'rarity' }" @click="sortMode = 'rarity'">Rarity</button>
+        <button class="sort-btn" :class="{ 'sort-active': sortMode === 'type' }"   @click="sortMode = 'type'">Type</button>
       </div>
 
       <!-- Grid -->
@@ -180,6 +246,8 @@ function statSummary(item: Item): string {
             selectMode && selected.has(item.id) ? 'slot-selected' : '',
           ] : 'slot-empty'"
           @click="item && (selectMode ? toggleSelect(item) : selectItem(item))"
+          @mouseenter="item && !selectMode && (hoveredItem = item)"
+          @mouseleave="hoveredItem = null"
         >
           <template v-if="item">
             <div class="slot-sprite-wrap">
@@ -192,28 +260,37 @@ function statSummary(item: Item): string {
         </div>
       </div>
 
-      <!-- Item detail panel (single-click) -->
-      <div v-if="activeItem && !selectMode" class="detail-panel" :class="rarityBorderClass[activeItem.rarity]">
+      <!-- Item detail panel (hover = info; click = + action buttons) -->
+      <div v-if="displayedItem && !selectMode" class="detail-panel" :class="rarityBorderClass[displayedItem.rarity]">
         <div class="detail-header">
           <div class="detail-sprite-wrap">
-            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(activeItem.defId ?? activeItem.id, 4) }"></div>
+            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(displayedItem.defId ?? displayedItem.id, 4) }"></div>
           </div>
           <div class="detail-name-block">
-            <span :class="['detail-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
-            <span :class="['detail-rarity', rarityTextClass[activeItem.rarity]]">{{ activeItem.rarity }}</span>
+            <span :class="['detail-name', rarityTextClass[displayedItem.rarity]]">{{ displayedItem.name }}</span>
+            <span :class="['detail-rarity', rarityTextClass[displayedItem.rarity]]">{{ displayedItem.rarity }}</span>
           </div>
-          <span class="detail-price">{{ getSellPrice(activeItem.rarity) }}g</span>
+          <span class="detail-price">{{ getSellPrice(displayedItem.rarity) }}g</span>
         </div>
-        <div class="detail-stats">{{ statSummary(activeItem) }}</div>
-        <div v-if="activeItem.stats.special?.length" class="detail-specials">
-          <span v-for="s in activeItem.stats.special" :key="s.type" class="detail-special">✦ {{ s.type }}</span>
+        <div class="detail-stats">
+          {{ statSummary(displayedItem) }}
+          <span
+            v-for="d in comparisonDeltas"
+            :key="d.label"
+            class="cmp-delta"
+            :class="d.value > 0 ? 'cmp-pos' : 'cmp-neg'"
+          >{{ d.value > 0 ? '+' : '' }}{{ d.value }} {{ d.label }}</span>
         </div>
-        <div class="detail-class" :class="{ 'detail-class-warn': isOffClass(activeItem), 'detail-class-locked': cannotEquip(activeItem) }">
-          {{ classLabel(activeItem) }}
-          <span v-if="cannotEquip(activeItem)"> · cannot equip</span>
-          <span v-else-if="isOffClass(activeItem)"> · 70% effectiveness</span>
+        <div v-if="displayedItem.stats.special?.length" class="detail-specials">
+          <span v-for="s in displayedItem.stats.special" :key="s.type" class="detail-special">✦ {{ s.type }}</span>
         </div>
-        <div class="detail-btns">
+        <div class="detail-class" :class="{ 'detail-class-warn': isOffClass(displayedItem), 'detail-class-locked': cannotEquip(displayedItem) }">
+          {{ classLabel(displayedItem) }}
+          <span v-if="cannotEquip(displayedItem)"> · cannot equip</span>
+          <span v-else-if="isOffClass(displayedItem)"> · 70% effectiveness</span>
+        </div>
+        <!-- Action buttons only appear when item is clicked -->
+        <div v-if="activeItem" class="detail-btns">
           <button
             class="pixel-btn"
             :class="cannotEquip(activeItem) ? '' : 'btn-gold'"
@@ -222,6 +299,7 @@ function statSummary(item: Item): string {
           >Equip</button>
           <button class="pixel-btn" @click="sellActive">Sell</button>
         </div>
+        <div v-else class="detail-hint">click to select</div>
       </div>
 
       <!-- Multi-sell bar -->
@@ -265,6 +343,16 @@ function statSummary(item: Item): string {
 
 .btn-scrap { font-size: 8px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; }
 .btn-scrap:hover:not(:disabled) { border-color: #d8a060; }
+
+.sort-bar { display: flex; align-items: center; gap: 4px; }
+.sort-label { font-size: 7px; color: var(--text-dim); }
+.sort-btn { font-size: 7px; padding: 2px 6px; background: #0e0c1c; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-family: inherit; }
+.sort-btn:hover { border-color: var(--border-hi); color: var(--text); }
+.sort-active { border-color: #8060c0 !important; color: #c090f0 !important; }
+
+.cmp-delta { margin-left: 6px; font-size: 7px; font-weight: bold; }
+.cmp-pos { color: #40d860; }
+.cmp-neg { color: #e05050; }
 
 .inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 
@@ -331,14 +419,14 @@ function statSummary(item: Item): string {
 .rb-common    { border-color: #555560; }
 .rb-uncommon  { border-color: #2d7a30; }
 .rb-rare      { border-color: #2a5898; }
-.rb-epic      { border-color: #00a854; }
+.rb-epic      { border-color: #80306a; }
 .rb-legendary { border-color: #987820; background: rgba(100,70,0,0.2); }
 
 /* rarity text */
 .rt-common    { color: #909090; }
 .rt-uncommon  { color: #4caf50; }
 .rt-rare      { color: #4488dd; }
-.rt-epic      { color: #00e676; }
+.rt-epic      { color: #d060b8; }
 .rt-legendary { color: #daa520; }
 
 /* detail panel */
@@ -367,6 +455,7 @@ function statSummary(item: Item): string {
 .detail-class-locked { color: var(--red); }
 .detail-btns { display: flex; gap: 6px; }
 .detail-btns .pixel-btn { flex: 1; text-align: center; font-size: 8px; padding: 5px 4px; }
+.detail-hint { font-size: 7px; color: var(--text-dim); text-align: center; }
 
 /* sell bar */
 .sell-bar {

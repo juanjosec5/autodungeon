@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
 
 const characterStore = useCharacterStore()
@@ -14,12 +14,21 @@ const xpPercent = computed(() => {
   if (!char.value) return 0
   return Math.max(0, Math.min(100, (char.value.xp / char.value.xpToNext) * 100))
 })
+
+const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_character', String(collapsed.value))
+}
 </script>
 
 <template>
   <div v-if="char" class="pixel-panel">
-    <div class="panel-title">Player</div>
-    <div class="inner">
+    <div class="panel-title" @click="toggleCollapse">
+      Player
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
+    <div v-if="!collapsed" class="inner">
       <div class="char-header">
         <div class="char-name-row">
           <span class="char-name">{{ char.name }}</span>
