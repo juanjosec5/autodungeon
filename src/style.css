@@ -72,7 +72,7 @@ html, body {
   padding: 0 2px;
   line-height: 1;
   flex-shrink: 0;
-  transform: translateY(-7px);
+  transform: translateY(-4px);
 }
 .collapse-btn:hover { color: var(--gold); }
 
