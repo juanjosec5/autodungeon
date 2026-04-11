@@ -17,6 +17,8 @@ export const useCombatStore = defineStore('combat', () => {
   const isRunning = ref(false)
   const isPaused = ref(false)
   const speed = ref<0.5 | 1 | 2 | 4>(1)
+  const enemyHitFlash = ref(0)    // incremented when player lands a hit
+  const enemyAttackShake = ref(0) // incremented when enemy attacks
 
   // ── Log helper ────────────────────────────────────────────────────────────
 
@@ -41,6 +43,7 @@ export const useCombatStore = defineStore('combat', () => {
         if (currentEnemy.value) {
           currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
         }
+        enemyHitFlash.value++
         addLogEntry({
           type: 'hit',
           message: `You hit ${p.enemyName} for ${p.damage} damage. (${p.enemyHP}/${p.enemyMaxHP})`,
@@ -51,6 +54,7 @@ export const useCombatStore = defineStore('combat', () => {
         if (currentEnemy.value) {
           currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
         }
+        enemyHitFlash.value++
         addLogEntry({
           type: 'crit',
           message: `⚡ CRIT! You hit ${p.enemyName} for ${p.damage} damage!`,
@@ -62,6 +66,7 @@ export const useCombatStore = defineStore('combat', () => {
         break
 
       case 'enemy_hit':
+        enemyAttackShake.value++
         addLogEntry({
           type: 'hit',
           message: `${p.enemyName} hits you for ${p.damage} damage. (${p.playerHP}/${p.playerMaxHP})`,
@@ -214,6 +219,8 @@ export const useCombatStore = defineStore('combat', () => {
     isRunning,
     isPaused,
     speed,
+    enemyHitFlash,
+    enemyAttackShake,
     startCombat,
     stopCombat,
     pauseCombat,

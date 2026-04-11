@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCombatStore } from '../stores/combat'
+import { getSpriteForEnemy, buildSpriteStyle } from '../game/sprites'
 
 const combatStore = useCombatStore()
 const enemy = computed(() => combatStore.currentEnemy)
@@ -10,39 +11,28 @@ const hpPercent = computed(() => {
   return Math.max(0, Math.min(100, (enemy.value.hp / enemy.value.maxHp) * 100))
 })
 
-// Pixel sprite — 12×13 wraith, 5px per pixel, drawn via CSS box-shadow
-const PX = 5
-const B = '#6030b8'
-const S = '#3d1a78'
-const D = '#150a30'
-const E = '#ee66ff'
-const _ = null
-
-const SPRITE = [
-  [_,_,_,_,B,B,B,B,_,_,_,_],
-  [_,_,_,B,B,B,B,B,B,_,_,_],
-  [_,_,B,B,B,B,B,B,B,B,_,_],
-  [_,B,B,B,B,B,B,B,B,B,B,_],
-  [B,B,B,B,B,B,B,B,B,B,B,B],
-  [B,B,S,S,B,B,B,B,S,S,B,B],
-  [B,B,D,D,B,B,B,B,D,D,B,B],
-  [B,B,E,E,B,B,B,B,E,E,B,B],
-  [B,B,D,D,B,B,B,B,D,D,B,B],
-  [B,B,B,B,B,B,B,B,B,B,B,B],
-  [B,B,B,B,B,B,B,B,B,B,B,B],
-  [B,B,B,B,B,B,B,B,B,B,B,B],
-  [_,B,_,B,_,B,_,B,_,B,_,_],
-]
-
 const spriteStyle = computed(() => {
-  const shadows: string[] = []
-  for (let r = 0; r < SPRITE.length; r++) {
-    for (let c = 0; c < SPRITE[r].length; c++) {
-      const color = SPRITE[r][c]
-      if (color) shadows.push(`${c * PX}px ${r * PX}px 0 0 ${color}`)
-    }
-  }
-  return { boxShadow: shadows.join(',') }
+  const sprite = getSpriteForEnemy(enemy.value?.name ?? '')
+  return { boxShadow: buildSpriteStyle(sprite) }
+})
+
+const isFlashing = ref(false)
+const isAttacking = ref(false)
+
+watch(() => combatStore.enemyHitFlash, () => {
+  isFlashing.value = false
+  requestAnimationFrame(() => {
+    isFlashing.value = true
+    setTimeout(() => { isFlashing.value = false }, 180)
+  })
+})
+
+watch(() => combatStore.enemyAttackShake, () => {
+  isAttacking.value = false
+  requestAnimationFrame(() => {
+    isAttacking.value = true
+    setTimeout(() => { isAttacking.value = false }, 300)
+  })
 })
 </script>
 
@@ -54,10 +44,11 @@ const spriteStyle = computed(() => {
         <!-- Arena -->
         <div class="arena">
           <div class="arena-glow"></div>
-          <div class="sprite-wrap">
-            <div class="pixel-sprite" :style="spriteStyle"></div>
+          <div class="float-wrap">
+            <div class="sprite-wrap" :class="{ attacking: isAttacking }">
+              <div class="pixel-sprite" :class="{ flashing: isFlashing }" :style="spriteStyle"></div>
+            </div>
           </div>
-          <!-- CRT scanlines -->
         </div>
 
         <!-- Info -->
@@ -140,16 +131,29 @@ const spriteStyle = computed(() => {
   pointer-events: none;
 }
 
-.sprite-wrap {
+/* Float lives here — isolated from attack shake */
+.float-wrap {
   position: relative;
   z-index: 5;
+  animation: float 2.8s ease-in-out infinite;
+}
+
+/* Attack shake overrides float on inner element */
+.sprite-wrap {
+  display: inline-block;
+}
+.sprite-wrap.attacking {
+  animation: enemy-attack 0.3s ease-in-out forwards;
 }
 
 .pixel-sprite {
   width: 5px;
   height: 5px;
   image-rendering: pixelated;
-  animation: float 2.8s ease-in-out infinite;
+  display: block;
+}
+.pixel-sprite.flashing {
+  animation: hit-flash 0.18s ease-out forwards;
 }
 
 /* Info panel */
@@ -202,6 +206,18 @@ const spriteStyle = computed(() => {
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-5px); }
+}
+
+@keyframes enemy-attack {
+  0%   { transform: translateY(0) translateX(0); }
+  30%  { transform: translateY(-3px) translateX(8px); }
+  70%  { transform: translateY(0) translateX(-4px); }
+  100% { transform: translateY(0) translateX(0); }
+}
+
+@keyframes hit-flash {
+  0%   { filter: brightness(8) saturate(0) sepia(1) hue-rotate(-30deg); }
+  100% { filter: brightness(1); }
 }
 
 /* Mobile: taller arena, stacked layout */
