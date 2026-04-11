@@ -166,6 +166,7 @@ onUnmounted(() => {
 @media (min-width: 1024px) {
   .main-grid {
     grid-template-columns: 1fr 1fr 1fr;
+    align-items: start;
   }
   .col-wide {
     grid-column: span 1;
