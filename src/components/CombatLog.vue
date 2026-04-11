@@ -18,6 +18,12 @@ const entryClass: Record<CombatLogEntry['type'], string> = {
   zone:    'l-zone',
 }
 
+const collapsed = ref(localStorage.getItem('collapsed_combatlog') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_combatlog', String(collapsed.value))
+}
+
 type FilterMode = 'all' | 'combat' | 'loot' | 'system'
 const filterMode = ref<FilterMode>('all')
 
@@ -44,10 +50,13 @@ watch(
 
 <template>
   <div class="pixel-panel flex flex-col h-full min-h-0">
-    <div class="panel-title">Combat Log</div>
+    <div class="panel-title">
+      Combat Log
+      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
 
     <!-- Session stats -->
-    <div v-if="combatStore.isRunning || combatStore.session.kills > 0" class="session-stats">
+    <div v-if="!collapsed && (combatStore.isRunning || combatStore.session.kills > 0)" class="session-stats">
       <span class="stat-chip">⚔️ {{ combatStore.session.kills }}</span>
       <span class="stat-chip">👑 {{ combatStore.session.bossKills }}</span>
       <span class="stat-chip">🎁 {{ combatStore.session.itemsLooted }}</span>
@@ -55,14 +64,14 @@ watch(
     </div>
 
     <!-- Filter tabs -->
-    <div class="filter-tabs">
+    <div v-if="!collapsed" class="filter-tabs">
       <button class="filter-tab" :class="{ active: filterMode === 'all' }"    @click="filterMode = 'all'">All</button>
       <button class="filter-tab" :class="{ active: filterMode === 'combat' }" @click="filterMode = 'combat'">Combat</button>
       <button class="filter-tab" :class="{ active: filterMode === 'loot' }"   @click="filterMode = 'loot'">Loot</button>
       <button class="filter-tab" :class="{ active: filterMode === 'system' }" @click="filterMode = 'system'">System</button>
     </div>
 
-    <div ref="logEl" class="log-body">
+    <div v-if="!collapsed" ref="logEl" class="log-body">
       <div
         v-for="entry in log"
         :key="entry.id"

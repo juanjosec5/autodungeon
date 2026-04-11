@@ -12,8 +12,21 @@ const char = computed(() => characterStore.character)
 const SLOTS = 20
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
-// ── Active item (single-click reveals details) ─────────────────────────────
+// ── Collapse ──────────────────────────────────────────────────────────────
+const collapsed = ref(localStorage.getItem('collapsed_inventory') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_inventory', String(collapsed.value))
+}
+
+// ── Hovered item (shows detail on hover) ──────────────────────────────────
+const hoveredItem = ref<Item | null>(null)
+
+// ── Active item (single-click → action buttons) ───────────────────────────
 const activeItem = ref<Item | null>(null)
+
+// What the detail panel displays — hover takes priority for quick comparison
+const displayedItem = computed(() => hoveredItem.value ?? activeItem.value)
 
 function selectItem(item: Item) {
   activeItem.value = activeItem.value?.id === item.id ? null : item
@@ -132,7 +145,7 @@ const slots = computed(() => {
 interface StatDelta { label: string; value: number }
 
 const comparisonDeltas = computed<StatDelta[]>(() => {
-  const item = activeItem.value
+  const item = displayedItem.value
   const c = char.value
   if (!item || !c) return []
   const slot = item.type === 'weapon' ? 'weapon' : 'armor'
@@ -181,8 +194,11 @@ function statSummary(item: Item): string {
 
 <template>
   <div class="pixel-panel">
-    <div class="panel-title">Inventory</div>
-    <div class="inner">
+    <div class="panel-title">
+      Inventory
+      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
+    <div v-if="!collapsed" class="inner">
 
       <!-- Header -->
       <div class="inv-header">
@@ -230,6 +246,8 @@ function statSummary(item: Item): string {
             selectMode && selected.has(item.id) ? 'slot-selected' : '',
           ] : 'slot-empty'"
           @click="item && (selectMode ? toggleSelect(item) : selectItem(item))"
+          @mouseenter="item && !selectMode && (hoveredItem = item)"
+          @mouseleave="hoveredItem = null"
         >
           <template v-if="item">
             <div class="slot-sprite-wrap">
@@ -242,20 +260,20 @@ function statSummary(item: Item): string {
         </div>
       </div>
 
-      <!-- Item detail panel (single-click) -->
-      <div v-if="activeItem && !selectMode" class="detail-panel" :class="rarityBorderClass[activeItem.rarity]">
+      <!-- Item detail panel (hover = info; click = + action buttons) -->
+      <div v-if="displayedItem && !selectMode" class="detail-panel" :class="rarityBorderClass[displayedItem.rarity]">
         <div class="detail-header">
           <div class="detail-sprite-wrap">
-            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(activeItem.defId ?? activeItem.id, 4) }"></div>
+            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(displayedItem.defId ?? displayedItem.id, 4) }"></div>
           </div>
           <div class="detail-name-block">
-            <span :class="['detail-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
-            <span :class="['detail-rarity', rarityTextClass[activeItem.rarity]]">{{ activeItem.rarity }}</span>
+            <span :class="['detail-name', rarityTextClass[displayedItem.rarity]]">{{ displayedItem.name }}</span>
+            <span :class="['detail-rarity', rarityTextClass[displayedItem.rarity]]">{{ displayedItem.rarity }}</span>
           </div>
-          <span class="detail-price">{{ getSellPrice(activeItem.rarity) }}g</span>
+          <span class="detail-price">{{ getSellPrice(displayedItem.rarity) }}g</span>
         </div>
         <div class="detail-stats">
-          {{ statSummary(activeItem) }}
+          {{ statSummary(displayedItem) }}
           <span
             v-for="d in comparisonDeltas"
             :key="d.label"
@@ -263,15 +281,16 @@ function statSummary(item: Item): string {
             :class="d.value > 0 ? 'cmp-pos' : 'cmp-neg'"
           >{{ d.value > 0 ? '+' : '' }}{{ d.value }} {{ d.label }}</span>
         </div>
-        <div v-if="activeItem.stats.special?.length" class="detail-specials">
-          <span v-for="s in activeItem.stats.special" :key="s.type" class="detail-special">✦ {{ s.type }}</span>
+        <div v-if="displayedItem.stats.special?.length" class="detail-specials">
+          <span v-for="s in displayedItem.stats.special" :key="s.type" class="detail-special">✦ {{ s.type }}</span>
         </div>
-        <div class="detail-class" :class="{ 'detail-class-warn': isOffClass(activeItem), 'detail-class-locked': cannotEquip(activeItem) }">
-          {{ classLabel(activeItem) }}
-          <span v-if="cannotEquip(activeItem)"> · cannot equip</span>
-          <span v-else-if="isOffClass(activeItem)"> · 70% effectiveness</span>
+        <div class="detail-class" :class="{ 'detail-class-warn': isOffClass(displayedItem), 'detail-class-locked': cannotEquip(displayedItem) }">
+          {{ classLabel(displayedItem) }}
+          <span v-if="cannotEquip(displayedItem)"> · cannot equip</span>
+          <span v-else-if="isOffClass(displayedItem)"> · 70% effectiveness</span>
         </div>
-        <div class="detail-btns">
+        <!-- Action buttons only appear when item is clicked -->
+        <div v-if="activeItem" class="detail-btns">
           <button
             class="pixel-btn"
             :class="cannotEquip(activeItem) ? '' : 'btn-gold'"
@@ -280,6 +299,7 @@ function statSummary(item: Item): string {
           >Equip</button>
           <button class="pixel-btn" @click="sellActive">Sell</button>
         </div>
+        <div v-else class="detail-hint">click to select</div>
       </div>
 
       <!-- Multi-sell bar -->
@@ -435,6 +455,7 @@ function statSummary(item: Item): string {
 .detail-class-locked { color: var(--red); }
 .detail-btns { display: flex; gap: 6px; }
 .detail-btns .pixel-btn { flex: 1; text-align: center; font-size: 8px; padding: 5px 4px; }
+.detail-hint { font-size: 7px; color: var(--text-dim); text-align: center; }
 
 /* sell bar */
 .sell-bar {

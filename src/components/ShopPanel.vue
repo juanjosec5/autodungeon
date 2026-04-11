@@ -170,6 +170,12 @@ const codexZones = computed<ZoneSection[]>(() => {
 const previewItem = ref<Item | null>(null)
 const previewLocked = ref(false)
 
+const collapsed = ref(localStorage.getItem('collapsed_shop') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_shop', String(collapsed.value))
+}
+
 function selectPreview(item: Item, locked: boolean) {
   if (previewItem.value?.id === item.id) {
     previewItem.value = null
@@ -182,15 +188,18 @@ function selectPreview(item: Item, locked: boolean) {
 
 <template>
   <div class="pixel-panel shop-panel">
-    <div class="panel-title">Shop</div>
+    <div class="panel-title">
+      Shop
+      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
 
     <!-- Tabs -->
-    <div class="shop-tabs">
+    <div v-if="!collapsed" class="shop-tabs">
       <button class="shop-tab" :class="{ active: activeTab === 'shop' }" @click="activeTab = 'shop'">Buy</button>
       <button class="shop-tab" :class="{ active: activeTab === 'codex' }" @click="activeTab = 'codex'">Codex</button>
     </div>
 
-    <div class="inner" v-if="activeTab === 'shop'">
+    <div class="inner" v-if="!collapsed && activeTab === 'shop'">
       <!-- Gold + flash -->
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
@@ -311,7 +320,7 @@ function selectPreview(item: Item, locked: boolean) {
     </div>
 
     <!-- Codex tab -->
-    <div class="inner" v-if="activeTab === 'codex'">
+    <div class="inner" v-if="!collapsed && activeTab === 'codex'">
       <div
         v-for="zone in codexZones"
         :key="zone.name"

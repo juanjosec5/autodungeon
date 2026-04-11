@@ -61,6 +61,12 @@ interface DamageNumber {
   offsetX: number
 }
 
+const collapsed = ref(localStorage.getItem('collapsed_enemy') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_enemy', String(collapsed.value))
+}
+
 const damageNumbers = ref<DamageNumber[]>([])
 let dmgIdCounter = 0
 
@@ -80,8 +86,11 @@ watch(() => combatStore.enemyHitFlash, () => {
 
 <template>
   <div class="pixel-panel">
-    <div class="panel-title">Enemy</div>
-    <template v-if="enemy">
+    <div class="panel-title">
+      Enemy
+      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
+    <template v-if="!collapsed && enemy">
       <div class="enemy-body">
         <!-- Arena -->
         <div class="arena" :class="{ 'arena-boss': isBossActive }">
@@ -158,7 +167,7 @@ watch(() => combatStore.enemyHitFlash, () => {
         </div>
       </div>
     </template>
-    <div v-else class="no-enemy">No enemy</div>
+    <div v-else-if="!collapsed" class="no-enemy">No enemy</div>
   </div>
 </template>
 

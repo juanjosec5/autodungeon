@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { getOffClassPenalty } from '../game/formulas'
 import type { Item } from '../types/index'
@@ -34,12 +34,21 @@ function armorSummary(item: Item): string {
 function unequip(slot: 'weapon' | 'armor') {
   characterStore.unequipItem(slot)
 }
+
+const collapsed = ref(localStorage.getItem('collapsed_gear') === 'true')
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('collapsed_gear', String(collapsed.value))
+}
 </script>
 
 <template>
   <div v-if="char" class="pixel-panel">
-    <div class="panel-title">Gear</div>
-    <div class="inner">
+    <div class="panel-title">
+      Gear
+      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+    </div>
+    <div v-if="!collapsed" class="inner">
       <div
         class="slot"
         :class="char.gear.weapon ? 'slot-filled' : 'slot-empty'"
