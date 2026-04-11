@@ -188,9 +188,9 @@ function selectPreview(item: Item, locked: boolean) {
 
 <template>
   <div class="pixel-panel shop-panel">
-    <div class="panel-title">
+    <div class="panel-title" @click="toggleCollapse">
       Shop
-      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
     </div>
 
     <!-- Tabs -->

@@ -24,9 +24,9 @@ function toggleCollapse() {
 
 <template>
   <div v-if="char" class="pixel-panel">
-    <div class="panel-title">
+    <div class="panel-title" @click="toggleCollapse">
       Player
-      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
     </div>
     <div v-if="!collapsed" class="inner">
       <div class="char-header">

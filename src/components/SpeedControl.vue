@@ -23,9 +23,9 @@ function togglePause() {
 
 <template>
   <div class="pixel-panel">
-    <div class="panel-title">
+    <div class="panel-title" @click="toggleCollapse">
       Controls
-      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
     </div>
     <div v-if="!collapsed" class="inner">
       <button

@@ -50,9 +50,9 @@ watch(
 
 <template>
   <div class="pixel-panel flex flex-col h-full min-h-0">
-    <div class="panel-title">
+    <div class="panel-title" @click="toggleCollapse">
       Combat Log
-      <button class="collapse-btn" @click="toggleCollapse">{{ collapsed ? '►' : '▾' }}</button>
+      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
     </div>
 
     <!-- Session stats -->
