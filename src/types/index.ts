@@ -12,8 +12,10 @@ export type SpecialEffect =
 
 export interface Item {
   id: string
+  defId?: string  // original ITEM_DEFINITIONS id, preserved for sprite lookups
   name: string
   type: 'weapon' | 'armor'
+  category: string  // e.g. 'Sword', 'Dagger', 'Staff', 'Shield', 'Robes'
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
   allowedClasses: ('warrior' | 'rogue' | 'mage')[] | 'any'
   stats: {

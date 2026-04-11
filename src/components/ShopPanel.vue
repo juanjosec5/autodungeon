@@ -5,22 +5,49 @@ import { useZoneStore } from '../stores/zone'
 import { useSaveStore } from '../stores/save'
 import { ITEM_DEFINITIONS, SHOP_ITEMS, getBuyPrice } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
+import { getItemSpriteStyle } from '../game/item-sprites'
 import type { Item, ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
 const saveStore = useSaveStore()
 
-const ZONE_ORDER: ZoneId[] = ['forest', 'dungeon', 'volcano']
+const ZONE_ORDER: ZoneId[] = ['forest', 'dungeon', 'volcano', 'abyss']
+const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
-const shopItems = computed(() => {
+const availableItems = computed(() => {
   const zone = zoneStore.activeZone
   const zoneIdx = ZONE_ORDER.indexOf(zone)
   return SHOP_ITEMS
-    .filter(({ minZone }) => ZONE_ORDER.indexOf(minZone) <= zoneIdx)
-    .map(({ itemId }) => ITEM_DEFINITIONS.find((i) => i.id === itemId)!)
+    .filter(({ minZone }) => minZone <= zoneIdx)
+    .map(({ id }) => ITEM_DEFINITIONS.find((i) => i.id === id)!)
     .filter(Boolean)
 })
+
+// Group by type then rarity
+type ItemGroup = { rarity: string; items: Item[] }
+
+const weaponGroups = computed<ItemGroup[]>(() =>
+  RARITIES
+    .map(rarity => ({
+      rarity,
+      items: availableItems.value.filter(i => i.type === 'weapon' && i.rarity === rarity),
+    }))
+    .filter(g => g.items.length > 0),
+)
+
+const armorGroups = computed<ItemGroup[]>(() =>
+  RARITIES
+    .map(rarity => ({
+      rarity,
+      items: availableItems.value.filter(i => i.type === 'armor' && i.rarity === rarity),
+    }))
+    .filter(g => g.items.length > 0),
+)
+
+// Accordion state
+const weaponsOpen = ref(true)
+const armorOpen = ref(true)
 
 const selectedItem = ref<Item | null>(null)
 
@@ -33,14 +60,12 @@ const char = computed(() => characterStore.character)
 function canAfford(item: Item) {
   return (char.value?.gold ?? 0) >= getBuyPrice(item.rarity)
 }
-
 function invFull() {
   return (char.value?.inventory.length ?? 0) >= 20
 }
 
 const flashMsg = ref<string | null>(null)
 let flashTimer: ReturnType<typeof setTimeout> | null = null
-
 function flash(msg: string) {
   flashMsg.value = msg
   if (flashTimer) clearTimeout(flashTimer)
@@ -60,9 +85,7 @@ function buy(item: Item) {
   }
 }
 
-function rarityClass(rarity: string) {
-  return `r-${rarity}`
-}
+function rarityClass(rarity: string) { return `r-${rarity}` }
 
 function classTag(item: Item): string | null {
   if (item.allowedClasses === 'any') return null
@@ -78,7 +101,7 @@ function isOffClass(item: Item): boolean {
 function statLine(item: Item): string {
   const s = item.stats
   const parts: string[] = []
-  if (s.minDmg !== undefined) parts.push(`DMG ${s.minDmg}-${s.maxDmg}`)
+  if (s.minDmg !== undefined) parts.push(`DMG ${s.minDmg}–${s.maxDmg}`)
   if (s.defBonus !== undefined) parts.push(`DEF +${s.defBonus}`)
   if (s.hpBonus !== undefined) parts.push(`HP +${s.hpBonus}`)
   return parts.join('  ')
@@ -87,63 +110,136 @@ function statLine(item: Item): string {
 function specialLine(item: Item): string {
   return (item.stats.special ?? []).map((fx) => {
     switch (fx.type) {
-      case 'lifesteal':       return `Lifesteal ${Math.round(fx.value * 100)}%`
-      case 'poison':          return `Poison ${Math.round(fx.dpsMultiplier * 100)}%`
-      case 'dodge':           return `Dodge ${Math.round(fx.chance * 100)}%`
-      case 'block':           return `Block ${Math.round(fx.chance * 100)}%`
-      case 'defIgnore':       return `Armor ignore ${Math.round(fx.percent * 100)}%`
-      case 'spellAmp':        return `Spell amp ${Math.round(fx.percent * 100)}%`
-      case 'critThreshold':   return `Crit on ${fx.rollsAt}+`
-      case 'doublecast':      return `Doublecast ${Math.round(fx.chance * 100)}%`
-      case 'attackSpeedBonus':return `Atk speed +${Math.round(fx.percent * 100)}%`
-      case 'regenOnKill':     return `Regen on kill ${Math.round(fx.percent * 100)}%`
+      case 'lifesteal':        return `Lifesteal ${Math.round(fx.value * 100)}%`
+      case 'poison':           return `Poison ${Math.round(fx.dpsMultiplier * 100)}%`
+      case 'dodge':            return `Dodge ${Math.round(fx.chance * 100)}%`
+      case 'block':            return `Block ${Math.round(fx.chance * 100)}%`
+      case 'defIgnore':        return `Armor ignore ${Math.round(fx.percent * 100)}%`
+      case 'spellAmp':         return `Spell amp ${Math.round(fx.percent * 100)}%`
+      case 'critThreshold':    return `Crit on ${fx.rollsAt}+`
+      case 'doublecast':       return `Doublecast ${Math.round(fx.chance * 100)}%`
+      case 'attackSpeedBonus': return `Atk speed +${Math.round(fx.percent * 100)}%`
+      case 'regenOnKill':      return `Regen on kill ${Math.round(fx.percent * 100)}%`
       default: return ''
     }
   }).filter(Boolean).join(', ')
 }
+
+const RARITY_LABEL: Record<string, string> = {
+  common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary',
+}
 </script>
 
 <template>
-  <div class="pixel-panel">
+  <div class="pixel-panel shop-panel">
     <div class="panel-title">Shop</div>
 
     <div class="inner">
-      <!-- Gold display -->
+      <!-- Gold + flash -->
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
         <span class="gold-val">{{ char?.gold ?? 0 }}g</span>
         <span v-if="flashMsg" class="flash-msg">{{ flashMsg }}</span>
       </div>
 
-      <!-- Item grid -->
-      <div class="shop-grid">
-        <button
-          v-for="item in shopItems"
-          :key="item.id"
-          class="shop-slot"
-          :class="[
-            rarityClass(item.rarity),
-            { 'slot-selected': selectedItem?.id === item.id },
-            { 'slot-cant-afford': !canAfford(item) },
-          ]"
-          @click="selectItem(item)"
-        >
-          <span class="slot-icon">{{ item.type === 'weapon' ? '⚔️' : '🛡️' }}</span>
-          <span class="slot-name">{{ item.name }}</span>
-          <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
-          <span v-if="classTag(item)" class="class-tag" :class="{ 'tag-offclass': isOffClass(item) }">
-            {{ classTag(item) }}
-          </span>
+      <!-- Weapons accordion -->
+      <div class="accordion-section">
+        <button class="accordion-header" @click="weaponsOpen = !weaponsOpen">
+          <span class="acc-icon">⚔</span>
+          <span class="acc-label">Weapons</span>
+          <span class="acc-count">{{ availableItems.filter(i => i.type === 'weapon').length }}</span>
+          <span class="acc-chevron" :class="{ open: weaponsOpen }">▾</span>
         </button>
+
+        <Transition name="acc">
+          <div v-if="weaponsOpen" class="accordion-body">
+            <template v-for="group in weaponGroups" :key="group.rarity">
+              <div class="rarity-divider" :class="rarityClass(group.rarity)">
+                {{ RARITY_LABEL[group.rarity] }}
+              </div>
+              <div class="shop-grid">
+                <button
+                  v-for="item in group.items"
+                  :key="item.id"
+                  class="shop-slot"
+                  :class="[
+                    rarityClass(item.rarity),
+                    { 'slot-selected': selectedItem?.id === item.id },
+                    { 'slot-cant-afford': !canAfford(item) },
+                  ]"
+                  @click="selectItem(item)"
+                >
+                  <div class="slot-sprite-wrap">
+                    <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+                  </div>
+                  <span class="slot-name">{{ item.name }}</span>
+                  <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
+                  <span v-if="classTag(item)" class="class-tag" :class="{ 'tag-offclass': isOffClass(item) }">
+                    {{ classTag(item) }}
+                  </span>
+                </button>
+              </div>
+            </template>
+          </div>
+        </Transition>
+      </div>
+
+      <!-- Armor accordion -->
+      <div class="accordion-section">
+        <button class="accordion-header" @click="armorOpen = !armorOpen">
+          <span class="acc-icon">🛡</span>
+          <span class="acc-label">Armor</span>
+          <span class="acc-count">{{ availableItems.filter(i => i.type === 'armor').length }}</span>
+          <span class="acc-chevron" :class="{ open: armorOpen }">▾</span>
+        </button>
+
+        <Transition name="acc">
+          <div v-if="armorOpen" class="accordion-body">
+            <template v-for="group in armorGroups" :key="group.rarity">
+              <div class="rarity-divider" :class="rarityClass(group.rarity)">
+                {{ RARITY_LABEL[group.rarity] }}
+              </div>
+              <div class="shop-grid">
+                <button
+                  v-for="item in group.items"
+                  :key="item.id"
+                  class="shop-slot"
+                  :class="[
+                    rarityClass(item.rarity),
+                    { 'slot-selected': selectedItem?.id === item.id },
+                    { 'slot-cant-afford': !canAfford(item) },
+                  ]"
+                  @click="selectItem(item)"
+                >
+                  <div class="slot-sprite-wrap">
+                    <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+                  </div>
+                  <span class="slot-name">{{ item.name }}</span>
+                  <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
+                  <span v-if="classTag(item)" class="class-tag" :class="{ 'tag-offclass': isOffClass(item) }">
+                    {{ classTag(item) }}
+                  </span>
+                </button>
+              </div>
+            </template>
+          </div>
+        </Transition>
       </div>
 
       <!-- Detail panel -->
       <div v-if="selectedItem" class="detail-panel" :class="rarityClass(selectedItem.rarity)">
-        <div class="detail-name" :class="rarityClass(selectedItem.rarity)">{{ selectedItem.name }}</div>
-        <div class="detail-rarity">{{ selectedItem.rarity.toUpperCase() }} {{ selectedItem.type.toUpperCase() }}</div>
+        <div class="detail-header">
+          <div class="detail-sprite-wrap">
+            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(selectedItem.id, 4) }"></div>
+          </div>
+          <div class="detail-text">
+            <div class="detail-name" :class="rarityClass(selectedItem.rarity)">{{ selectedItem.name }}</div>
+            <div class="detail-rarity">{{ selectedItem.rarity.toUpperCase() }} {{ selectedItem.type.toUpperCase() }}</div>
+          </div>
+        </div>
         <div class="detail-stats">{{ statLine(selectedItem) }}</div>
         <div v-if="specialLine(selectedItem)" class="detail-special">{{ specialLine(selectedItem) }}</div>
-        <div v-if="isOffClass(selectedItem)" class="detail-warn">⚠ Off-class: 50% penalty</div>
+        <div v-if="isOffClass(selectedItem)" class="detail-warn">⚠ Off-class: 70% effectiveness</div>
         <div class="detail-price">Cost: {{ getBuyPrice(selectedItem.rarity) }}g</div>
         <div class="detail-actions">
           <button
@@ -161,7 +257,8 @@ function specialLine(item: Item): string {
 </template>
 
 <style scoped>
-.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
+.shop-panel { height: fit-content; }
+.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
 
 .gold-row {
   display: flex;
@@ -173,6 +270,72 @@ function specialLine(item: Item): string {
 .gold-val   { color: var(--gold); }
 .flash-msg  { color: var(--gold); font-size: 7px; margin-left: auto; }
 
+/* Accordion */
+.accordion-section {
+  border: 2px solid var(--border);
+}
+
+.accordion-header {
+  width: 100%;
+  background: #16142a;
+  border: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--text);
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.accordion-header:hover { background: #1e1c38; }
+
+.acc-icon  { font-size: 10px; }
+.acc-label { flex: 1; }
+.acc-count { color: var(--text-dim); font-size: 7px; }
+.acc-chevron {
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.acc-chevron.open { transform: rotate(180deg); }
+
+.accordion-body {
+  padding: 6px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+/* Accordion open/close animation */
+.acc-enter-active, .acc-leave-active {
+  transition: opacity 0.15s, max-height 0.2s ease;
+  max-height: 1000px;
+  overflow: hidden;
+}
+.acc-enter-from, .acc-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+/* Rarity sub-dividers */
+.rarity-divider {
+  font-size: 6px;
+  padding: 2px 4px;
+  letter-spacing: 1px;
+  border-left: 2px solid currentColor;
+  margin-top: 2px;
+}
+.r-common    { color: #909090; border-color: #555560; }
+.r-uncommon  { color: #4caf50; border-color: #2d7a30; }
+.r-rare      { color: #4488dd; border-color: #2a5898; }
+.r-epic      { color: #00e676; border-color: #00a854; }
+.r-legendary { color: #daa520; border-color: #987820; }
+
+/* Shop grid */
 .shop-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -184,7 +347,7 @@ function specialLine(item: Item): string {
   font-size: 7px;
   background: #1a1830;
   border: 2px solid var(--border);
-  padding: 5px 6px;
+  padding: 5px 6px 5px 8px;
   cursor: pointer;
   box-shadow: 2px 2px 0 #000;
   display: flex;
@@ -193,16 +356,40 @@ function specialLine(item: Item): string {
   position: relative;
   top: 0; left: 0;
   text-align: left;
+  overflow: visible;
 }
 .shop-slot:hover { border-color: var(--border-hi); }
 .shop-slot:active { top: 2px; left: 2px; box-shadow: none; }
 
-.slot-icon  { font-size: 10px; line-height: 1; }
-.slot-name  { color: var(--text); line-height: 1.4; }
-.slot-price { color: var(--gold-dim); font-size: 7px; }
+/* Item sprite in slot */
+.slot-sprite-wrap {
+  width: 26px;
+  height: 28px;
+  overflow: visible;
+  position: relative;
+  flex-shrink: 0;
+}
+.slot-sprite {
+  width: 3px;
+  height: 3px;
+  image-rendering: pixelated;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
 
-.slot-selected   { outline: 2px solid #f07020; outline-offset: -2px; }
-.slot-cant-afford { opacity: 0.55; }
+.slot-name  { color: var(--text); line-height: 1.4; }
+.slot-price { color: var(--gold-dim, #c09030); font-size: 6px; }
+
+.slot-selected     { outline: 2px solid #f07020; outline-offset: -2px; }
+.slot-cant-afford  { opacity: 0.55; }
+
+/* Rarity borders on slots */
+.r-common    .shop-slot, .shop-slot.r-common    { border-color: #555560; }
+.r-uncommon  .shop-slot, .shop-slot.r-uncommon  { border-color: #2d7a30; }
+.r-rare      .shop-slot, .shop-slot.r-rare      { border-color: #2a5898; }
+.r-epic      .shop-slot, .shop-slot.r-epic      { border-color: #00a854; }
+.r-legendary .shop-slot, .shop-slot.r-legendary { border-color: #987820; }
 
 .class-tag {
   position: absolute;
@@ -215,13 +402,6 @@ function specialLine(item: Item): string {
 }
 .tag-offclass { color: #f07020; border-color: #a05010; }
 
-/* Rarity borders on shop slots */
-.r-common    { border-color: #505060; }
-.r-uncommon  { border-color: #308030; color: #60c060; }
-.r-rare      { border-color: #304898; color: #6090e0; }
-.r-epic      { border-color: #702898; color: #b060e0; }
-.r-legendary { border-color: #987020; color: var(--gold); }
-
 /* Detail panel */
 .detail-panel {
   background: #100e20;
@@ -231,6 +411,27 @@ function specialLine(item: Item): string {
   flex-direction: column;
   gap: 5px;
 }
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.detail-sprite-wrap {
+  width: 36px;
+  height: 36px;
+  overflow: visible;
+  flex-shrink: 0;
+  position: relative;
+}
+.detail-sprite {
+  width: 4px;
+  height: 4px;
+  image-rendering: pixelated;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.detail-text   { display: flex; flex-direction: column; gap: 3px; }
 .detail-name    { font-size: 8px; }
 .detail-rarity  { font-size: 7px; color: var(--text-dim); }
 .detail-stats   { font-size: 7px; color: var(--text); }
@@ -239,9 +440,9 @@ function specialLine(item: Item): string {
 .detail-price   { font-size: 7px; color: var(--gold); }
 .detail-actions { display: flex; gap: 6px; margin-top: 2px; }
 
-.r-common .detail-name    { color: #c0c0c8; }
-.r-uncommon .detail-name  { color: #60c060; }
-.r-rare .detail-name      { color: #6090e0; }
-.r-epic .detail-name      { color: #b060e0; }
-.r-legendary .detail-name { color: var(--gold); }
+.r-common .detail-name    { color: #909090; }
+.r-uncommon .detail-name  { color: #4caf50; }
+.r-rare .detail-name      { color: #4488dd; }
+.r-epic .detail-name      { color: #00e676; }
+.r-legendary .detail-name { color: #daa520; }
 </style>

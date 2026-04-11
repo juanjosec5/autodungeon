@@ -224,7 +224,7 @@ export const useCharacterStore = defineStore('character', () => {
     if (char.inventory.length >= 20) return 'inv_full'
 
     char.gold -= price
-    char.inventory.push({ ...structuredClone(template), id: crypto.randomUUID() })
+    char.inventory.push({ ...structuredClone(template), defId: template.id, id: crypto.randomUUID() })
     return 'bought'
   }
 
