@@ -98,7 +98,7 @@ async function signOut() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center px-3 sm:px-4 py-6 sm:py-12">
+  <div class="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center px-3 sm:px-4 py-6 sm:py-12" style="font-size: 10px">
 
     <!-- Auth bar -->
     <div class="w-full max-w-lg mb-4 flex justify-end items-center gap-3 text-xs">

@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
+import { useZoneStore } from '../stores/zone'
+import { CLASS_DEFINITIONS } from '../game/classes'
+import type { ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
+const zoneStore = useZoneStore()
 const char = computed(() => characterStore.character)
 
 const hpPercent = computed(() => {
@@ -14,6 +18,54 @@ const xpPercent = computed(() => {
   if (!char.value) return 0
   return Math.max(0, Math.min(100, (char.value.xp / char.value.xpToNext) * 100))
 })
+
+const ZONE_AVG_DEF: Record<ZoneId, number> = {
+  forest: 4, dungeon: 7, volcano: 14, abyss: 19,
+}
+
+const combatStats = computed(() => {
+  if (!char.value) return null
+  const { class: classId, stats } = char.value
+  const passives = CLASS_DEFINITIONS[classId].passives
+  const zone = zoneStore.activeZone
+  const avgDef = ZONE_AVG_DEF[zone]
+
+  // Weapon
+  const wep = characterStore.effectiveWeaponStats
+  const weaponMin = wep?.minDmg ?? 1
+  const weaponMax = wep?.maxDmg ?? 3
+  const statBonus = classId === 'mage' ? stats.int : stats.str
+
+  // DPS vs zone average (no crit)
+  const defIgnore = passives.defIgnore ?? 0
+  const effEnemyDef = Math.floor(avgDef * (1 - defIgnore))
+  const minDPS = Math.max(1, weaponMin + statBonus - effEnemyDef)
+  const maxDPS = Math.max(1, weaponMax + statBonus - effEnemyDef)
+
+  // Crit chance
+  let critPct: number
+  if (classId === 'rogue') {
+    critPct = stats.dex >= 12 ? 100 : Math.round((21 - (passives.critThreshold ?? 17)) / 20 * 100)
+  } else {
+    critPct = 5 // nat 20 only
+  }
+
+  // Hit chance vs zone avg
+  const hitPct = Math.min(100, Math.max(5, Math.round((21 - avgDef + stats.dex) / 20 * 100)))
+
+  // Effective player DEF
+  const baseArmorDef = characterStore.effectiveArmorStats?.defBonus ?? 0
+  const armorEff = passives.armorEffectiveness ?? 1.0
+  const effDef = Math.floor(baseArmorDef * armorEff)
+
+  return { minDPS, maxDPS, critPct, hitPct, effDef }
+})
+
+const collapsedStats = ref(localStorage.getItem('collapsed_combatStats') === 'true')
+function toggleStats() {
+  collapsedStats.value = !collapsedStats.value
+  localStorage.setItem('collapsed_combatStats', String(collapsedStats.value))
+}
 
 const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
 function toggleCollapse() {
@@ -56,6 +108,24 @@ function toggleCollapse() {
         </div>
         <span class="gold">{{ char.gold }}g</span>
       </div>
+
+      <!-- Combat Stats subsection -->
+      <div v-if="combatStats" class="combat-stats-section">
+        <button class="cs-header" @click="toggleStats">
+          <span class="cs-title">Combat Stats</span>
+          <span class="collapse-btn cs-chevron">{{ collapsedStats ? '►' : '▾' }}</span>
+        </button>
+        <div v-if="!collapsedStats" class="cs-grid">
+          <span class="cs-label">DPS range</span>
+          <span class="cs-value">{{ combatStats.minDPS }}–{{ combatStats.maxDPS }}</span>
+          <span class="cs-label">Crit chance</span>
+          <span class="cs-value">{{ combatStats.critPct }}%</span>
+          <span class="cs-label">Hit chance</span>
+          <span class="cs-value">{{ combatStats.hitPct }}%</span>
+          <span class="cs-label">Eff. DEF</span>
+          <span class="cs-value">{{ combatStats.effDef }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -84,4 +154,30 @@ function toggleCollapse() {
 .stat { font-size: 8px; color: var(--text-dim); }
 .stat b { color: var(--text); font-weight: normal; }
 .gold { font-size: 8px; color: var(--gold); }
+
+.combat-stats-section {
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+.cs-header {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-family: 'Press Start 2P', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0 0 4px;
+}
+.cs-title { font-size: 7px; color: var(--text-dim); }
+.cs-chevron { font-size: 12px; transform: translateY(-2px); }
+.cs-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  padding-top: 4px;
+}
+.cs-label { font-size: 7px; color: var(--text-dim); }
+.cs-value { font-size: 7px; color: var(--text); text-align: right; }
 </style>

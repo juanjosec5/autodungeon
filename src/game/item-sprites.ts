@@ -299,46 +299,64 @@ function leatherScraps(): Sprite {
 const ITEM_SPRITES: Record<string, Sprite> = {
   // ── Common weapons ──
   'rusty-sword':    sword('#888060', '#666040', '#785830', '#4a3010'),
+  'club':           hammer('#7a5520', '#4a3010'),
   'shiv':           dagger('#b0b0a0', '#807868', '#4a3820'),
+  'hunting-knife':  dagger('#c8b880', '#988860', '#5a3820'),
   'crooked-staff':  staff('#c0a030', '#8b6914', '#6a4a10'),
+  'apprentice-wand':wand('#c0c0d8', '#9090cc', '#6a4820'),
 
   // ── Uncommon weapons ──
   'iron-sword':     sword('#d0d0d8', '#a0a0a8', '#909090', '#303030'),
   'war-hammer':     hammer('#909090', '#604020'),
   'bone-dagger':    dagger('#e8e0c0', '#b0a880', '#8a7858'),
   'twin-daggers':   twinDaggers('#c0c0c8', '#909090', '#303030'),
+  'steel-dagger':   dagger('#c0c8d8', '#9098a8', '#303040'),
+  'throwing-knives':twinDaggers('#d0c0a0', '#9a8860', '#504030'),
   'ember-rod':      wand('#ff6600', '#cc2200', '#8b4010'),
   'arcane-wand':    wand('#8888ff', '#6060cc', '#303060'),
+  'battle-staff':   staff('#b04040', '#802020', '#ff9090'),
 
   // ── Rare weapons ──
-  'broad-sword':    wideSword('#c8c8d0', '#a0a0b0', '#c0a030', '#404048'),
-  'battle-axe':     axe('#c0c0c0', '#604020', '#e0e0e8'),
-  'venomblade':     dagger('#40cc40', '#208020', '#103010'),
-  'cursed-blade':   dagger('#9030c0', '#601880', '#280850'),
-  'spellbreaker':   staff('#a0a0a0', '#606060', '#ff4400'),
-  'crystal-staff':  staff('#80e0ff', '#40b0e0', '#ffffff'),
+  'broad-sword':      wideSword('#c8c8d0', '#a0a0b0', '#c0a030', '#404048'),
+  'battle-axe':       axe('#c0c0c0', '#604020', '#e0e0e8'),
+  'executioners-axe': axe('#808080', '#502010', '#cc2222'),
+  'venomblade':       dagger('#40cc40', '#208020', '#103010'),
+  'cursed-blade':     dagger('#9030c0', '#601880', '#280850'),
+  'spirit-blade':     dagger('#40d080', '#208050', '#0a2818'),
+  'shadowstep-blade': dagger('#a060ff', '#6030b0', '#1e0848'),
+  'spellbreaker':     staff('#a0a0a0', '#606060', '#ff4400'),
+  'crystal-staff':    staff('#80e0ff', '#40b0e0', '#ffffff'),
+  'lightning-rod':    staff('#ffe040', '#c0a820', '#8080ff'),
 
   // ── Epic weapons ──
   'shadowblade':    sword('#8030c0', '#501880', '#301050', '#180828'),
   'storm-cleaver':  wideSword('#40c8ff', '#2090d0', '#60b0ff', '#104080'),
+  'berserker-axe':  axe('#cc4400', '#6a2200', '#ff8800'),
   'deathwhisper':   dagger('#0a0818', '#4040a0', '#c0c0ff'),
   'soul-reaper':    scythe('#303050', '#181828', '#8888ff'),
+  'wraith-dagger':  dagger('#20a0b0', '#105860', '#041820'),
   'voidstaff':      staff('#18003a', '#300060', '#8800ff'),
   'arcane-surge':   staff('#ffee00', '#b0aa00', '#80ff00'),
 
   // ── Legendary weapons ──
+  'void-edge':      wideSword('#4400cc', '#220088', '#8800ff', '#110044'),
   'godslayer':      wideSword('#ffd700', '#c89800', '#cc4400', '#8b0000'),
   'titans-fist':    gauntlet('#404058', '#606088', '#1a1830'),
+  'shadowdancer':   phantomBlades('#8040c0', '#401880'),
   'wraithfang':     dagger('#40e0ff', '#10a0c0', '#083048'),
   'phantom-blades': phantomBlades('#c0c0ff', '#6060b0'),
+  'celestial-tome': tome('#002244', '#003388', '#00ddff'),
   'eternum':        staff('#ffd700', '#cc8800', '#ff8800'),
   'abyssal-tome':   tome('#0a0520', '#1a1045', '#aa22ff'),
 
   // ── Common armor ──
   'leather-scraps': leatherScraps(),
+  'worn-tunic':     bodyArmor('#5a4030', '#3a2820', '#7a5840'),
 
   // ── Uncommon armor ──
   'chainmail':      chainArmor('#909098', '#c0c0c8'),
+  'padded-armor':   bodyArmor('#806040', '#604030', '#a08060'),
+  'linen-robe':     robe('#c8b898', '#a09878', '#e0d0b8'),
   'iron-shield':    shield('#909090', '#d0d0d8'),
   'shadow-cloak':   cloak('#2a2040', '#181028'),
   'mage-robes':     robe('#304090', '#2030a0', '#6080ff'),
@@ -347,11 +365,13 @@ const ITEM_SPRITES: Record<string, Sprite> = {
   'plate-armor':    bodyArmor('#808090', '#505060', '#c0c0c8'),
   'bone-plate':     bodyArmor('#d0c8a0', '#a8a080', '#e8e8d0'),
   'assassins-garb': bodyArmor('#1a1828', '#0e0c18', '#383448'),
+  'scale-mail':     chainArmor('#507060', '#80a890'),
   'arcane-vestment':robe('#304898', '#204098', '#6090e8'),
   'cursed-vestments':robe('#301048', '#200838', '#9040c0'),
 
   // ── Epic armor ──
   'dragonscale-mail': bodyArmor('#305040', '#1e3428', '#50c070'),
+  'thornmail':      bodyArmor('#2a5020', '#183010', '#60d050'),
   'blood-plate':    bodyArmor('#580808', '#3a0404', '#cc1818'),
   'phantom-shroud': cloak('#2a1850', '#140c30'),
   'shadow-veil':    cloak('#080610', '#040308'),

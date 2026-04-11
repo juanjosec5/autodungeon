@@ -8,6 +8,10 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: ['warrior'], stats: { minDmg: 3, maxDmg: 7 },
   },
   {
+    id: 'club', name: 'Club', type: 'weapon', category: 'Hammer', rarity: 'common',
+    allowedClasses: ['warrior'], stats: { minDmg: 2, maxDmg: 6 },
+  },
+  {
     id: 'iron-sword', name: 'Iron Sword', type: 'weapon', category: 'Sword', rarity: 'uncommon',
     allowedClasses: 'any', stats: { minDmg: 6, maxDmg: 11 },
   },
@@ -24,6 +28,10 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: 'any', stats: { minDmg: 12, maxDmg: 20 },
   },
   {
+    id: 'executioners-axe', name: "Executioner's Axe", type: 'weapon', category: 'Axe', rarity: 'rare',
+    allowedClasses: 'any', stats: { minDmg: 13, maxDmg: 22, special: [{ type: 'critThreshold', rollsAt: 19 }] },
+  },
+  {
     id: 'shadowblade', name: 'Shadowblade', type: 'weapon', category: 'Sword', rarity: 'epic',
     allowedClasses: 'any', stats: { minDmg: 15, maxDmg: 24, special: [{ type: 'lifesteal', value: 0.1 }] },
   },
@@ -31,6 +39,19 @@ export const ITEM_DEFINITIONS: Item[] = [
     id: 'storm-cleaver', name: 'Storm Cleaver', type: 'weapon', category: 'Axe', rarity: 'epic',
     allowedClasses: 'any',
     stats: { minDmg: 17, maxDmg: 27, special: [{ type: 'critThreshold', rollsAt: 19 }, { type: 'attackSpeedBonus', percent: 0.1 }] },
+  },
+  {
+    id: 'berserker-axe', name: 'Berserker Axe', type: 'weapon', category: 'Axe', rarity: 'epic',
+    allowedClasses: ['warrior'],
+    stats: { minDmg: 20, maxDmg: 32, special: [{ type: 'lifesteal', value: 0.08 }, { type: 'attackSpeedBonus', percent: 0.12 }] },
+  },
+  {
+    id: 'void-edge', name: 'Void Edge', type: 'weapon', category: 'Sword', rarity: 'legendary',
+    allowedClasses: ['warrior'],
+    stats: {
+      minDmg: 35, maxDmg: 55,
+      special: [{ type: 'defIgnore', percent: 0.25 }, { type: 'critThreshold', rollsAt: 17 }, { type: 'lifesteal', value: 0.15 }],
+    },
   },
   {
     id: 'godslayer', name: 'Godslayer', type: 'weapon', category: 'Sword', rarity: 'legendary',
@@ -55,12 +76,24 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: 'any', stats: { minDmg: 2, maxDmg: 5 },
   },
   {
+    id: 'hunting-knife', name: 'Hunting Knife', type: 'weapon', category: 'Dagger', rarity: 'common',
+    allowedClasses: 'any', stats: { minDmg: 2, maxDmg: 4 },
+  },
+  {
     id: 'bone-dagger', name: 'Bone Dagger', type: 'weapon', category: 'Dagger', rarity: 'uncommon',
     allowedClasses: ['rogue'], stats: { minDmg: 3, maxDmg: 8 },
   },
   {
     id: 'twin-daggers', name: 'Twin Daggers', type: 'weapon', category: 'Daggers', rarity: 'uncommon',
     allowedClasses: 'any', stats: { minDmg: 4, maxDmg: 9 },
+  },
+  {
+    id: 'steel-dagger', name: 'Steel Dagger', type: 'weapon', category: 'Dagger', rarity: 'uncommon',
+    allowedClasses: ['rogue'], stats: { minDmg: 5, maxDmg: 11 },
+  },
+  {
+    id: 'throwing-knives', name: 'Throwing Knives', type: 'weapon', category: 'Daggers', rarity: 'uncommon',
+    allowedClasses: 'any', stats: { minDmg: 3, maxDmg: 8, special: [{ type: 'attackSpeedBonus', percent: 0.1 }] },
   },
   {
     id: 'venomblade', name: 'Venomblade', type: 'weapon', category: 'Dagger', rarity: 'rare',
@@ -71,6 +104,14 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: 'any', stats: { minDmg: 8, maxDmg: 16, special: [{ type: 'poison', dpsMultiplier: 0.2 }] },
   },
   {
+    id: 'spirit-blade', name: 'Spirit Blade', type: 'weapon', category: 'Dagger', rarity: 'rare',
+    allowedClasses: ['rogue'], stats: { minDmg: 9, maxDmg: 17, special: [{ type: 'lifesteal', value: 0.1 }] },
+  },
+  {
+    id: 'shadowstep-blade', name: 'Shadowstep Blade', type: 'weapon', category: 'Dagger', rarity: 'rare',
+    allowedClasses: ['rogue'], stats: { minDmg: 10, maxDmg: 18, special: [{ type: 'attackSpeedBonus', percent: 0.15 }] },
+  },
+  {
     id: 'deathwhisper', name: 'Deathwhisper', type: 'weapon', category: 'Scythe', rarity: 'epic',
     allowedClasses: 'any', stats: { minDmg: 12, maxDmg: 20, special: [{ type: 'critThreshold', rollsAt: 15 }] },
   },
@@ -78,6 +119,19 @@ export const ITEM_DEFINITIONS: Item[] = [
     id: 'soul-reaper', name: 'Soul Reaper', type: 'weapon', category: 'Scythe', rarity: 'epic',
     allowedClasses: 'any',
     stats: { minDmg: 14, maxDmg: 23, special: [{ type: 'lifesteal', value: 0.12 }, { type: 'critThreshold', rollsAt: 16 }] },
+  },
+  {
+    id: 'wraith-dagger', name: 'Wraith Dagger', type: 'weapon', category: 'Dagger', rarity: 'epic',
+    allowedClasses: ['rogue'],
+    stats: { minDmg: 13, maxDmg: 21, special: [{ type: 'poison', dpsMultiplier: 0.18 }, { type: 'dodge', chance: 0.1 }] },
+  },
+  {
+    id: 'shadowdancer', name: 'Shadowdancer', type: 'weapon', category: 'Daggers', rarity: 'legendary',
+    allowedClasses: ['rogue'],
+    stats: {
+      minDmg: 28, maxDmg: 45,
+      special: [{ type: 'critThreshold', rollsAt: 13 }, { type: 'attackSpeedBonus', percent: 0.3 }, { type: 'poison', dpsMultiplier: 0.2 }],
+    },
   },
   {
     id: 'wraithfang', name: 'Wraithfang', type: 'weapon', category: 'Dagger', rarity: 'legendary',
@@ -102,12 +156,20 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: 'any', stats: { minDmg: 4, maxDmg: 8 },
   },
   {
+    id: 'apprentice-wand', name: 'Apprentice Wand', type: 'weapon', category: 'Wand', rarity: 'common',
+    allowedClasses: ['mage'], stats: { minDmg: 3, maxDmg: 6 },
+  },
+  {
     id: 'ember-rod', name: 'Ember Rod', type: 'weapon', category: 'Staff', rarity: 'uncommon',
     allowedClasses: ['mage'], stats: { minDmg: 9, maxDmg: 16 },
   },
   {
     id: 'arcane-wand', name: 'Arcane Wand', type: 'weapon', category: 'Wand', rarity: 'uncommon',
     allowedClasses: 'any', stats: { minDmg: 7, maxDmg: 13 },
+  },
+  {
+    id: 'battle-staff', name: 'Battle Staff', type: 'weapon', category: 'Staff', rarity: 'uncommon',
+    allowedClasses: ['mage'], stats: { minDmg: 10, maxDmg: 18 },
   },
   {
     id: 'spellbreaker', name: 'Spellbreaker', type: 'weapon', category: 'Staff', rarity: 'rare',
@@ -118,6 +180,10 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: 'any', stats: { minDmg: 14, maxDmg: 23 },
   },
   {
+    id: 'lightning-rod', name: 'Lightning Rod', type: 'weapon', category: 'Staff', rarity: 'rare',
+    allowedClasses: ['mage'], stats: { minDmg: 13, maxDmg: 21, special: [{ type: 'defIgnore', percent: 0.15 }] },
+  },
+  {
     id: 'voidstaff', name: 'Voidstaff', type: 'weapon', category: 'Staff', rarity: 'epic',
     allowedClasses: 'any', stats: { minDmg: 18, maxDmg: 30, special: [{ type: 'defIgnore', percent: 0.35 }] },
   },
@@ -125,6 +191,14 @@ export const ITEM_DEFINITIONS: Item[] = [
     id: 'arcane-surge', name: 'Arcane Surge', type: 'weapon', category: 'Wand', rarity: 'epic',
     allowedClasses: 'any',
     stats: { minDmg: 22, maxDmg: 36, special: [{ type: 'defIgnore', percent: 0.3 }, { type: 'spellAmp', percent: 0.15 }] },
+  },
+  {
+    id: 'celestial-tome', name: 'Celestial Tome', type: 'weapon', category: 'Tome', rarity: 'legendary',
+    allowedClasses: ['mage'],
+    stats: {
+      minDmg: 38, maxDmg: 60,
+      special: [{ type: 'spellAmp', percent: 0.3 }, { type: 'doublecast', chance: 0.25 }, { type: 'defIgnore', percent: 0.4 }],
+    },
   },
   {
     id: 'eternum', name: 'Eternum', type: 'weapon', category: 'Tome', rarity: 'legendary',
@@ -149,8 +223,20 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: 'any', stats: { defBonus: 1, hpBonus: 5 },
   },
   {
+    id: 'worn-tunic', name: 'Worn Tunic', type: 'armor', category: 'Light Armor', rarity: 'common',
+    allowedClasses: 'any', stats: { defBonus: 0, hpBonus: 8 },
+  },
+  {
     id: 'chainmail', name: 'Chainmail', type: 'armor', category: 'Chain Armor', rarity: 'uncommon',
     allowedClasses: 'any', stats: { defBonus: 3, hpBonus: 10 },
+  },
+  {
+    id: 'padded-armor', name: 'Padded Armor', type: 'armor', category: 'Light Armor', rarity: 'uncommon',
+    allowedClasses: 'any', stats: { defBonus: 2, hpBonus: 12 },
+  },
+  {
+    id: 'linen-robe', name: 'Linen Robe', type: 'armor', category: 'Robes', rarity: 'uncommon',
+    allowedClasses: 'any', stats: { defBonus: 1, hpBonus: 15 },
   },
   {
     id: 'iron-shield', name: 'Iron Shield', type: 'armor', category: 'Shield', rarity: 'uncommon',
@@ -177,6 +263,10 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: 'any', stats: { defBonus: 4, hpBonus: 15 },
   },
   {
+    id: 'scale-mail', name: 'Scale Mail', type: 'armor', category: 'Chain Armor', rarity: 'rare',
+    allowedClasses: 'any', stats: { defBonus: 6, hpBonus: 18, special: [{ type: 'block', chance: 0.05 }] },
+  },
+  {
     id: 'arcane-vestment', name: 'Arcane Vestment', type: 'armor', category: 'Robes', rarity: 'rare',
     allowedClasses: 'any', stats: { defBonus: 3, hpBonus: 20, special: [{ type: 'spellAmp', percent: 0.1 }] },
   },
@@ -187,6 +277,10 @@ export const ITEM_DEFINITIONS: Item[] = [
   {
     id: 'dragonscale-mail', name: 'Dragonscale Mail', type: 'armor', category: 'Chain Armor', rarity: 'epic',
     allowedClasses: 'any', stats: { defBonus: 10, hpBonus: 35 },
+  },
+  {
+    id: 'thornmail', name: 'Thornmail', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: 'any', stats: { defBonus: 12, hpBonus: 38, special: [{ type: 'block', chance: 0.12 }] },
   },
   {
     id: 'blood-plate', name: 'Blood Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
@@ -312,47 +406,72 @@ export function getBuyPrice(rarity: RarityId): number {
 }
 
 export const SHOP_ITEMS: { id: string; minZone: number }[] = [
+  // ── Forest (zone 0) ──
   { id: 'rusty-sword',        minZone: 0 },
+  { id: 'club',               minZone: 0 },
   { id: 'shiv',               minZone: 0 },
+  { id: 'hunting-knife',      minZone: 0 },
   { id: 'crooked-staff',      minZone: 0 },
+  { id: 'apprentice-wand',    minZone: 0 },
   { id: 'leather-scraps',     minZone: 0 },
+  { id: 'worn-tunic',         minZone: 0 },
+  // ── Dungeon (zone 1) ──
   { id: 'iron-sword',         minZone: 1 },
   { id: 'war-hammer',         minZone: 1 },
   { id: 'bone-dagger',        minZone: 1 },
   { id: 'twin-daggers',       minZone: 1 },
+  { id: 'steel-dagger',       minZone: 1 },
+  { id: 'throwing-knives',    minZone: 1 },
   { id: 'ember-rod',          minZone: 1 },
   { id: 'arcane-wand',        minZone: 1 },
+  { id: 'battle-staff',       minZone: 1 },
   { id: 'chainmail',          minZone: 1 },
+  { id: 'padded-armor',       minZone: 1 },
+  { id: 'linen-robe',         minZone: 1 },
   { id: 'iron-shield',        minZone: 1 },
   { id: 'shadow-cloak',       minZone: 1 },
   { id: 'mage-robes',         minZone: 1 },
+  // ── Volcano (zone 2) ──
   { id: 'broad-sword',        minZone: 2 },
   { id: 'battle-axe',         minZone: 2 },
+  { id: 'executioners-axe',   minZone: 2 },
   { id: 'venomblade',         minZone: 2 },
   { id: 'cursed-blade',       minZone: 2 },
+  { id: 'spirit-blade',       minZone: 2 },
+  { id: 'shadowstep-blade',   minZone: 2 },
   { id: 'spellbreaker',       minZone: 2 },
   { id: 'crystal-staff',      minZone: 2 },
+  { id: 'lightning-rod',      minZone: 2 },
   { id: 'plate-armor',        minZone: 2 },
   { id: 'bone-plate',         minZone: 2 },
   { id: 'assassins-garb',     minZone: 2 },
+  { id: 'scale-mail',         minZone: 2 },
   { id: 'arcane-vestment',    minZone: 2 },
   { id: 'cursed-vestments',   minZone: 2 },
+  // ── Abyss (zone 3) ──
   { id: 'shadowblade',        minZone: 3 },
   { id: 'storm-cleaver',      minZone: 3 },
+  { id: 'berserker-axe',      minZone: 3 },
   { id: 'deathwhisper',       minZone: 3 },
   { id: 'soul-reaper',        minZone: 3 },
+  { id: 'wraith-dagger',      minZone: 3 },
   { id: 'voidstaff',          minZone: 3 },
   { id: 'arcane-surge',       minZone: 3 },
   { id: 'dragonscale-mail',   minZone: 3 },
   { id: 'blood-plate',        minZone: 3 },
+  { id: 'thornmail',          minZone: 3 },
   { id: 'phantom-shroud',     minZone: 3 },
   { id: 'shadow-veil',        minZone: 3 },
   { id: 'starweave-robe',     minZone: 3 },
   { id: 'arcane-barrier',     minZone: 3 },
+  // ── Codex only / late-game legendaries (zone 4) ──
+  { id: 'void-edge',          minZone: 4 },
   { id: 'godslayer',          minZone: 4 },
   { id: 'titans-fist',        minZone: 4 },
+  { id: 'shadowdancer',       minZone: 4 },
   { id: 'wraithfang',         minZone: 4 },
   { id: 'phantom-blades',     minZone: 4 },
+  { id: 'celestial-tome',     minZone: 4 },
   { id: 'eternum',            minZone: 4 },
   { id: 'abyssal-tome',       minZone: 4 },
   { id: 'aegis-of-eternity',  minZone: 4 },
