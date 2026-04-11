@@ -1,8 +1,8 @@
 import type { Character, Enemy, ZoneId } from '../types/index'
 import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount } from './formulas'
-import { rollLoot } from './items'
+import { rollLoot, rollBossLoot } from './items'
 import { CLASS_DEFINITIONS } from './classes'
-import { spawnEnemy } from './enemies'
+import { spawnEnemy, getBossForZone } from './enemies'
 
 // ─── Exported types ───────────────────────────────────────────────────────────
 
@@ -12,6 +12,8 @@ export interface CombatState {
   zone: ZoneId
   speed: number
   isPaused: boolean
+  killCount: number        // normal kills since last boss
+  killsToNextBoss: number  // threshold, rerolled after each boss
 }
 
 export type CombatEventType =
@@ -21,6 +23,8 @@ export type CombatEventType =
   | 'enemy_hit'
   | 'enemy_dead'
   | 'enemy_spawned'
+  | 'boss_spawned'
+  | 'boss_defeated'
   | 'player_dead'
   | 'loot_dropped'
   | 'xp_gained'
@@ -37,6 +41,10 @@ export type CombatEventHandler = (event: CombatEvent) => void
 
 // ─── CombatEngine ─────────────────────────────────────────────────────────────
 
+function randomBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
 export class CombatEngine {
   private state: CombatState | null = null
   private playerTickTimer: ReturnType<typeof setTimeout> | null = null
@@ -46,8 +54,12 @@ export class CombatEngine {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
-  start(state: CombatState): void {
-    this.state = state
+  start(state: Omit<CombatState, 'killCount' | 'killsToNextBoss'>): void {
+    this.state = {
+      ...state,
+      killCount: 0,
+      killsToNextBoss: randomBetween(10, 15),
+    }
     this.isDead = false
     this.schedulePlayerTick()
     this.scheduleEnemyTick()
@@ -90,6 +102,9 @@ export class CombatEngine {
     if (!this.state) return
     this.state.character = character
   }
+
+  getKillCount(): number { return this.state?.killCount ?? 0 }
+  getKillsToNextBoss(): number { return this.state?.killsToNextBoss ?? 12 }
 
   on(handler: CombatEventHandler): () => void {
     this.handlers.push(handler)
@@ -295,14 +310,23 @@ export class CombatEngine {
     this.playerTickTimer = null
 
     enemy.hp = 0
-    this.emit({ type: 'enemy_dead', payload: { enemyName: enemy.name } })
+    this.emit({ type: 'enemy_dead', payload: { enemyName: enemy.name, isBoss: enemy.isBoss ?? false } })
 
     // XP
     this.emit({ type: 'xp_gained', payload: { amount: enemy.xpReward } })
 
-    // Loot
-    const item = rollLoot(this.state.zone, enemy.id)
-    this.emit({ type: 'loot_dropped', payload: { item } })
+    // Loot — boss gets guaranteed weapon drop on top of regular loot
+    if (enemy.isBoss) {
+      const bonusItem = rollBossLoot(this.state.zone)
+      this.emit({ type: 'loot_dropped', payload: { item: bonusItem, isBossLoot: true } })
+      this.emit({ type: 'boss_defeated', payload: { enemyName: enemy.name } })
+      this.state.killCount = 0
+      this.state.killsToNextBoss = randomBetween(10, 15)
+    } else {
+      const item = rollLoot(this.state.zone, enemy.id)
+      this.emit({ type: 'loot_dropped', payload: { item } })
+      this.state.killCount++
+    }
 
     // Regen on kill
     const classDef = CLASS_DEFINITIONS[character.class]
@@ -320,10 +344,17 @@ export class CombatEngine {
       })
     }
 
-    // Spawn next enemy
-    const newEnemy = spawnEnemy(this.state.zone)
-    this.state.enemy = newEnemy
-    this.emit({ type: 'enemy_spawned', payload: { enemy: newEnemy } })
+    // Spawn next enemy — boss after threshold, otherwise normal
+    if (!enemy.isBoss && this.state.killCount >= this.state.killsToNextBoss) {
+      const boss = getBossForZone(this.state.zone)
+      this.state.enemy = boss
+      this.emit({ type: 'boss_spawned', payload: { enemy: boss } })
+    } else {
+      const newEnemy = spawnEnemy(this.state.zone)
+      this.state.enemy = newEnemy
+      this.emit({ type: 'enemy_spawned', payload: { enemy: newEnemy } })
+    }
+
     this.schedulePlayerTick()
     this.scheduleEnemyTick()
   }

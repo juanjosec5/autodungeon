@@ -5,6 +5,10 @@ import { getSpriteForEnemy, buildSpriteStyle } from '../game/sprites'
 
 const combatStore = useCombatStore()
 const enemy = computed(() => combatStore.currentEnemy)
+const isBossActive = computed(() => combatStore.isBossActive)
+const killCount = computed(() => combatStore.killCount)
+const killsToNextBoss = computed(() => combatStore.killsToNextBoss)
+const bossProgress = computed(() => Math.min(100, (killCount.value / killsToNextBoss.value) * 100))
 
 // ── HP bar ────────────────────────────────────────────────────────────────────
 
@@ -80,8 +84,9 @@ watch(() => combatStore.enemyHitFlash, () => {
     <template v-if="enemy">
       <div class="enemy-body">
         <!-- Arena -->
-        <div class="arena">
-          <div class="arena-glow"></div>
+        <div class="arena" :class="{ 'arena-boss': isBossActive }">
+          <div class="arena-glow" :class="{ 'arena-glow-boss': isBossActive }"></div>
+          <div v-if="isBossActive" class="boss-badge">BOSS</div>
 
           <!-- Sprite — margin centers the 60×60px box-shadow sprite -->
           <div class="float-wrap">
@@ -136,6 +141,20 @@ watch(() => combatStore.enemyHitFlash, () => {
               <span class="stat-value">{{ enemy.xpReward }}</span>
             </div>
           </div>
+
+          <!-- Boss progress / indicator -->
+          <div class="boss-row">
+            <template v-if="isBossActive">
+              <span class="boss-label">⚔ BOSS BATTLE</span>
+            </template>
+            <template v-else>
+              <span class="boss-lbl">Boss</span>
+              <div class="bar-track">
+                <div class="bar-fill bar-boss" :style="{ width: bossProgress + '%' }"></div>
+              </div>
+              <span class="boss-lbl">{{ killCount }}/{{ killsToNextBoss }}</span>
+            </template>
+          </div>
         </div>
       </div>
     </template>
@@ -184,6 +203,23 @@ watch(() => combatStore.enemyHitFlash, () => {
   width: 120px; height: 40px;
   background: radial-gradient(ellipse, rgba(120,40,220,0.5) 0%, transparent 70%);
   pointer-events: none;
+  transition: background 0.4s;
+}
+.arena-glow-boss {
+  background: radial-gradient(ellipse, rgba(220,60,20,0.7) 0%, transparent 70%);
+}
+
+.boss-badge {
+  position: absolute;
+  top: 6px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 7px;
+  color: #ff4422;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(255,60,20,0.8);
+  animation: boss-pulse 1s ease-in-out infinite alternate;
+  z-index: 15;
+  white-space: nowrap;
 }
 
 /* Sprite centering:
@@ -273,6 +309,26 @@ watch(() => combatStore.enemyHitFlash, () => {
 .bar-hp.instant {
   transition: none;
 }
+.bar-boss {
+  background: linear-gradient(90deg, #cc2200, #ff6622);
+  transition: width 0.3s ease-out;
+}
+
+.boss-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.boss-lbl { font-size: 7px; color: var(--text-dim); white-space: nowrap; }
+.boss-label {
+  font-size: 8px;
+  color: #ff4422;
+  text-shadow: 0 0 6px rgba(255,60,20,0.6);
+  animation: boss-pulse 1s ease-in-out infinite alternate;
+  white-space: nowrap;
+}
 
 .enemy-stats {
   display: flex;
@@ -313,6 +369,11 @@ watch(() => combatStore.enemyHitFlash, () => {
   0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
   20%  { opacity: 1; }
   100% { opacity: 0; transform: translateX(-50%) translateY(-36px); }
+}
+
+@keyframes boss-pulse {
+  0%   { opacity: 0.7; }
+  100% { opacity: 1; text-shadow: 0 0 12px rgba(255,60,20,1); }
 }
 
 /* Mobile: taller arena, stacked layout */

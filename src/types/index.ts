@@ -63,6 +63,7 @@ export interface Enemy {
   def: number
   xpReward: number
   attackSpeed: number
+  isBoss?: boolean
 }
 
 export interface CombatLogEntry {

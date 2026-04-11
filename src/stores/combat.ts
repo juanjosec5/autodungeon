@@ -22,6 +22,9 @@ export const useCombatStore = defineStore('combat', () => {
   const lastEnemyDamage = ref(0)  // damage value of last player hit
   const lastEnemyCrit = ref(false)
   const enemySpawnCounter = ref(0) // incremented on each new enemy spawn
+  const isBossActive = ref(false)
+  const killCount = ref(0)
+  const killsToNextBoss = ref(12)
 
   // ── Log helper ────────────────────────────────────────────────────────────
 
@@ -81,9 +84,32 @@ export const useCombatStore = defineStore('combat', () => {
         break
 
       case 'enemy_dead': {
+        const bossKill = p.isBoss as boolean | undefined
         addLogEntry({ type: 'hit', message: `💀 ${p.enemyName} has been slain!` })
-        // Sync reactive enemy ref after engine spawns the next one
-        // engine.state is updated internally; we read it on xp_gained which fires right after
+        if (!bossKill) {
+          killCount.value = engine.getKillCount()
+          killsToNextBoss.value = engine.getKillsToNextBoss()
+        }
+        break
+      }
+
+      case 'boss_spawned': {
+        isBossActive.value = true
+        killCount.value = 0
+        killsToNextBoss.value = engine.getKillsToNextBoss()
+        addLogEntry({ type: 'zone', message: `⚠️ BOSS: ${(p.enemy as import('../types/index').Enemy).name} approaches!` })
+        setTimeout(() => {
+          currentEnemy.value = p.enemy as import('../types/index').Enemy
+          enemySpawnCounter.value++
+        }, 220)
+        break
+      }
+
+      case 'boss_defeated': {
+        isBossActive.value = false
+        killCount.value = 0
+        killsToNextBoss.value = engine.getKillsToNextBoss()
+        addLogEntry({ type: 'levelup', message: `👑 ${p.enemyName} defeated! Guaranteed loot incoming...` })
         break
       }
 
@@ -108,6 +134,7 @@ export const useCombatStore = defineStore('combat', () => {
         import('./loot').then(({ useLootStore }) => {
           useLootStore().lastDroppedItem = item
         })
+        const isBossLoot = p.isBossLoot as boolean | undefined
         const result = characterStore.addToInventory(item)
         if (result.sold) {
           const msg = result.reason === 'scrap'
@@ -115,9 +142,10 @@ export const useCombatStore = defineStore('combat', () => {
             : `💰 Inventory full — sold ${item.name} for ${result.gold}g`
           addLogEntry({ type: 'sell', message: msg })
         } else {
+          const prefix = isBossLoot ? '👑 Boss drop' : '🎁 Loot'
           addLogEntry({
             type: 'loot',
-            message: `🎁 Loot: ${item.name} (${item.rarity})`,
+            message: `${prefix}: ${item.name} (${item.rarity})`,
           })
         }
         _triggerSave()
@@ -201,6 +229,9 @@ export const useCombatStore = defineStore('combat', () => {
     engine.stop()
     isRunning.value = false
     isPaused.value = false
+    isBossActive.value = false
+    killCount.value = 0
+    killsToNextBoss.value = 12
   }
 
   function pauseCombat(): void {
@@ -235,6 +266,9 @@ export const useCombatStore = defineStore('combat', () => {
     lastEnemyDamage,
     lastEnemyCrit,
     enemySpawnCounter,
+    isBossActive,
+    killCount,
+    killsToNextBoss,
     startCombat,
     stopCombat,
     pauseCombat,

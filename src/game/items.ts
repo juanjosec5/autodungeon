@@ -250,8 +250,8 @@ const RARITY_WEIGHTS: { rarity: RarityId; weight: number }[] = [
   { rarity: 'legendary', weight: 0.0001 },
 ]
 
-/** Boss enemy IDs that are allowed to drop Legendary loot */
-const BOSS_IDS = new Set(['dragon', 'abyssal-titan'])
+/** Boss enemy IDs — allowed to drop Legendary loot via rollLoot */
+const BOSS_IDS = new Set(['forest-troll', 'dark-knight', 'dragon', 'abyssal-titan'])
 
 function rollRarity(isBoss: boolean): RarityId {
   const roll = Math.random()
@@ -279,6 +279,20 @@ export function rollLoot(zone: ZoneId, enemyId: string): Item {
   // volcano and abyss: no clamp (volcano boss drops legendary, abyss boss drops legendary)
 
   const pool = ITEM_DEFINITIONS.filter((item) => item.rarity === rarity)
+  const template = pool[Math.floor(Math.random() * pool.length)]
+  return { ...structuredClone(template), defId: template.id, id: crypto.randomUUID() }
+}
+
+/** Guaranteed weapon drop for zone boss — always top rarity for that zone */
+export function rollBossLoot(zone: ZoneId): Item {
+  const rarityByZone: Record<ZoneId, RarityId> = {
+    forest:  'rare',
+    dungeon: 'epic',
+    volcano: 'legendary',
+    abyss:   'legendary',
+  }
+  const rarity = rarityByZone[zone]
+  const pool = ITEM_DEFINITIONS.filter((i) => i.type === 'weapon' && i.rarity === rarity)
   const template = pool[Math.floor(Math.random() * pool.length)]
   return { ...structuredClone(template), defId: template.id, id: crypto.randomUUID() }
 }
