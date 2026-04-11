@@ -14,7 +14,7 @@ export function calcHit(dex: number, enemyDef: number): boolean {
 
 export function calcCrit(
   roll: number,
-  dex: number,
+  _dex: number,
   classId: ClassId,
   extraCritThreshold?: number,
 ): boolean {
@@ -22,7 +22,7 @@ export function calcCrit(
     case 'warrior':
       return roll === 20
     case 'rogue':
-      return roll >= (extraCritThreshold ?? 17) || dex >= 12
+      return roll >= (extraCritThreshold ?? 17)
     case 'mage':
       return roll === 20
   }
@@ -36,8 +36,9 @@ export function calcPlayerDamage(params: {
   isCrit: boolean
   enemyDef: number
   defIgnorePercent: number
+  armorSpellAmp?: number
 }): number {
-  const { classId, str, int, weapon, isCrit, enemyDef, defIgnorePercent } = params
+  const { classId, str, int, weapon, isCrit, enemyDef, defIgnorePercent, armorSpellAmp = 0 } = params
 
   const minDmg = weapon?.stats.minDmg ?? 1
   const maxDmg = weapon?.stats.maxDmg ?? 3
@@ -46,12 +47,13 @@ export function calcPlayerDamage(params: {
   let raw = rollDamage(minDmg, maxDmg) + statBonus
   if (isCrit) raw = Math.floor(raw * 1.5)
 
-  // SpellAmp: mage-only multiplier applied before DEF reduction
+  // SpellAmp: mage-only multiplier (weapon + armor stacked) applied before DEF reduction
   if (classId === 'mage') {
-    const spellAmp = (weapon?.stats.special?.find((s) => s.type === 'spellAmp') as
+    const weaponSpellAmp = (weapon?.stats.special?.find((s) => s.type === 'spellAmp') as
       | { type: 'spellAmp'; percent: number }
       | undefined)?.percent ?? 0
-    if (spellAmp > 0) raw = Math.floor(raw * (1 + spellAmp))
+    const totalSpellAmp = weaponSpellAmp + armorSpellAmp
+    if (totalSpellAmp > 0) raw = Math.floor(raw * (1 + totalSpellAmp))
   }
 
   const effectiveDef = Math.floor(enemyDef * (1 - defIgnorePercent))

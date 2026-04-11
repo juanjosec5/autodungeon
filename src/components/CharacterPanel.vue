@@ -45,7 +45,7 @@ const combatStats = computed(() => {
   // Crit chance
   let critPct: number
   if (classId === 'rogue') {
-    critPct = stats.dex >= 12 ? 100 : Math.round((21 - (passives.critThreshold ?? 17)) / 20 * 100)
+    critPct = Math.round((21 - (passives.critThreshold ?? 17)) / 20 * 100)
   } else {
     critPct = 5 // nat 20 only
   }
