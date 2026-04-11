@@ -419,14 +419,14 @@ function statSummary(item: Item): string {
 .rb-common    { border-color: #555560; }
 .rb-uncommon  { border-color: #2d7a30; }
 .rb-rare      { border-color: #2a5898; }
-.rb-epic      { border-color: #00a854; }
+.rb-epic      { border-color: #80306a; }
 .rb-legendary { border-color: #987820; background: rgba(100,70,0,0.2); }
 
 /* rarity text */
 .rt-common    { color: #909090; }
 .rt-uncommon  { color: #4caf50; }
 .rt-rare      { color: #4488dd; }
-.rt-epic      { color: #00e676; }
+.rt-epic      { color: #d060b8; }
 .rt-legendary { color: #daa520; }
 
 /* detail panel */

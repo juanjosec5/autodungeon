@@ -76,15 +76,15 @@ onUnmounted(() => {
           <SpeedControl class="mo-5" />
         </div>
 
-        <!-- Col 2: Combat Log -->
-        <div class="col">
-          <CombatLog class="log-fill mo-6" />
-        </div>
-
-        <!-- Col 3: Inventory + Shop -->
+        <!-- Col 2: Inventory + Shop -->
         <div class="col col-wide">
           <Inventory class="mo-3" />
           <ShopPanel class="mo-7" />
+        </div>
+
+        <!-- Col 3: Combat Log -->
+        <div class="col">
+          <CombatLog class="log-fill mo-6" />
         </div>
 
       </div>
