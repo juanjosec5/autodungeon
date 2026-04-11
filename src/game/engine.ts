@@ -176,6 +176,11 @@ export class CombatEngine {
         | { type: 'poison'; dpsMultiplier: number }
         | undefined
 
+      const armorSpellAmp =
+        (character.gear.armor?.stats.special?.find((s) => s.type === 'spellAmp') as
+          | { type: 'spellAmp'; percent: number }
+          | undefined)?.percent ?? 0
+
       const dmgParams = {
         classId: character.class,
         str: character.stats.str,
@@ -184,6 +189,7 @@ export class CombatEngine {
         isCrit,
         enemyDef: enemy.def,
         defIgnorePercent,
+        armorSpellAmp,
       }
 
       let damage = calcPlayerDamage(dmgParams)
