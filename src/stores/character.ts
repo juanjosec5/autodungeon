@@ -24,10 +24,30 @@ export const useCharacterStore = defineStore('character', () => {
   const character = ref<Character | null>(null)
 
   const autoScrap = ref(localStorage.getItem('autoScrap') === 'true')
+  const autoEquip = ref(localStorage.getItem('autoEquip') === 'true')
 
   function toggleAutoScrap(): void {
     autoScrap.value = !autoScrap.value
     localStorage.setItem('autoScrap', String(autoScrap.value))
+  }
+
+  function toggleAutoEquip(): void {
+    autoEquip.value = !autoEquip.value
+    localStorage.setItem('autoEquip', String(autoEquip.value))
+  }
+
+  function isBetterThan(newItem: Item, equipped: Item): boolean {
+    const newTier = RARITY_ORDER.indexOf(newItem.rarity)
+    const equippedTier = RARITY_ORDER.indexOf(equipped.rarity)
+    if (newTier !== equippedTier) return newTier > equippedTier
+    // Same rarity — compare primary stat
+    if (newItem.type === 'weapon') {
+      const newAvg = ((newItem.stats.minDmg ?? 0) + (newItem.stats.maxDmg ?? 0)) / 2
+      const equippedAvg = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2
+      return newAvg > equippedAvg
+    } else {
+      return (newItem.stats.defBonus ?? 0) > (equipped.stats.defBonus ?? 0)
+    }
   }
 
   // ── Getters ──────────────────────────────────────────────────────────────
@@ -136,11 +156,24 @@ export const useCharacterStore = defineStore('character', () => {
 
   /**
    * Returns { sold: true, gold, reason } if item was auto-sold,
+   * { sold: false, equipped: true } if auto-equipped,
    * otherwise returns { sold: false }.
    */
-  function addToInventory(item: Item): { sold: true; gold: number; reason: 'full' | 'scrap' } | { sold: false } {
+  function addToInventory(item: Item): { sold: true; gold: number; reason: 'full' | 'scrap' } | { sold: false; equipped?: boolean } {
     const char = character.value
     if (!char) return { sold: false }
+
+    // Auto-equip: equip if strictly better than current gear and class can use it
+    if (autoEquip.value && getOffClassPenalty(item, char.class) !== 0) {
+      const slot = item.type === 'weapon' ? 'weapon' : 'armor'
+      const current = char.gear[slot]
+      if (current && isBetterThan(item, current)) {
+        char.inventory.push(current)
+        char.gear[slot] = item
+        _recalcMaxHP()
+        return { sold: false, equipped: true }
+      }
+    }
 
     // Auto-scrap: sell if item is lower tier than currently equipped slot
     if (autoScrap.value) {
@@ -277,6 +310,8 @@ export const useCharacterStore = defineStore('character', () => {
     character,
     autoScrap,
     toggleAutoScrap,
+    autoEquip,
+    toggleAutoEquip,
     unlockedZones,
     effectiveWeaponStats,
     effectiveArmorStats,

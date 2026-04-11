@@ -18,6 +18,21 @@ const entryClass: Record<CombatLogEntry['type'], string> = {
   zone:    'l-zone',
 }
 
+type FilterMode = 'all' | 'combat' | 'loot' | 'system'
+const filterMode = ref<FilterMode>('all')
+
+const COMBAT_TYPES = new Set<CombatLogEntry['type']>(['hit', 'crit', 'miss'])
+const LOOT_TYPES   = new Set<CombatLogEntry['type']>(['loot', 'sell'])
+const SYSTEM_TYPES = new Set<CombatLogEntry['type']>(['levelup', 'death', 'regen', 'zone'])
+
+const log = computed(() => {
+  const entries = [...combatStore.combatLog].reverse()
+  if (filterMode.value === 'all') return entries
+  if (filterMode.value === 'combat') return entries.filter(e => COMBAT_TYPES.has(e.type))
+  if (filterMode.value === 'loot')   return entries.filter(e => LOOT_TYPES.has(e.type))
+  return entries.filter(e => SYSTEM_TYPES.has(e.type))
+})
+
 watch(
   () => combatStore.combatLog.length,
   async () => {
@@ -25,25 +40,73 @@ watch(
     if (logEl.value) logEl.value.scrollTop = logEl.value.scrollHeight
   },
 )
-
-const log = computed(() => [...combatStore.combatLog].reverse())
 </script>
 
 <template>
   <div class="pixel-panel flex flex-col h-full min-h-0">
     <div class="panel-title">Combat Log</div>
+
+    <!-- Session stats -->
+    <div v-if="combatStore.isRunning || combatStore.session.kills > 0" class="session-stats">
+      <span class="stat-chip">⚔️ {{ combatStore.session.kills }}</span>
+      <span class="stat-chip">👑 {{ combatStore.session.bossKills }}</span>
+      <span class="stat-chip">🎁 {{ combatStore.session.itemsLooted }}</span>
+      <span class="stat-chip gold">💰 {{ combatStore.session.goldEarned }}g</span>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs">
+      <button class="filter-tab" :class="{ active: filterMode === 'all' }"    @click="filterMode = 'all'">All</button>
+      <button class="filter-tab" :class="{ active: filterMode === 'combat' }" @click="filterMode = 'combat'">Combat</button>
+      <button class="filter-tab" :class="{ active: filterMode === 'loot' }"   @click="filterMode = 'loot'">Loot</button>
+      <button class="filter-tab" :class="{ active: filterMode === 'system' }" @click="filterMode = 'system'">System</button>
+    </div>
+
     <div ref="logEl" class="log-body">
       <div
         v-for="entry in log"
         :key="entry.id"
         :class="['log-entry', entryClass[entry.type]]"
       >&gt; {{ entry.message }}</div>
-      <div v-if="!combatStore.combatLog.length" class="log-empty">Awaiting combat...</div>
+      <div v-if="!log.length" class="log-empty">{{ combatStore.combatLog.length ? 'No entries for this filter.' : 'Awaiting combat...' }}</div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.session-stats {
+  display: flex;
+  gap: 6px;
+  padding: 4px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-wrap: wrap;
+}
+.stat-chip {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.stat-chip.gold { color: var(--gold); }
+
+.filter-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.filter-tab {
+  flex: 1;
+  font-size: 7px;
+  padding: 4px 2px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.1s, border-color 0.1s;
+}
+.filter-tab:hover { color: var(--text); }
+.filter-tab.active { color: #c090f0; border-bottom-color: #8060c0; }
+
 .log-body {
   flex: 1;
   overflow-y: auto;

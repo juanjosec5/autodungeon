@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import type { Enemy, CombatLogEntry } from '../types/index'
 import CombatEngine from '../game/engine'
 import type { CombatEvent } from '../game/engine'
@@ -10,21 +10,38 @@ import { useSaveStore } from './save'
 
 const MAX_LOG = 100
 
+function loadSpeed(): 0.5 | 1 | 2 | 4 {
+  const saved = localStorage.getItem('combatSpeed')
+  if (saved === '0.5' || saved === '1' || saved === '2' || saved === '4') {
+    return Number(saved) as 0.5 | 1 | 2 | 4
+  }
+  return 1
+}
+
 export const useCombatStore = defineStore('combat', () => {
   const engine = new CombatEngine()
   const currentEnemy = ref<Enemy | null>(null)
   const combatLog = ref<CombatLogEntry[]>([])
   const isRunning = ref(false)
   const isPaused = ref(false)
-  const speed = ref<0.5 | 1 | 2 | 4>(1)
-  const enemyHitFlash = ref(0)    // incremented when player lands a hit
-  const enemyAttackShake = ref(0) // incremented when enemy attacks
-  const lastEnemyDamage = ref(0)  // damage value of last player hit
+  const speed = ref<0.5 | 1 | 2 | 4>(loadSpeed())
+  const enemyHitFlash = ref(0)
+  const enemyAttackShake = ref(0)
+  const lastEnemyDamage = ref(0)
   const lastEnemyCrit = ref(false)
-  const enemySpawnCounter = ref(0) // incremented on each new enemy spawn
+  const enemySpawnCounter = ref(0)
   const isBossActive = ref(false)
   const killCount = ref(0)
   const killsToNextBoss = ref(12)
+
+  // ── Session stats (resets on page load) ──────────────────────────────────
+
+  const session = reactive({
+    kills: 0,
+    bossKills: 0,
+    itemsLooted: 0,
+    goldEarned: 0,
+  })
 
   // ── Log helper ────────────────────────────────────────────────────────────
 
@@ -86,7 +103,10 @@ export const useCombatStore = defineStore('combat', () => {
       case 'enemy_dead': {
         const bossKill = p.isBoss as boolean | undefined
         addLogEntry({ type: 'hit', message: `💀 ${p.enemyName} has been slain!` })
-        if (!bossKill) {
+        if (bossKill) {
+          session.bossKills++
+        } else {
+          session.kills++
           killCount.value = engine.getKillCount()
           killsToNextBoss.value = engine.getKillsToNextBoss()
         }
@@ -122,7 +142,6 @@ export const useCombatStore = defineStore('combat', () => {
             message: `🎉 Level up! You are now level ${characterStore.character!.level}!`,
           })
           engine.updateCharacter(characterStore.character!)
-          // Trigger save
           _triggerSave()
         }
         break
@@ -130,30 +149,32 @@ export const useCombatStore = defineStore('combat', () => {
 
       case 'loot_dropped': {
         const item = p.item as import('../types/index').Item
-        // Keep lootStore.lastDroppedItem reactive for UI observers
         import('./loot').then(({ useLootStore }) => {
           useLootStore().lastDroppedItem = item
         })
         const isBossLoot = p.isBossLoot as boolean | undefined
         const result = characterStore.addToInventory(item)
         if (result.sold) {
+          const gold = result.gold
+          session.goldEarned += gold
           const msg = result.reason === 'scrap'
-            ? `🗑 Auto-scrapped ${item.name} for ${result.gold}g`
-            : `💰 Inventory full — sold ${item.name} for ${result.gold}g`
+            ? `🗑 Auto-scrapped ${item.name} for ${gold}g`
+            : `💰 Inventory full — sold ${item.name} for ${gold}g`
           addLogEntry({ type: 'sell', message: msg })
         } else {
-          const prefix = isBossLoot ? '👑 Boss drop' : '🎁 Loot'
-          addLogEntry({
-            type: 'loot',
-            message: `${prefix}: ${item.name} (${item.rarity})`,
-          })
+          session.itemsLooted++
+          if (result.equipped) {
+            addLogEntry({ type: 'loot', message: `⚡ Auto-equipped ${item.name} (${item.rarity})` })
+          } else {
+            const prefix = isBossLoot ? '👑 Boss drop' : '🎁 Loot'
+            addLogEntry({ type: 'loot', message: `${prefix}: ${item.name} (${item.rarity})` })
+          }
         }
         _triggerSave()
         break
       }
 
       case 'enemy_spawned':
-        // Brief delay so the HP bar animates to 0% before the new enemy appears
         setTimeout(() => {
           currentEnemy.value = p.enemy as Enemy
           enemySpawnCounter.value++
@@ -183,12 +204,10 @@ export const useCombatStore = defineStore('combat', () => {
       }
 
       case 'zone_cleared':
-        // Reserved for MVP
         break
     }
   }
 
-  // Register handler once on store init
   engine.on(handleEvent)
 
   // ── Private helpers ───────────────────────────────────────────────────────
@@ -247,11 +266,11 @@ export const useCombatStore = defineStore('combat', () => {
   function setSpeed(s: 0.5 | 1 | 2 | 4): void {
     speed.value = s
     engine.setSpeed(s)
+    localStorage.setItem('combatSpeed', String(s))
   }
 
   function restartCombat(): void {
     stopCombat()
-    // Brief delay so stop clears timers before start re-arms them
     setTimeout(() => startCombat(), 100)
   }
 
@@ -269,6 +288,7 @@ export const useCombatStore = defineStore('combat', () => {
     isBossActive,
     killCount,
     killsToNextBoss,
+    session,
     startCombat,
     stopCombat,
     pauseCombat,
