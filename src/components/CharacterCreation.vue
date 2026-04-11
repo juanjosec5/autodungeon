@@ -98,7 +98,7 @@ async function signOut() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center px-4 py-12">
+  <div class="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center px-3 sm:px-4 py-6 sm:py-12">
 
     <!-- Auth bar -->
     <div class="w-full max-w-lg mb-4 flex justify-end items-center gap-3 text-xs">
@@ -116,13 +116,13 @@ async function signOut() {
     </div>
 
     <!-- Title -->
-    <h1 class="text-5xl font-black tracking-widest text-amber-400 mb-2 uppercase">
+    <h1 class="text-2xl sm:text-4xl font-black tracking-wide sm:tracking-widest text-amber-400 mb-2 uppercase text-center">
       Autodungeon
     </h1>
-    <p class="text-gray-500 text-sm tracking-wider mb-10">An idle fantasy adventure</p>
+    <p class="text-gray-500 text-xs sm:text-sm tracking-wider mb-6 sm:mb-10">An idle fantasy adventure</p>
 
     <!-- Continue banner -->
-    <div v-if="!checkingLoad && hasSaved" class="mb-8 w-full max-w-lg">
+    <div v-if="!checkingLoad && hasSaved" class="mb-5 sm:mb-8 w-full max-w-lg">
       <div class="bg-amber-900/30 border border-amber-700/50 rounded-xl p-5 flex items-center justify-between gap-4">
         <div>
           <p class="text-amber-300 font-semibold">Continue as {{ savedName }}</p>
@@ -140,11 +140,11 @@ async function signOut() {
     </div>
 
     <!-- Creation card -->
-    <div class="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
-      <h2 class="text-lg font-semibold text-gray-200 mb-6">Create a new character</h2>
+    <div class="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-2xl p-4 sm:p-8 shadow-2xl">
+      <h2 class="text-sm sm:text-lg font-semibold text-gray-200 mb-4 sm:mb-6">Create a new character</h2>
 
       <!-- Name input -->
-      <div class="mb-6">
+      <div class="mb-4 sm:mb-6">
         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
           Name
         </label>
@@ -158,7 +158,7 @@ async function signOut() {
       </div>
 
       <!-- Class selector -->
-      <div class="mb-8">
+      <div class="mb-5 sm:mb-8">
         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
           Class
         </label>
@@ -168,13 +168,13 @@ async function signOut() {
             :key="card.id"
             @click="selectClass(card.id)"
             :class="[
-              'text-left rounded-xl border p-4 transition-all',
+              'text-left rounded-xl border p-3 sm:p-4 transition-all',
               selectedClass === card.id
                 ? 'border-amber-500 bg-amber-900/20 ring-1 ring-amber-500/40'
                 : 'border-gray-700 bg-gray-800/50 hover:border-gray-600',
             ]"
           >
-            <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start justify-between gap-2 sm:gap-4">
               <div class="flex-1 min-w-0">
                 <p class="font-bold text-gray-100">{{ card.label }}</p>
                 <p class="text-gray-400 text-xs mt-1">{{ card.flavor }}</p>
