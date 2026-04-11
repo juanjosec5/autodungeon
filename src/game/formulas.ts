@@ -46,6 +46,14 @@ export function calcPlayerDamage(params: {
   let raw = rollDamage(minDmg, maxDmg) + statBonus
   if (isCrit) raw = Math.floor(raw * 1.5)
 
+  // SpellAmp: mage-only multiplier applied before DEF reduction
+  if (classId === 'mage') {
+    const spellAmp = (weapon?.stats.special?.find((s) => s.type === 'spellAmp') as
+      | { type: 'spellAmp'; percent: number }
+      | undefined)?.percent ?? 0
+    if (spellAmp > 0) raw = Math.floor(raw * (1 + spellAmp))
+  }
+
   const effectiveDef = Math.floor(enemyDef * (1 - defIgnorePercent))
   return Math.max(1, raw - effectiveDef)
 }
