@@ -19,8 +19,8 @@ const availableItems = computed(() => {
   const zone = zoneStore.activeZone
   const zoneIdx = ZONE_ORDER.indexOf(zone)
   return SHOP_ITEMS
-    .filter(({ minZone }) => ZONE_ORDER.indexOf(minZone) <= zoneIdx)
-    .map(({ itemId }) => ITEM_DEFINITIONS.find((i) => i.id === itemId)!)
+    .filter(({ minZone }) => minZone <= zoneIdx)
+    .map(({ id }) => ITEM_DEFINITIONS.find((i) => i.id === id)!)
     .filter(Boolean)
 })
 

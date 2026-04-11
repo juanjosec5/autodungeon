@@ -48,6 +48,7 @@ function unequip(slot: 'weapon' | 'armor') {
         <div v-if="char.gear.weapon" class="slot-content">
           <div class="slot-head">
             <span :class="['slot-name', rarityClass[char.gear.weapon.rarity]]">{{ char.gear.weapon.name }}</span>
+            <span :class="['slot-rarity', rarityClass[char.gear.weapon.rarity]]">{{ char.gear.weapon.rarity }}</span>
             <span v-if="isOffClass(char.gear.weapon)" class="off-class">⚠ 70%</span>
           </div>
           <span class="slot-stat">{{ weaponSummary(char.gear.weapon) }}</span>
@@ -64,6 +65,7 @@ function unequip(slot: 'weapon' | 'armor') {
         <div v-if="char.gear.armor" class="slot-content">
           <div class="slot-head">
             <span :class="['slot-name', rarityClass[char.gear.armor.rarity]]">{{ char.gear.armor.name }}</span>
+            <span :class="['slot-rarity', rarityClass[char.gear.armor.rarity]]">{{ char.gear.armor.rarity }}</span>
             <span v-if="isOffClass(char.gear.armor)" class="off-class">⚠ 70%</span>
           </div>
           <span class="slot-stat">{{ armorSummary(char.gear.armor) }}</span>
@@ -95,6 +97,7 @@ function unequip(slot: 'weapon' | 'armor') {
 .slot-content { flex: 1; min-width: 0; }
 .slot-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 .slot-name { font-size: 9px; }
+.slot-rarity { font-size: 7px; text-transform: capitalize; opacity: 0.85; }
 .slot-stat { font-size: 8px; color: var(--text-dim); }
 .slot-placeholder { font-size: 9px; color: var(--text-dim); }
 .slot-hint { font-size: 7px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }

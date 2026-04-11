@@ -195,7 +195,10 @@ function statSummary(item: Item): string {
           <div class="detail-sprite-wrap">
             <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(activeItem.defId ?? activeItem.id, 4) }"></div>
           </div>
-          <span :class="['detail-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
+          <div class="detail-name-block">
+            <span :class="['detail-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
+            <span :class="['detail-rarity', rarityTextClass[activeItem.rarity]]">{{ activeItem.rarity }}</span>
+          </div>
           <span class="detail-price">{{ getSellPrice(activeItem.rarity) }}g</span>
         </div>
         <div class="detail-stats">{{ statSummary(activeItem) }}</div>
@@ -324,7 +327,9 @@ function statSummary(item: Item): string {
   gap: 6px;
 }
 .detail-header { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.detail-name-block { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .detail-name   { font-size: 9px; line-height: 1.4; }
+.detail-rarity { font-size: 7px; text-transform: capitalize; opacity: 0.85; }
 .detail-price  { font-size: 8px; color: var(--gold); white-space: nowrap; }
 .detail-stats  { font-size: 8px; color: var(--text); }
 .detail-specials { display: flex; flex-wrap: wrap; gap: 4px; }
