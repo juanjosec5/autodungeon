@@ -66,12 +66,13 @@ html, body {
   background: none;
   border: none;
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  font-size: 15px;
   color: var(--text-dim);
   cursor: pointer;
   padding: 0 2px;
   line-height: 1;
   flex-shrink: 0;
+  transform: translateY(-7px);
 }
 .collapse-btn:hover { color: var(--gold); }
 
