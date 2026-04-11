@@ -180,7 +180,7 @@ function statSummary(item: Item): string {
         >
           <template v-if="item">
             <div class="slot-sprite-wrap">
-              <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+              <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.defId ?? item.id) }"></div>
             </div>
             <span v-if="classTag(item)" class="class-tag" :class="{ 'class-warn': isOffClass(item) }">
               {{ classTag(item) }}
@@ -193,7 +193,7 @@ function statSummary(item: Item): string {
       <div v-if="activeItem && !selectMode" class="detail-panel" :class="rarityBorderClass[activeItem.rarity]">
         <div class="detail-header">
           <div class="detail-sprite-wrap">
-            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(activeItem.id, 4) }"></div>
+            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(activeItem.defId ?? activeItem.id, 4) }"></div>
           </div>
           <span :class="['detail-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
           <span class="detail-price">{{ getSellPrice(activeItem.rarity) }}g</span>

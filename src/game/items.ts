@@ -280,7 +280,7 @@ export function rollLoot(zone: ZoneId, enemyId: string): Item {
 
   const pool = ITEM_DEFINITIONS.filter((item) => item.rarity === rarity)
   const template = pool[Math.floor(Math.random() * pool.length)]
-  return { ...structuredClone(template), id: crypto.randomUUID() }
+  return { ...structuredClone(template), defId: template.id, id: crypto.randomUUID() }
 }
 
 export function getSellPrice(rarity: RarityId): number {
