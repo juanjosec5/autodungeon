@@ -1,20 +1,33 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useCombatStore } from '../stores/combat'
 import { getSpriteForEnemy, buildSpriteStyle } from '../game/sprites'
 
 const combatStore = useCombatStore()
 const enemy = computed(() => combatStore.currentEnemy)
 
+// ── HP bar ────────────────────────────────────────────────────────────────────
+
 const hpPercent = computed(() => {
   if (!enemy.value) return 0
   return Math.max(0, Math.min(100, (enemy.value.hp / enemy.value.maxHp) * 100))
 })
 
+// Disable transition when a fresh enemy spawns so bar snaps to 100% instantly
+const hpInstant = ref(false)
+watch(() => combatStore.enemySpawnCounter, () => {
+  hpInstant.value = true
+  nextTick(() => { hpInstant.value = false })
+})
+
+// ── Sprite ────────────────────────────────────────────────────────────────────
+
 const spriteStyle = computed(() => {
   const sprite = getSpriteForEnemy(enemy.value?.name ?? '')
   return { boxShadow: buildSpriteStyle(sprite) }
 })
+
+// ── Combat animations ─────────────────────────────────────────────────────────
 
 const isFlashing = ref(false)
 const isAttacking = ref(false)
@@ -34,6 +47,31 @@ watch(() => combatStore.enemyAttackShake, () => {
     setTimeout(() => { isAttacking.value = false }, 300)
   })
 })
+
+// ── Floating damage numbers ───────────────────────────────────────────────────
+
+interface DamageNumber {
+  id: number
+  value: number
+  isCrit: boolean
+  offsetX: number
+}
+
+const damageNumbers = ref<DamageNumber[]>([])
+let dmgIdCounter = 0
+
+watch(() => combatStore.enemyHitFlash, () => {
+  const id = dmgIdCounter++
+  damageNumbers.value.push({
+    id,
+    value: combatStore.lastEnemyDamage,
+    isCrit: combatStore.lastEnemyCrit,
+    offsetX: Math.round(Math.random() * 24 - 12), // -12 to +12px spread
+  })
+  setTimeout(() => {
+    damageNumbers.value = damageNumbers.value.filter((d) => d.id !== id)
+  }, 900)
+})
 </script>
 
 <template>
@@ -44,10 +82,23 @@ watch(() => combatStore.enemyAttackShake, () => {
         <!-- Arena -->
         <div class="arena">
           <div class="arena-glow"></div>
+
+          <!-- Sprite — margin centers the 60×60px box-shadow sprite -->
           <div class="float-wrap">
             <div class="sprite-wrap" :class="{ attacking: isAttacking }">
               <div class="pixel-sprite" :class="{ flashing: isFlashing }" :style="spriteStyle"></div>
             </div>
+          </div>
+
+          <!-- Floating damage numbers -->
+          <div class="dmg-layer">
+            <div
+              v-for="dmg in damageNumbers"
+              :key="dmg.id"
+              class="dmg-number"
+              :class="{ crit: dmg.isCrit }"
+              :style="{ left: `calc(50% + ${dmg.offsetX}px)` }"
+            >{{ dmg.value }}</div>
           </div>
         </div>
 
@@ -58,9 +109,13 @@ watch(() => combatStore.enemyAttackShake, () => {
           <div class="bar-row">
             <span class="bar-lbl">HP</span>
             <div class="bar-track">
-              <div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div>
+              <div
+                class="bar-fill bar-hp"
+                :class="{ instant: hpInstant }"
+                :style="{ width: hpPercent + '%' }"
+              ></div>
             </div>
-            <span class="bar-val">{{ enemy.hp }}/{{ enemy.maxHp }}</span>
+            <span class="bar-val">{{ Math.max(0, enemy.hp) }}/{{ enemy.maxHp }}</span>
           </div>
 
           <div class="enemy-stats">
@@ -131,14 +186,18 @@ watch(() => combatStore.enemyAttackShake, () => {
   pointer-events: none;
 }
 
-/* Float lives here — isolated from attack shake */
+/* Sprite centering:
+   The box-shadow sprite is 12 cols × ~11 rows at 5px = 60×55px visual.
+   Shift element left by 30px and up by 28px so the visual center
+   lines up with the arena center. */
 .float-wrap {
   position: relative;
   z-index: 5;
+  margin-left: -30px;
+  margin-top: -28px;
   animation: float 2.8s ease-in-out infinite;
 }
 
-/* Attack shake overrides float on inner element */
 .sprite-wrap {
   display: inline-block;
 }
@@ -154,6 +213,29 @@ watch(() => combatStore.enemyAttackShake, () => {
 }
 .pixel-sprite.flashing {
   animation: hit-flash 0.18s ease-out forwards;
+}
+
+/* Floating damage numbers */
+.dmg-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+.dmg-number {
+  position: absolute;
+  top: 38%;
+  font-size: 11px;
+  color: #ffffff;
+  font-family: 'Press Start 2P', monospace;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: float-dmg 0.9s ease-out forwards;
+}
+.dmg-number.crit {
+  font-size: 13px;
+  color: #ffcc00;
 }
 
 /* Info panel */
@@ -184,6 +266,13 @@ watch(() => combatStore.enemyAttackShake, () => {
 }
 .bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }
 .bar-val { font-size: 8px; color: var(--text); min-width: 64px; text-align: right; flex-shrink: 0; }
+
+.bar-hp {
+  transition: width 0.15s ease-out;
+}
+.bar-hp.instant {
+  transition: none;
+}
 
 .enemy-stats {
   display: flex;
@@ -218,6 +307,12 @@ watch(() => combatStore.enemyAttackShake, () => {
 @keyframes hit-flash {
   0%   { filter: brightness(8) saturate(0) sepia(1) hue-rotate(-30deg); }
   100% { filter: brightness(1); }
+}
+
+@keyframes float-dmg {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-36px); }
 }
 
 /* Mobile: taller arena, stacked layout */

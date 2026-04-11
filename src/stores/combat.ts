@@ -19,6 +19,9 @@ export const useCombatStore = defineStore('combat', () => {
   const speed = ref<0.5 | 1 | 2 | 4>(1)
   const enemyHitFlash = ref(0)    // incremented when player lands a hit
   const enemyAttackShake = ref(0) // incremented when enemy attacks
+  const lastEnemyDamage = ref(0)  // damage value of last player hit
+  const lastEnemyCrit = ref(false)
+  const enemySpawnCounter = ref(0) // incremented on each new enemy spawn
 
   // ── Log helper ────────────────────────────────────────────────────────────
 
@@ -43,6 +46,8 @@ export const useCombatStore = defineStore('combat', () => {
         if (currentEnemy.value) {
           currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
         }
+        lastEnemyDamage.value = p.damage as number
+        lastEnemyCrit.value = false
         enemyHitFlash.value++
         addLogEntry({
           type: 'hit',
@@ -54,6 +59,8 @@ export const useCombatStore = defineStore('combat', () => {
         if (currentEnemy.value) {
           currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
         }
+        lastEnemyDamage.value = p.damage as number
+        lastEnemyCrit.value = true
         enemyHitFlash.value++
         addLogEntry({
           type: 'crit',
@@ -118,7 +125,11 @@ export const useCombatStore = defineStore('combat', () => {
       }
 
       case 'enemy_spawned':
-        currentEnemy.value = p.enemy as Enemy
+        // Brief delay so the HP bar animates to 0% before the new enemy appears
+        setTimeout(() => {
+          currentEnemy.value = p.enemy as Enemy
+          enemySpawnCounter.value++
+        }, 220)
         break
 
       case 'hp_regen':
@@ -221,6 +232,9 @@ export const useCombatStore = defineStore('combat', () => {
     speed,
     enemyHitFlash,
     enemyAttackShake,
+    lastEnemyDamage,
+    lastEnemyCrit,
+    enemySpawnCounter,
     startCombat,
     stopCombat,
     pauseCombat,
