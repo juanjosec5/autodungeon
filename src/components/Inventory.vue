@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { getOffClassPenalty } from '../game/formulas'
 import { getSellPrice } from '../game/items'
+import { getItemSpriteStyle } from '../game/item-sprites'
 import type { Item } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -178,9 +179,9 @@ function statSummary(item: Item): string {
           @click="item && (selectMode ? toggleSelect(item) : selectItem(item))"
         >
           <template v-if="item">
-            <span :class="['slot-icon', rarityTextClass[item.rarity]]">
-              {{ item.type === 'weapon' ? '⚔' : '🛡' }}
-            </span>
+            <div class="slot-sprite-wrap">
+              <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+            </div>
             <span v-if="classTag(item)" class="class-tag" :class="{ 'class-warn': isOffClass(item) }">
               {{ classTag(item) }}
             </span>
@@ -191,6 +192,9 @@ function statSummary(item: Item): string {
       <!-- Item detail panel (single-click) -->
       <div v-if="activeItem && !selectMode" class="detail-panel" :class="rarityBorderClass[activeItem.rarity]">
         <div class="detail-header">
+          <div class="detail-sprite-wrap">
+            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(activeItem.id, 4) }"></div>
+          </div>
           <span :class="['detail-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
           <span class="detail-price">{{ getSellPrice(activeItem.rarity) }}g</span>
         </div>
@@ -253,7 +257,36 @@ function statSummary(item: Item): string {
 .slot-selected { outline: 2px solid #f07020; outline-offset: -2px; }
 .slot-offclass { filter: hue-rotate(30deg); }
 
-.slot-icon { font-size: 16px; line-height: 1; }
+.slot-sprite-wrap {
+  width: 26px;
+  height: 28px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slot-sprite {
+  width: 3px;
+  height: 3px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.detail-sprite-wrap {
+  width: 36px;
+  height: 36px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.detail-sprite {
+  width: 4px;
+  height: 4px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
 
 .class-tag {
   position: absolute;
