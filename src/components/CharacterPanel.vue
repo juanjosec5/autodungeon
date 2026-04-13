@@ -1,14 +1,44 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useZoneStore } from '../stores/zone'
+import { useCombatStore } from '../stores/combat'
 import { CLASS_DEFINITIONS } from '../game/classes'
 import { SKILL_DEFINITIONS } from '../game/skills'
+import { buildClassSpriteStyle } from '../game/class-sprites'
 import type { ZoneId, SkillId } from '../types/index'
 
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
+const combatStore = useCombatStore()
 const char = computed(() => characterStore.character)
+
+// ── Class sprite + animations ─────────────────────────────────────────────────
+
+const spriteStyle = computed(() =>
+  char.value ? { boxShadow: buildClassSpriteStyle(char.value.class) } : {},
+)
+
+const isAttacking = ref(false)
+const isHit = ref(false)
+let attackTimer: ReturnType<typeof setTimeout> | null = null
+let hitTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(() => combatStore.enemyHitFlash, async () => {
+  isAttacking.value = false
+  await nextTick()
+  isAttacking.value = true
+  if (attackTimer) clearTimeout(attackTimer)
+  attackTimer = setTimeout(() => { isAttacking.value = false }, 350)
+})
+
+watch(() => combatStore.enemyAttackShake, async () => {
+  isHit.value = false
+  await nextTick()
+  isHit.value = true
+  if (hitTimer) clearTimeout(hitTimer)
+  hitTimer = setTimeout(() => { isHit.value = false }, 200)
+})
 
 const hpPercent = computed(() => {
   if (!char.value) return 0
@@ -107,11 +137,16 @@ function skillLevel(skillId: SkillId): number {
     </div>
     <div v-if="!collapsed" class="inner">
       <div class="char-header">
-        <div class="char-name-row">
-          <span class="char-name">{{ char.name }}</span>
-          <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+        <div :class="['player-sprite-wrap', { attacking: isAttacking, hit: isHit }]">
+          <div class="pixel-sprite" :style="spriteStyle"></div>
         </div>
-        <span class="char-level">LV.{{ char.level }}</span>
+        <div class="char-info">
+          <div class="char-name-row">
+            <span class="char-name">{{ char.name }}</span>
+            <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+          </div>
+          <span class="char-level">LV.{{ char.level }}</span>
+        </div>
       </div>
       <div class="bars">
         <div class="bar-row">
@@ -185,7 +220,42 @@ function skillLevel(skillId: SkillId): number {
 
 <style scoped>
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 10px; }
-.char-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
+.char-header { display: flex; align-items: flex-start; gap: 8px; }
+
+/* Class sprite portrait */
+.player-sprite-wrap {
+  width: 48px;
+  height: 52px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: visible;
+}
+.pixel-sprite {
+  width: 4px;
+  height: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  image-rendering: pixelated;
+}
+.player-sprite-wrap.attacking .pixel-sprite {
+  animation: player-attack 320ms ease-out forwards;
+}
+.player-sprite-wrap.hit .pixel-sprite {
+  animation: player-hit 180ms ease-out forwards;
+}
+@keyframes player-attack {
+  0%   { transform: translateX(0)    translateY(0); }
+  30%  { transform: translateX(8px)  translateY(-2px); }
+  70%  { transform: translateX(-3px) translateY(0); }
+  100% { transform: translateX(0)    translateY(0); }
+}
+@keyframes player-hit {
+  0%, 100% { filter: brightness(1); }
+  35%      { filter: brightness(8) saturate(0) sepia(1) hue-rotate(200deg); }
+}
+
+.char-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; justify-content: center; }
 .char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; }
 .char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
