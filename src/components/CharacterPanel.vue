@@ -1,14 +1,44 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useZoneStore } from '../stores/zone'
+import { useCombatStore } from '../stores/combat'
 import { CLASS_DEFINITIONS } from '../game/classes'
 import { SKILL_DEFINITIONS } from '../game/skills'
+import { buildClassSpriteStyle } from '../game/class-sprites'
 import type { ZoneId, SkillId } from '../types/index'
 
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
+const combatStore = useCombatStore()
 const char = computed(() => characterStore.character)
+
+// ── Class sprite + animations ─────────────────────────────────────────────────
+
+const spriteStyle = computed(() =>
+  char.value ? { boxShadow: buildClassSpriteStyle(char.value.class) } : {},
+)
+
+const isAttacking = ref(false)
+const isHit = ref(false)
+let attackTimer: ReturnType<typeof setTimeout> | null = null
+let hitTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(() => combatStore.enemyHitFlash, async () => {
+  isAttacking.value = false
+  await nextTick()
+  isAttacking.value = true
+  if (attackTimer) clearTimeout(attackTimer)
+  attackTimer = setTimeout(() => { isAttacking.value = false }, 350)
+})
+
+watch(() => combatStore.enemyAttackShake, async () => {
+  isHit.value = false
+  await nextTick()
+  isHit.value = true
+  if (hitTimer) clearTimeout(hitTimer)
+  hitTimer = setTimeout(() => { isHit.value = false }, 200)
+})
 
 const hpPercent = computed(() => {
   if (!char.value) return 0
@@ -36,7 +66,7 @@ const combatStats = computed(() => {
   const wep = characterStore.effectiveWeaponStats
   const weaponMin = wep?.minDmg ?? 1
   const weaponMax = wep?.maxDmg ?? 3
-  const statBonus = classId === 'mage' ? stats.int : stats.str
+  const statBonus = CLASS_DEFINITIONS[classId].damageStat === 'int' ? stats.int : stats.str
 
   // DPS vs zone average (no crit)
   const defIgnore = passives.defIgnore ?? 0
@@ -44,13 +74,9 @@ const combatStats = computed(() => {
   const minDPS = Math.max(1, weaponMin + statBonus - effEnemyDef)
   const maxDPS = Math.max(1, weaponMax + statBonus - effEnemyDef)
 
-  // Crit chance
-  let critPct: number
-  if (classId === 'rogue') {
-    critPct = Math.round((21 - (passives.critThreshold ?? 17)) / 20 * 100)
-  } else {
-    critPct = 5 // nat 20 only
-  }
+  // Crit chance (data-driven from class passives)
+  const critThreshold = passives.critThreshold ?? 20
+  const critPct = Math.round((21 - critThreshold) / 20 * 100)
 
   // Hit chance vs zone avg
   const hitPct = Math.min(100, Math.max(5, Math.round((21 - avgDef + stats.dex) / 20 * 100)))
@@ -111,11 +137,16 @@ function skillLevel(skillId: SkillId): number {
     </div>
     <div v-if="!collapsed" class="inner">
       <div class="char-header">
-        <div class="char-name-row">
-          <span class="char-name">{{ char.name }}</span>
-          <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+        <div :class="['player-sprite-wrap', { attacking: isAttacking, hit: isHit }]">
+          <div class="pixel-sprite" :style="spriteStyle"></div>
         </div>
-        <span class="char-level">LV.{{ char.level }}</span>
+        <div class="char-info">
+          <div class="char-name-row">
+            <span class="char-name">{{ char.name }}</span>
+            <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+          </div>
+          <span class="char-level">LV.{{ char.level }}</span>
+        </div>
       </div>
       <div class="bars">
         <div class="bar-row">
@@ -189,7 +220,42 @@ function skillLevel(skillId: SkillId): number {
 
 <style scoped>
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 10px; }
-.char-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
+.char-header { display: flex; align-items: flex-start; gap: 8px; }
+
+/* Class sprite portrait */
+.player-sprite-wrap {
+  width: 48px;
+  height: 52px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: visible;
+}
+.pixel-sprite {
+  width: 4px;
+  height: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  image-rendering: pixelated;
+}
+.player-sprite-wrap.attacking .pixel-sprite {
+  animation: player-attack 320ms ease-out forwards;
+}
+.player-sprite-wrap.hit .pixel-sprite {
+  animation: player-hit 180ms ease-out forwards;
+}
+@keyframes player-attack {
+  0%   { transform: translateX(0)    translateY(0); }
+  30%  { transform: translateX(8px)  translateY(-2px); }
+  70%  { transform: translateX(-3px) translateY(0); }
+  100% { transform: translateX(0)    translateY(0); }
+}
+@keyframes player-hit {
+  0%, 100% { filter: brightness(1); }
+  35%      { filter: brightness(8) saturate(0) sepia(1) hue-rotate(200deg); }
+}
+
+.char-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; justify-content: center; }
 .char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; }
 .char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
@@ -199,9 +265,12 @@ function skillLevel(skillId: SkillId): number {
   border: 1px solid;
   line-height: 1;
 }
-.class-warrior { color: #e88040; border-color: #804020; background: rgba(80,30,0,0.4); }
-.class-rogue   { color: #a060d8; border-color: #502880; background: rgba(40,10,60,0.4); }
-.class-mage    { color: #4090e0; border-color: #204880; background: rgba(10,20,60,0.4); }
+.class-warrior   { color: #e88040; border-color: #804020; background: rgba(80,30,0,0.4); }
+.class-rogue     { color: #a060d8; border-color: #502880; background: rgba(40,10,60,0.4); }
+.class-mage      { color: #4090e0; border-color: #204880; background: rgba(10,20,60,0.4); }
+.class-priest    { color: #e0c060; border-color: #806020; background: rgba(80,60,0,0.4); }
+.class-undead    { color: #60c040; border-color: #206010; background: rgba(10,40,5,0.4); }
+.class-dragonkin { color: #e06030; border-color: #803010; background: rgba(80,20,5,0.4); }
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
 .bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }

@@ -17,7 +17,7 @@ export interface Item {
   type: 'weapon' | 'armor'
   category: string
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
-  allowedClasses: ('warrior' | 'rogue' | 'mage')[] | 'any'
+  allowedClasses: ClassId[] | 'any'
   dropFromZoneIdx?: number  // minimum zone index this item appears in drop pools
   enchantCount?: number     // number of times enchanted
   stats: {
@@ -54,7 +54,7 @@ export interface Character {
   id: string
   userId?: string
   name: string
-  class: 'warrior' | 'rogue' | 'mage'
+  class: ClassId
   level: number
   xp: number
   xpToNext: number
@@ -100,7 +100,7 @@ export interface CombatLogEntry {
 }
 
 export type ZoneId = 'forest' | 'dungeon' | 'volcano' | 'abyss' | 'shadowrealm' | 'celestial' | 'void' | 'nightmare'
-export type ClassId = 'warrior' | 'rogue' | 'mage'
+export type ClassId = 'warrior' | 'rogue' | 'mage' | 'priest' | 'undead' | 'dragonkin'
 export type RarityId = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
 
 /**

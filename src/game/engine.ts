@@ -185,11 +185,13 @@ export class CombatEngine {
 
       enemy.hp -= damage
 
-      // Lifesteal
+      // Lifesteal (weapon special + class innate)
       const lifestealSpecial = getSpecial(weapon?.stats.special, 'lifesteal')
+      const lifestealBase = classDef.passives.lifestealBase ?? 0
+      const totalLifestealFraction = (lifestealSpecial?.value ?? 0) + lifestealBase
       let lifestealHeal = 0
-      if (lifestealSpecial) {
-        lifestealHeal = Math.floor(damage * lifestealSpecial.value)
+      if (totalLifestealFraction > 0) {
+        lifestealHeal = Math.floor(damage * totalLifestealFraction)
         character.currentHP = Math.min(character.maxHP, character.currentHP + lifestealHeal)
       }
 
@@ -320,7 +322,8 @@ export class CombatEngine {
     const classDef = CLASS_DEFINITIONS[character.class]
     const totalRegenChance = Math.min(0.9, classDef.passives.regenChance + regenOnKillBonus)
     if (Math.random() < totalRegenChance) {
-      const healAmt = calcRegenAmount(character.maxHP)
+      const regenPower = classDef.passives.regenPower ?? 1
+      const healAmt = Math.floor(calcRegenAmount(character.maxHP) * regenPower)
       character.currentHP = Math.min(character.maxHP, character.currentHP + healAmt)
       this.emit({
         type: 'hp_regen',

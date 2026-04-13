@@ -1,4 +1,5 @@
 import type { Item, ClassId, SpecialEffect } from '../types/index'
+import { CLASS_DEFINITIONS } from './classes'
 
 export function d20(): number {
   return Math.floor(Math.random() * 20) + 1
@@ -29,14 +30,8 @@ export function calcCrit(
   extraCritThreshold?: number,
   skillCritBonus: number = 0,
 ): boolean {
-  switch (classId) {
-    case 'warrior':
-      return roll >= (20 - skillCritBonus)
-    case 'rogue':
-      return roll >= (extraCritThreshold ?? 17) - skillCritBonus
-    case 'mage':
-      return roll >= (20 - skillCritBonus)
-  }
+  const baseCritThreshold = CLASS_DEFINITIONS[classId].passives.critThreshold ?? 20
+  return roll >= (extraCritThreshold ?? baseCritThreshold) - skillCritBonus
 }
 
 export function calcPlayerDamage(params: {
@@ -54,7 +49,7 @@ export function calcPlayerDamage(params: {
 
   const minDmg = weapon?.stats.minDmg ?? 1
   const maxDmg = weapon?.stats.maxDmg ?? 3
-  const statBonus = classId === 'mage' ? int : str
+  const statBonus = CLASS_DEFINITIONS[classId].damageStat === 'int' ? int : str
 
   let raw = rollDamage(minDmg, maxDmg) + statBonus
   if (isCrit) raw = Math.floor(raw * critMultiplier)

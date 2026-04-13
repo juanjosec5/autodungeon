@@ -75,7 +75,25 @@ const CLASS_CARDS: ClassCard[] = [
     id: 'mage',
     label: 'Mage',
     flavor: 'A wielder of arcane power who ignores enemy defenses.',
-    passive: 'Ignore 20% enemy DEF · 30% regen on kill · Crit on natural 20',
+    passive: 'Ignore 15% enemy DEF · 30% regen on kill · Crit on natural 20',
+  },
+  {
+    id: 'priest',
+    label: 'Priest',
+    flavor: 'A divine caster who heals after nearly every kill. Built for long grinds.',
+    passive: '70% regen on kill (+40% heal power) · Crit on natural 20',
+  },
+  {
+    id: 'undead',
+    label: 'Undead',
+    flavor: 'A vampiric berserker with the highest STR ceiling. Sustains through lifesteal.',
+    passive: '10% innate lifesteal · Crit on roll ≥ 18 · No natural regen',
+  },
+  {
+    id: 'dragonkin',
+    label: 'Dragonkin',
+    flavor: 'A scale-armored brute. The hardest class to kill. Slow but relentless.',
+    passive: '+25% armor effectiveness · 30% regen on kill · Crit on roll ≥ 19',
   },
 ]
 

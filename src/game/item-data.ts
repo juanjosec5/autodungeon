@@ -70,6 +70,24 @@ export const ITEM_DEFINITIONS: Item[] = [
     },
   },
 
+  // ── Priest weapons ────────────────────────────────────────────────────────────
+  {
+    id: 'holy-staff', name: 'Holy Staff', type: 'weapon', category: 'Staff', rarity: 'common',
+    allowedClasses: ['priest'], stats: { minDmg: 2, maxDmg: 5 },
+  },
+
+  // ── Undead weapons ────────────────────────────────────────────────────────────
+  {
+    id: 'bone-blade', name: 'Bone Blade', type: 'weapon', category: 'Sword', rarity: 'common',
+    allowedClasses: ['undead'], stats: { minDmg: 3, maxDmg: 8 },
+  },
+
+  // ── Dragonkin weapons ─────────────────────────────────────────────────────────
+  {
+    id: 'dragon-claw', name: 'Dragon Claw', type: 'weapon', category: 'Gauntlet', rarity: 'common',
+    allowedClasses: ['dragonkin'], stats: { minDmg: 2, maxDmg: 7 },
+  },
+
   // ── Rogue weapons ─────────────────────────────────────────────────────────────
   {
     id: 'shiv', name: 'Shiv', type: 'weapon', category: 'Dagger', rarity: 'common',

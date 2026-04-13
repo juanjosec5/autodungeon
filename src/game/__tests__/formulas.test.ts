@@ -109,31 +109,55 @@ describe('calcHit', () => {
 // ── calcCrit ─────────────────────────────────────────────────────────────────
 
 describe('calcCrit', () => {
-  describe('warrior', () => {
+  describe('warrior (threshold 20 — 5% base crit)', () => {
     it('crits on roll 20', () => expect(calcCrit(20, 'warrior')).toBe(true))
     it('does not crit on roll 19', () => expect(calcCrit(19, 'warrior')).toBe(false))
-    it('crits on 19 with skillCritBonus=1', () => expect(calcCrit(19, 'warrior', undefined, 1)).toBe(true))
+    it('skillCritBonus=1 lowers threshold to 19', () => expect(calcCrit(19, 'warrior', undefined, 1)).toBe(true))
+    it('respects weapon extraCritThreshold', () => {
+      expect(calcCrit(19, 'warrior', 19)).toBe(true)
+      expect(calcCrit(18, 'warrior', 19)).toBe(false)
+    })
   })
 
-  describe('rogue', () => {
-    it('crits on roll >= 17 (default threshold)', () => {
+  describe('rogue (threshold 17 — 20% base crit)', () => {
+    it('crits on roll >= 17', () => {
       expect(calcCrit(17, 'rogue')).toBe(true)
       expect(calcCrit(20, 'rogue')).toBe(true)
     })
     it('does not crit on roll 16', () => expect(calcCrit(16, 'rogue')).toBe(false))
-    it('uses extraCritThreshold when provided', () => {
+    it('extraCritThreshold overrides class threshold', () => {
       expect(calcCrit(15, 'rogue', 15)).toBe(true)
       expect(calcCrit(14, 'rogue', 15)).toBe(false)
     })
-    it('skillCritBonus lowers the threshold', () => {
-      expect(calcCrit(15, 'rogue', 17, 2)).toBe(true) // 17 - 2 = 15
-    })
+    it('skillCritBonus lowers the threshold', () => expect(calcCrit(15, 'rogue', 17, 2)).toBe(true))
   })
 
-  describe('mage', () => {
+  describe('mage (threshold 20 — 5% base crit)', () => {
     it('crits on roll 20', () => expect(calcCrit(20, 'mage')).toBe(true))
     it('does not crit on roll 19', () => expect(calcCrit(19, 'mage')).toBe(false))
     it('skillCritBonus lowers threshold', () => expect(calcCrit(18, 'mage', undefined, 2)).toBe(true))
+  })
+
+  describe('undead (threshold 18 — 15% base crit)', () => {
+    it('crits on roll >= 18', () => {
+      expect(calcCrit(18, 'undead')).toBe(true)
+      expect(calcCrit(20, 'undead')).toBe(true)
+    })
+    it('does not crit on roll 17', () => expect(calcCrit(17, 'undead')).toBe(false))
+    it('skillCritBonus further lowers threshold', () => expect(calcCrit(16, 'undead', undefined, 2)).toBe(true))
+  })
+
+  describe('dragonkin (threshold 19 — 10% base crit)', () => {
+    it('crits on roll >= 19', () => {
+      expect(calcCrit(19, 'dragonkin')).toBe(true)
+      expect(calcCrit(20, 'dragonkin')).toBe(true)
+    })
+    it('does not crit on roll 18', () => expect(calcCrit(18, 'dragonkin')).toBe(false))
+  })
+
+  describe('priest (threshold 20 — 5% base crit)', () => {
+    it('crits on roll 20', () => expect(calcCrit(20, 'priest')).toBe(true))
+    it('does not crit on roll 19', () => expect(calcCrit(19, 'priest')).toBe(false))
   })
 })
 
@@ -197,6 +221,23 @@ describe('calcPlayerDamage', () => {
     const weapon = makeWeapon({ minDmg: 10, maxDmg: 10, special })
     const dmg = calcPlayerDamage({ classId: 'mage', str: 0, int: 0, weapon, isCrit: false, enemyDef: 0, defIgnorePercent: 0, armorSpellAmp: 0.25 })
     expect(dmg).toBe(15) // floor(10 * 1.5) — 25+25=50% amp
+    vi.restoreAllMocks()
+  })
+
+  it('priest uses INT for stat bonus', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const weapon = makeWeapon({ minDmg: 5, maxDmg: 5 })
+    const dmg = calcPlayerDamage({ classId: 'priest', str: 0, int: 8, weapon, isCrit: false, enemyDef: 0, defIgnorePercent: 0 })
+    expect(dmg).toBe(13) // 5 + 8 int
+    vi.restoreAllMocks()
+  })
+
+  it('spellAmp does NOT apply for priest (even with spellAmp weapon)', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const special: SpecialEffect[] = [{ type: 'spellAmp', percent: 1.0 }]
+    const weapon = makeWeapon({ minDmg: 10, maxDmg: 10, special })
+    const dmg = calcPlayerDamage({ classId: 'priest', str: 0, int: 0, weapon, isCrit: false, enemyDef: 0, defIgnorePercent: 0 })
+    expect(dmg).toBe(10) // no amp
     vi.restoreAllMocks()
   })
 

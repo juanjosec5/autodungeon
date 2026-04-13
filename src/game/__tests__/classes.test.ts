@@ -73,7 +73,7 @@ describe('getStatsAtLevel', () => {
   })
 
   it('all stats are non-negative integers at all levels', () => {
-    const classes = ['warrior', 'rogue', 'mage'] as const
+    const classes = ['warrior', 'rogue', 'mage', 'priest', 'undead', 'dragonkin'] as const
     for (const cls of classes) {
       for (const level of [1, 5, 10, 50, 100]) {
         const stats = getStatsAtLevel(cls, level)
@@ -83,6 +83,50 @@ describe('getStatsAtLevel', () => {
         }
       }
     }
+  })
+})
+
+describe('priest', () => {
+  it('has correct base stats at level 1', () => {
+    const stats = getStatsAtLevel('priest', 1)
+    expect(stats.maxHP).toBe(90)
+    expect(stats.int).toBe(8)
+    expect(stats.str).toBe(3)
+  })
+
+  it('gains INT at the same rate as post-nerf mage (2 per level)', () => {
+    const priestL1  = getStatsAtLevel('priest', 1)
+    const priestL11 = getStatsAtLevel('priest', 11)
+    // 10 levels × 2.0 intPerLevel = 20 INT gained
+    expect(priestL11.int - priestL1.int).toBe(20)
+  })
+})
+
+describe('undead', () => {
+  it('has correct base stats at level 1', () => {
+    const stats = getStatsAtLevel('undead', 1)
+    expect(stats.maxHP).toBe(100)
+    expect(stats.str).toBe(10)
+  })
+
+  it('has the highest STR at level 100', () => {
+    const undeadL100  = getStatsAtLevel('undead', 100)
+    const warriorL100 = getStatsAtLevel('warrior', 100)
+    expect(undeadL100.str).toBeGreaterThan(warriorL100.str)
+  })
+})
+
+describe('dragonkin', () => {
+  it('has correct base stats at level 1', () => {
+    const stats = getStatsAtLevel('dragonkin', 1)
+    expect(stats.maxHP).toBe(115)
+    expect(stats.str).toBe(7)
+  })
+
+  it('has the highest HP per level (11)', () => {
+    const dragonkinL50 = getStatsAtLevel('dragonkin', 50)
+    const rogueL50     = getStatsAtLevel('rogue', 50)
+    expect(dragonkinL50.maxHP).toBeGreaterThan(rogueL50.maxHP)
   })
 })
 
