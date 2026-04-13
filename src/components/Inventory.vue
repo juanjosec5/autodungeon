@@ -94,18 +94,26 @@ function classLabel(item: Item): string {
   return item.allowedClasses.join(' / ')
 }
 
-// ── Scrap junk ────────────────────────────────────────────────────────────
+// ── Scrap junk (manual button — always uses effective-stat comparison) ────
 const junkIds = computed<string[]>(() => {
   const c = char.value
   if (!c) return []
-  const weaponTier = c.gear.weapon ? RARITY_ORDER.indexOf(c.gear.weapon.rarity) : -1
-  const armorTier  = c.gear.armor  ? RARITY_ORDER.indexOf(c.gear.armor.rarity)  : -1
   return c.inventory
     .filter(item => {
-      const tier = RARITY_ORDER.indexOf(item.rarity)
-      if (item.type === 'weapon') return weaponTier > 0 && tier < weaponTier
-      if (item.type === 'armor')  return armorTier  > 0 && tier < armorTier
-      return false
+      const slot = item.type === 'weapon' ? 'weapon' : 'armor'
+      const equipped = c.gear[slot]
+      if (!equipped) return false
+      const iPen = getOffClassPenalty(item, c.class)
+      const ePen = getOffClassPenalty(equipped, c.class)
+      if (item.type === 'weapon') {
+        const iEff = ((item.stats.minDmg ?? 0) + (item.stats.maxDmg ?? 0)) / 2 * iPen
+        const eEff = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2 * ePen
+        return iEff < eEff
+      } else {
+        const iEff = ((item.stats.defBonus ?? 0) * 3 + (item.stats.hpBonus ?? 0)) * iPen
+        const eEff = ((equipped.stats.defBonus ?? 0) * 3 + (equipped.stats.hpBonus ?? 0)) * ePen
+        return iEff < eEff
+      }
     })
     .map(i => i.id)
 })
@@ -141,7 +149,7 @@ const slots = computed(() => {
   return Array.from({ length: SLOTS }, (_, i) => inv[i] ?? null)
 })
 
-// ── Equipment comparison ──────────────────────────────────────────────────
+// ── Equipment comparison (penalty-aware) ──────────────────────────────────
 interface StatDelta { label: string; value: number }
 
 const comparisonDeltas = computed<StatDelta[]>(() => {
@@ -151,15 +159,17 @@ const comparisonDeltas = computed<StatDelta[]>(() => {
   const slot = item.type === 'weapon' ? 'weapon' : 'armor'
   const equipped = c.gear[slot]
   if (!equipped) return []
+  const iPen = getOffClassPenalty(item, c.class)
+  const ePen = getOffClassPenalty(equipped, c.class)
   const deltas: StatDelta[] = []
   if (item.type === 'weapon') {
-    const newAvg = ((item.stats.minDmg ?? 0) + (item.stats.maxDmg ?? 0)) / 2
-    const eqAvg  = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2
+    const newAvg = ((item.stats.minDmg ?? 0) + (item.stats.maxDmg ?? 0)) / 2 * iPen
+    const eqAvg  = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2 * ePen
     const diff = Math.round(newAvg - eqAvg)
     if (diff !== 0) deltas.push({ label: 'DMG', value: diff })
   } else {
-    const defDiff = (item.stats.defBonus ?? 0) - (equipped.stats.defBonus ?? 0)
-    const hpDiff  = (item.stats.hpBonus  ?? 0) - (equipped.stats.hpBonus  ?? 0)
+    const defDiff = Math.floor((item.stats.defBonus ?? 0) * iPen) - Math.floor((equipped.stats.defBonus ?? 0) * ePen)
+    const hpDiff  = Math.floor((item.stats.hpBonus  ?? 0) * iPen) - Math.floor((equipped.stats.hpBonus  ?? 0) * ePen)
     if (defDiff !== 0) deltas.push({ label: 'DEF', value: defDiff })
     if (hpDiff  !== 0) deltas.push({ label: 'HP',  value: hpDiff })
   }
@@ -207,13 +217,19 @@ function statSummary(item: Item): string {
           <div class="scrap-threshold">
             <span class="scrap-label">Scrap:</span>
             <button
-              v-for="opt in (['off', 'common', 'uncommon', 'rare'] as const)"
-              :key="opt"
+              v-for="[mode, label, tip] in ([
+                ['off',     'Off',  'No auto-scrap'],
+                ['smart',   '↓All', 'Scrap if worse than equipped (any rarity)'],
+                ['smart-c', '↓C',   'Scrap if worse than equipped (common only)'],
+                ['smart-u', '↓U',   'Scrap if worse than equipped (up to uncommon)'],
+                ['smart-r', '↓R',   'Scrap if worse than equipped (up to rare)'],
+              ] as const)"
+              :key="mode"
               class="threshold-btn"
-              :class="{ 'threshold-active': characterStore.scrapThreshold === opt }"
-              :title="opt === 'off' ? 'No auto-scrap' : `Auto-scrap ${opt} and below`"
-              @click="characterStore.setScrapThreshold(opt)"
-            >{{ opt === 'off' ? 'Off' : opt[0].toUpperCase() }}</button>
+              :class="{ 'threshold-active': characterStore.scrapMode === mode }"
+              :title="tip"
+              @click="characterStore.setScrapMode(mode)"
+            >{{ label }}</button>
           </div>
           <label class="autoscrap-toggle" :class="{ active: characterStore.autoEquip }">
             <input type="checkbox" :checked="characterStore.autoEquip" @change="characterStore.toggleAutoEquip()" />

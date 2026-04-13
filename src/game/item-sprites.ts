@@ -385,6 +385,78 @@ const ITEM_SPRITES: Record<string, Sprite> = {
   'abyssal-plate':      bodyArmor('#080618', '#04030c', '#6600cc'),
   'void-shroud':        cloak('#020108', '#010104'),
   'rift-mantle':        robe('#020118', '#01010c', '#00ffaa'),
+
+  // ── Shadowrealm weapons (epic) ──
+  'dread-axe':          axe('#2a1a3a', '#1a0a28', '#6a40a0'),
+  'shadow-knives':      twinDaggers('#3a2850', '#1a1030', '#8050c0'),
+  'dusk-staff':         staff('#4a2870', '#2a1848', '#a060ff'),
+
+  // ── Shadowrealm armor (epic) ──
+  'shadow-plate':       bodyArmor('#1e1428', '#120c1c', '#4a3060'),
+  'dread-shroud':       cloak('#2a1840', '#1a1030'),
+  'cursed-mantle':      robe('#1a0a30', '#100618', '#6020a0'),
+
+  // ── Shadowrealm BiS legendaries ──
+  'shade-reaper':           axe('#0a0515', '#050208', '#c850ff'),
+  'twilight-fang':          twinDaggers('#1a0525', '#0e0218', '#9030e0'),
+  'grimoire-of-dread':      tome('#1a0830', '#0e0420', '#8800cc'),
+  'shadowplate-fortress':   bodyArmor('#14101e', '#0a0812', '#5030a0'),
+  'dread-stalker-veil':     cloak('#201535', '#100a20'),
+  'shadow-weave-mantle':    robe('#12081e', '#0a0514', '#6030b0'),
+
+  // ── Celestial weapons (epic) ──
+  'holy-cleaver':       axe('#f0c040', '#c08020', '#ffffff'),
+  'celestial-blades':   twinDaggers('#e0d080', '#c0a840', '#ffffff'),
+  'star-wand':          wand('#ffffcc', '#ffd700', '#c0c0ff'),
+
+  // ── Celestial armor (epic) ──
+  'astral-plate':       bodyArmor('#c0c8e0', '#9098b0', '#ffd700'),
+  'celestial-shroud':   cloak('#c0c8f0', '#9098c0'),
+  'divine-robe':        robe('#e0d8f0', '#c0b8d8', '#ffd700'),
+
+  // ── Celestial BiS legendaries ──
+  'sunblade-divine':    wideSword('#ffd700', '#c09000', '#ffffff', '#806000'),
+  'starburst-knives':   twinDaggers('#ffeea0', '#ffd040', '#ffffff'),
+  'astral-codex':       tome('#000840', '#000060', '#ffd700'),
+  'celestial-aegis':    shield('#ffd700', '#ffffff'),
+  'starlight-veil':     cloak('#e8e0c0', '#c0b880'),
+  'cosmic-mantle':      robe('#080828', '#04041c', '#ffd700'),
+
+  // ── Void weapons (epic) ──
+  'void-cleaver':       axe('#080428', '#040214', '#00eeff'),
+  'null-daggers':       twinDaggers('#060420', '#030210', '#00ccff'),
+  'rift-staff':         staff('#0a0530', '#050218', '#00eeff'),
+
+  // ── Void armor (epic) ──
+  'void-plate':         bodyArmor('#060418', '#03020c', '#004488'),
+  'null-shroud':        cloak('#080630', '#040318'),
+  'rift-vestment':      robe('#040220', '#020110', '#0044ff'),
+
+  // ── Void BiS legendaries ──
+  'null-executioner':   axe('#020110', '#01000a', '#00ffff'),
+  'void-piercer':       twinDaggers('#030118', '#01000c', '#00ddff'),
+  'entropy-grimoire':   tome('#020115', '#010010', '#0066ff'),
+  'nullshield':         shield('#040310', '#00eeff'),
+  'void-wraith-cloak':  cloak('#060430', '#030218'),
+  'entropy-mantle':     robe('#030110', '#010008', '#00aaff'),
+
+  // ── Nightmare weapons (epic) ──
+  'horror-blade':       wideSword('#3a0808', '#200404', '#cc0000', '#8a0000'),
+  'nightmare-blades':   twinDaggers('#2a0808', '#180404', '#cc1818'),
+  'dread-tome':         tome('#1e0404', '#140202', '#cc0000'),
+
+  // ── Nightmare armor (epic) ──
+  'nightmare-plate':    bodyArmor('#1a0404', '#100202', '#660000'),
+  'dread-wraith':       cloak('#2a0808', '#180404'),
+  'horror-vestment':    robe('#160404', '#0e0202', '#aa0000'),
+
+  // ── Nightmare BiS legendaries ──
+  'apocalypse-blade':       wideSword('#2a0606', '#180303', '#ff0000', '#990000'),
+  'nightmare-fang':         twinDaggers('#1a0303', '#0f0101', '#ee0000'),
+  'tome-of-infinite-dread': tome('#160303', '#0a0101', '#dd0000'),
+  'eternal-fortress':       bodyArmor('#120303', '#080101', '#550000'),
+  'nightmare-wraith':       cloak('#220606', '#100303'),
+  'dreamweavers-mantle':    robe('#120303', '#080101', '#990000'),
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

@@ -399,6 +399,445 @@ const ABYSSAL_TITAN: Sprite = (() => {
   ]
 })()
 
+// ─── SHADOWREALM ZONE ────────────────────────────────────────────────────────
+
+/** Shadow Wraith — Shadow Imp layout, silvery violet palette */
+const SHADOW_WRAITH: Sprite = (() => {
+  const B = '#100820', D = '#080410', E = '#dd88ff', H = '#5020a0', W = '#281050'
+  return [
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+    [_,_,B,B,B,_,B,B,B,_,_,_],
+    [_,_,H,H,H,H,H,H,H,_,_,_],
+    [_,_,H,E,H,H,H,E,H,_,_,_],
+    [_,_,H,H,H,D,H,H,H,_,_,_],
+    [_,W,W,W,W,W,W,W,W,W,_,_],
+    [W,_,_,H,H,H,H,H,_,_,W,_],
+    [_,_,_,B,H,H,H,B,_,_,_,_],
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+  ]
+})()
+
+/** Soul Harvester — Lich layout, soul-green palette */
+const SOUL_HARVESTER: Sprite = (() => {
+  const P = '#0a3010', D = '#051808', E = '#44ff44', C = '#88dd88', R = '#208820', B = '#061406'
+  return [
+    [_,_,_,C,P,C,P,C,_,_,_,_],
+    [_,_,_,D,D,D,D,D,_,_,_,_],
+    [_,_,D,D,E,D,E,D,D,_,_,_],
+    [_,_,D,D,D,D,D,D,D,_,_,_],
+    [_,_,D,D,D,D,D,D,D,_,_,_],
+    [_,_,D,D,P,P,P,D,D,_,_,_],
+    [_,_,_,B,B,B,B,B,_,_,_,_],
+    [R,_,B,B,E,B,B,B,B,_,R,_],
+    [R,_,_,B,B,B,B,B,_,_,_,_],
+    [_,_,_,P,B,B,B,P,_,_,_,_],
+    [_,_,_,_,P,B,P,_,_,_,_,_],
+  ]
+})()
+
+/** Dark Phantom — Shadow Imp layout, teal-black palette */
+const DARK_PHANTOM: Sprite = (() => {
+  const B = '#020810', D = '#010408', E = '#22ffaa', H = '#006644', W = '#020c08'
+  return [
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+    [_,_,B,B,B,_,B,B,B,_,_,_],
+    [_,_,H,H,H,H,H,H,H,_,_,_],
+    [_,_,H,E,H,H,H,E,H,_,_,_],
+    [_,_,H,H,H,D,H,H,H,_,_,_],
+    [_,W,W,W,W,W,W,W,W,W,_,_],
+    [W,_,_,H,H,H,H,H,_,_,W,_],
+    [_,_,_,B,H,H,H,B,_,_,_,_],
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+  ]
+})()
+
+/** Cursed Revenant — Skeleton layout, cursed purple palette */
+const CURSED_REVENANT: Sprite = (() => {
+  const W = '#9080b0', D = '#403060', E = '#302050', R = '#604888'
+  return [
+    [_,_,_,W,W,W,W,_,_,_,_,_],
+    [_,_,W,W,W,W,W,W,_,_,_,_],
+    [_,_,W,E,W,W,E,W,W,_,_,_],
+    [_,_,W,E,W,W,E,W,W,_,_,_],
+    [_,_,_,W,W,W,W,W,_,_,_,_],
+    [_,_,_,W,D,D,W,W,_,_,_,_],
+    [_,_,_,R,W,W,W,R,_,_,_,_],
+    [_,W,_,R,W,W,W,R,_,W,_,_],
+    [_,W,_,R,R,R,R,R,_,_,_,_],
+    [_,_,_,W,_,_,W,_,_,_,_,_],
+    [_,_,_,W,_,_,W,_,_,_,_,_],
+    [_,_,_,W,W,_,W,W,_,_,_,_],
+  ]
+})()
+
+/** Nightmare Stalker — original: crouching shadow hunter, red claws */
+const NIGHTMARE_STALKER: Sprite = (() => {
+  const B = '#1a0808', D = '#0e0404', C = '#cc3300', S = '#2a1010'
+  return [
+    [_,_,_,_,B,B,B,B,_,_,_,_],
+    [_,_,_,B,B,B,B,B,B,_,_,_],
+    [_,_,_,B,D,B,B,D,B,_,_,_],
+    [_,_,B,B,B,B,B,B,B,B,_,_],
+    [_,C,S,S,S,S,S,S,S,S,C,_],
+    [_,C,_,B,B,B,B,B,_,_,C,_],
+    [C,_,_,S,S,S,S,S,_,_,_,C],
+    [_,_,_,B,B,_,_,B,_,_,_,_],
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+    [_,_,C,_,_,_,_,_,C,_,_,_],
+    [_,C,_,_,_,_,_,_,_,C,_,_],
+  ]
+})()
+
+/** Dread Sovereign (boss) — tall crowned shadow lord, violet scepter */
+const DREAD_SOVEREIGN: Sprite = (() => {
+  const C = '#100820', A = '#6030a0', R = '#cc88ff', G = '#aa66ff', D = '#08041a'
+  return [
+    [_,_,_,R,_,R,_,R,_,_,_,_],
+    [_,_,R,A,R,A,R,A,R,_,_,_],
+    [_,_,_,A,A,A,A,A,_,G,_,_],
+    [_,_,C,A,D,A,D,A,C,G,_,_],
+    [_,_,C,A,A,A,A,A,C,G,_,_],
+    [_,_,C,A,A,D,A,A,C,_,_,_],
+    [_,_,A,A,A,A,A,A,A,_,_,_],
+    [C,A,A,A,A,A,A,A,A,A,C,_],
+    [C,_,_,A,A,A,A,A,_,_,C,_],
+    [_,_,_,A,_,_,_,A,_,_,_,_],
+    [_,_,_,A,A,_,A,A,_,_,_,_],
+  ]
+})()
+
+// ─── CELESTIAL ZONE ──────────────────────────────────────────────────────────
+
+/** Celestial Sentinel — Void Knight layout, golden knight palette */
+const CELESTIAL_SENTINEL: Sprite = (() => {
+  const B = '#282808', D = '#141404', E = '#ffd700', C = '#c8b820', S = '#b0a010', A = '#988808'
+  return [
+    [_,_,_,B,B,B,B,B,_,_,_,_],
+    [_,_,B,B,B,B,B,B,B,_,_,_],
+    [_,_,B,E,B,B,B,E,B,_,_,_],
+    [_,_,B,B,B,B,B,B,B,_,_,_],
+    [_,_,B,B,D,D,D,B,B,_,_,_],
+    [_,_,S,C,C,C,C,C,S,_,_,_],
+    [_,C,C,C,C,C,C,C,C,C,_,_],
+    [A,C,_,C,C,C,C,C,_,C,A,_],
+    [A,_,_,C,C,C,C,C,_,_,A,_],
+    [_,_,_,C,_,_,_,C,_,_,_,_],
+    [_,_,_,C,C,_,C,C,_,_,_,_],
+  ]
+})()
+
+/** Starshard Construct — Magma Golem layout, crystal-white palette */
+const STARSHARD_CONSTRUCT: Sprite = (() => {
+  const S = '#2a3050', O = '#aaccff', Y = '#ffffff', L = '#404870'
+  return [
+    [_,_,S,S,S,S,S,S,S,_,_,_],
+    [_,S,S,O,S,S,S,O,S,S,_,_],
+    [_,S,S,S,S,S,S,S,S,S,_,_],
+    [_,S,S,O,O,S,O,O,S,S,_,_],
+    [S,S,S,S,S,S,S,S,S,S,S,_],
+    [S,S,L,S,O,S,O,S,L,S,_,_],
+    [S,S,S,S,S,S,S,S,S,S,_,_],
+    [S,Y,S,S,S,S,S,S,Y,S,_,_],
+    [_,S,S,S,S,S,S,S,S,_,_,_],
+    [_,_,S,S,_,_,_,S,S,_,_,_],
+    [_,_,S,_,_,_,_,_,S,_,_,_],
+  ]
+})()
+
+/** Fallen Seraph — original: pale humanoid with tattered downward wings, wound glow */
+const FALLEN_SERAPH: Sprite = (() => {
+  const F = '#d0c0a0', W = '#8888cc', D = '#4444aa', G = '#ff4400', B = '#a09080', E = '#cc9920'
+  return [
+    [W,_,_,_,F,F,F,_,_,_,W,_],
+    [W,W,_,F,F,F,F,F,_,W,W,_],
+    [D,W,_,F,E,F,F,B,_,W,D,_],
+    [_,D,W,F,F,F,F,F,W,D,_,_],
+    [_,_,W,F,F,G,F,F,W,_,_,_],
+    [_,_,W,F,F,F,F,F,W,_,_,_],
+    [D,W,_,B,B,B,B,B,_,W,D,_],
+    [W,_,_,B,B,B,B,B,_,_,W,_],
+    [_,_,_,B,B,B,B,B,_,_,_,_],
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+    [_,_,_,B,B,_,B,B,_,_,_,_],
+  ]
+})()
+
+/** Astral Warden — Void Knight layout, stellar silver-blue palette */
+const ASTRAL_WARDEN: Sprite = (() => {
+  const B = '#1a1a30', D = '#0e0e18', E = '#8888ff', C = '#3038a0', S = '#2030a0', A = '#182088'
+  return [
+    [_,_,_,B,B,B,B,B,_,_,_,_],
+    [_,_,B,B,B,B,B,B,B,_,_,_],
+    [_,_,B,E,B,B,B,E,B,_,_,_],
+    [_,_,B,B,B,B,B,B,B,_,_,_],
+    [_,_,B,B,D,D,D,B,B,_,_,_],
+    [_,_,S,C,C,C,C,C,S,_,_,_],
+    [_,C,C,C,C,C,C,C,C,C,_,_],
+    [A,C,_,C,C,C,C,C,_,C,A,_],
+    [A,_,_,C,C,C,C,C,_,_,A,_],
+    [_,_,_,C,_,_,_,C,_,_,_,_],
+    [_,_,_,C,C,_,C,C,_,_,_,_],
+  ]
+})()
+
+/** Divine Fury — Fire Elemental layout, divine gold palette */
+const DIVINE_FURY: Sprite = (() => {
+  const R = '#c09000', O = '#ffd700', Y = '#ffffaa', W = '#ffffff', D = '#806000'
+  return [
+    [_,_,_,_,_,W,_,_,_,_,_,_],
+    [_,_,_,_,Y,Y,Y,_,_,_,_,_],
+    [_,_,_,Y,Y,O,Y,Y,_,_,_,_],
+    [_,_,_,O,O,O,O,O,_,_,_,_],
+    [_,_,O,O,R,O,O,O,O,_,_,_],
+    [_,_,O,R,R,R,O,R,O,_,_,_],
+    [_,O,R,R,R,R,R,R,R,O,_,_],
+    [_,D,R,R,D,R,R,D,R,D,_,_],
+    [_,_,D,D,R,R,D,D,_,_,_,_],
+    [_,_,_,D,D,D,D,_,_,_,_,_],
+  ]
+})()
+
+/** Celestial Archon (boss) — original: majestic wide figure with halo, golden armor */
+const CELESTIAL_ARCHON: Sprite = (() => {
+  const G = '#ffd700', W = '#ffffff', A = '#c8c000', E = '#004488', B = '#806000', H = '#ffffcc'
+  return [
+    [_,W,W,W,W,W,W,W,W,W,_,_],
+    [_,_,_,_,G,G,G,_,_,_,_,_],
+    [_,_,_,G,G,A,G,G,_,_,_,_],
+    [_,_,_,A,E,A,E,A,_,_,_,_],
+    [_,_,_,A,A,A,A,A,_,_,_,_],
+    [_,_,_,A,A,B,A,A,_,_,_,_],
+    [_,W,_,G,G,G,G,G,_,W,_,_],
+    [W,W,G,G,G,G,G,G,G,W,W,_],
+    [H,_,_,G,G,G,G,G,_,_,H,_],
+    [_,_,_,A,_,_,_,A,_,_,_,_],
+    [_,_,_,A,A,_,A,A,_,_,_,_],
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+  ]
+})()
+
+// ─── VOID ZONE ───────────────────────────────────────────────────────────────
+
+/** Void Specter — Lich layout, void-cyan palette */
+const VOID_SPECTER: Sprite = (() => {
+  const P = '#082030', D = '#040f18', E = '#00eeff', C = '#80c0cc', R = '#0080a0', B = '#041018'
+  return [
+    [_,_,_,C,P,C,P,C,_,_,_,_],
+    [_,_,_,D,D,D,D,D,_,_,_,_],
+    [_,_,D,D,E,D,E,D,D,_,_,_],
+    [_,_,D,D,D,D,D,D,D,_,_,_],
+    [_,_,D,D,D,D,D,D,D,_,_,_],
+    [_,_,D,D,P,P,P,D,D,_,_,_],
+    [_,_,_,B,B,B,B,B,_,_,_,_],
+    [R,_,B,B,E,B,B,B,B,_,R,_],
+    [R,_,_,B,B,B,B,B,_,_,_,_],
+    [_,_,_,P,B,B,B,P,_,_,_,_],
+    [_,_,_,_,P,B,P,_,_,_,_,_],
+  ]
+})()
+
+/** Nullborn — original: amorphous void blob, single eye, tentacle fringe */
+const NULLBORN: Sprite = (() => {
+  const B = '#040414', D = '#020208', E = '#00aaff', F = '#0a0a28', G = '#0055aa'
+  return [
+    [_,_,_,_,B,B,B,B,_,_,_,_],
+    [_,_,_,B,B,B,B,B,B,_,_,_],
+    [_,_,B,B,B,B,B,B,B,B,_,_],
+    [_,_,B,B,G,E,G,B,B,B,_,_],
+    [_,_,B,B,B,B,B,B,B,B,_,_],
+    [_,_,B,B,B,D,B,B,B,B,_,_],
+    [_,B,B,B,B,B,B,B,B,B,B,_],
+    [F,_,F,B,B,B,B,B,F,_,F,_],
+    [F,_,_,F,B,B,B,F,_,_,F,_],
+    [_,_,_,_,F,F,F,_,_,_,_,_],
+  ]
+})()
+
+/** Oblivion Shade — Shadow Imp layout, near-black teal palette */
+const OBLIVION_SHADE: Sprite = (() => {
+  const B = '#030308', D = '#010104', E = '#00ffcc', H = '#003a28', W = '#040c0a'
+  return [
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+    [_,_,B,B,B,_,B,B,B,_,_,_],
+    [_,_,H,H,H,H,H,H,H,_,_,_],
+    [_,_,H,E,H,H,H,E,H,_,_,_],
+    [_,_,H,H,H,D,H,H,H,_,_,_],
+    [_,W,W,W,W,W,W,W,W,W,_,_],
+    [W,_,_,H,H,H,H,H,_,_,W,_],
+    [_,_,_,B,H,H,H,B,_,_,_,_],
+    [_,_,_,B,_,_,_,B,_,_,_,_],
+  ]
+})()
+
+/** Entropy Fiend — Demon Lord layout, void-blue palette */
+const ENTROPY_FIEND: Sprite = (() => {
+  const R = '#080430', D = '#030218', E = '#0055ff', H = '#1010a0'
+  return [
+    [_,_,D,_,_,_,_,_,D,_,_,_],
+    [_,D,D,D,_,_,_,D,D,D,_,_],
+    [_,_,H,H,H,H,H,H,H,_,_,_],
+    [_,H,E,H,H,H,H,H,E,H,_,_],
+    [_,_,H,H,H,H,H,H,H,_,_,_],
+    [_,_,H,H,D,D,D,H,H,_,_,_],
+    [_,_,R,R,R,R,R,R,R,_,_,_],
+    [R,R,R,R,R,R,R,R,R,R,_,_],
+    [R,_,_,R,H,H,H,R,_,_,R,_],
+    [_,_,_,R,R,R,R,R,_,_,_,_],
+    [_,_,_,R,_,_,_,R,_,_,_,_],
+    [_,_,D,R,_,_,D,R,_,_,_,_],
+  ]
+})()
+
+/** Rift Terror — original: jagged energy diamond, crackling cyan void */
+const RIFT_TERROR: Sprite = (() => {
+  const O = '#080430', I = '#004488', G = '#00eeff', C = '#0088cc', D = '#002255'
+  return [
+    [_,_,_,_,_,G,_,_,_,_,_,_],
+    [_,_,_,_,G,C,G,_,_,_,_,_],
+    [_,_,_,G,C,I,C,G,_,_,_,_],
+    [_,_,G,C,I,O,I,C,G,_,_,_],
+    [_,G,C,I,O,D,O,I,C,G,_,_],
+    [G,C,I,O,D,O,D,O,I,C,G,_],
+    [_,G,C,I,O,D,O,I,C,G,_,_],
+    [_,_,G,C,I,O,I,C,G,_,_,_],
+    [_,_,_,G,C,I,C,G,_,_,_,_],
+    [_,_,_,_,G,C,G,_,_,_,_,_],
+    [_,_,_,_,_,G,_,_,_,_,_,_],
+  ]
+})()
+
+/** The Unmaker (boss) — original: colossal void humanoid, blue eyes, spiked crown */
+const THE_UNMAKER: Sprite = (() => {
+  const B = '#020115', E = '#0044ff', S = '#0088ff', C = '#0022aa', T = '#001166'
+  return [
+    [_,_,S,_,_,_,_,_,S,_,_,_],
+    [_,S,B,S,B,B,B,S,B,S,_,_],
+    [S,B,B,B,B,B,B,B,B,B,S,_],
+    [B,B,E,B,B,B,B,B,E,B,B,_],
+    [B,B,B,B,B,B,B,B,B,B,B,_],
+    [B,B,B,B,C,C,C,B,B,B,B,_],
+    [B,C,C,C,C,C,C,C,C,C,B,_],
+    [T,B,B,C,C,C,C,C,B,B,T,_],
+    [T,B,_,C,C,C,C,C,_,B,T,_],
+    [T,_,_,B,C,C,C,B,_,_,T,_],
+    [_,_,_,T,B,_,B,T,_,_,_,_],
+    [_,_,_,_,T,_,T,_,_,_,_,_],
+    [_,_,_,T,_,_,_,T,_,_,_,_],
+  ]
+})()
+
+// ─── NIGHTMARE ZONE ──────────────────────────────────────────────────────────
+
+/** Nightmare Horror — Orc Berserker layout, nightmare-red palette */
+const NIGHTMARE_HORROR: Sprite = (() => {
+  const G = '#7a1010', D = '#3a0808', L = '#cc2020', E = '#ff4400', T = '#ee8800', X = '#606060'
+  return [
+    [X,_,_,G,G,G,G,G,_,_,X,_],
+    [X,_,G,G,G,G,G,G,G,_,X,_],
+    [_,_,G,E,G,G,G,E,G,_,_,_],
+    [_,_,G,G,G,G,G,G,G,_,_,_],
+    [_,G,G,T,G,G,T,G,G,G,_,_],
+    [_,_,G,G,D,G,G,G,G,_,_,_],
+    [_,_,D,L,D,D,D,L,D,_,_,_],
+    [G,_,D,D,D,D,D,D,D,_,G,_],
+    [G,_,_,D,D,D,D,D,_,_,G,_],
+    [_,_,_,D,_,_,_,D,_,_,_,_],
+    [_,_,_,D,D,_,D,D,_,_,_,_],
+  ]
+})()
+
+/** Chaos Spawn — original: multi-limbed asymmetric chaos creature */
+const CHAOS_SPAWN: Sprite = (() => {
+  const B = '#2a0830', D = '#150418', E = '#ff4400', P = '#cc0088', S = '#440a60', F = '#880000'
+  return [
+    [_,_,E,_,_,_,_,_,_,_,_,_],
+    [_,E,B,_,B,B,B,_,_,P,_,_],
+    [_,_,S,B,B,B,B,B,_,P,P,_],
+    [_,S,S,B,E,B,E,B,S,_,P,_],
+    [_,S,B,B,B,B,B,B,B,S,_,_],
+    [S,B,B,B,D,B,D,B,B,B,S,_],
+    [_,_,B,F,B,B,B,F,B,_,_,_],
+    [_,_,F,B,B,B,B,B,F,_,_,_],
+    [_,F,_,B,B,B,B,B,_,P,_,_],
+    [F,_,_,D,_,_,D,_,_,_,P,_],
+    [_,_,_,_,_,_,_,_,_,_,_,_],
+  ]
+})()
+
+/** Abyssal Nightmare — original: low wide beast, blood-red horns */
+const ABYSSAL_NIGHTMARE: Sprite = (() => {
+  const B = '#100408', D = '#060202', H = '#880000', E = '#ff0000', S = '#1e0808', F = '#3a0a0a'
+  return [
+    [_,H,_,_,_,_,_,_,_,H,_,_],
+    [_,H,H,_,_,_,_,_,H,H,_,_],
+    [_,_,H,B,B,B,B,B,H,_,_,_],
+    [_,_,S,B,E,B,E,B,S,_,_,_],
+    [_,S,S,B,B,B,B,B,S,S,_,_],
+    [S,S,F,F,B,D,B,F,F,S,S,_],
+    [S,F,F,F,F,F,F,F,F,F,S,_],
+    [_,F,F,F,F,F,F,F,F,F,_,_],
+    [_,_,F,F,_,_,_,F,F,_,_,_],
+    [_,_,B,_,_,_,_,_,B,_,_,_],
+  ]
+})()
+
+/** Dread Walker — Skeleton layout, nightmare bone palette */
+const DREAD_WALKER: Sprite = (() => {
+  const W = '#b04030', D = '#503020', E = '#201010', R = '#704028'
+  return [
+    [_,_,_,W,W,W,W,_,_,_,_,_],
+    [_,_,W,W,W,W,W,W,_,_,_,_],
+    [_,_,W,E,W,W,E,W,W,_,_,_],
+    [_,_,W,E,W,W,E,W,W,_,_,_],
+    [_,_,_,W,W,W,W,W,_,_,_,_],
+    [_,_,_,W,D,D,W,W,_,_,_,_],
+    [_,_,_,R,W,W,W,R,_,_,_,_],
+    [_,W,_,R,W,W,W,R,_,W,_,_],
+    [_,W,_,R,R,R,R,R,_,_,_,_],
+    [_,_,_,W,_,_,W,_,_,_,_,_],
+    [_,_,_,W,_,_,W,_,_,_,_,_],
+    [_,_,_,W,W,_,W,W,_,_,_,_],
+  ]
+})()
+
+/** Soul Eater — Lich layout, blood-red palette */
+const SOUL_EATER: Sprite = (() => {
+  const P = '#5a1010', D = '#200808', E = '#ff2200', C = '#dd9988', R = '#aa4040', B = '#380808'
+  return [
+    [_,_,_,C,P,C,P,C,_,_,_,_],
+    [_,_,_,D,D,D,D,D,_,_,_,_],
+    [_,_,D,D,E,D,E,D,D,_,_,_],
+    [_,_,D,D,D,D,D,D,D,_,_,_],
+    [_,_,D,D,D,D,D,D,D,_,_,_],
+    [_,_,D,D,P,P,P,D,D,_,_,_],
+    [_,_,_,B,B,B,B,B,_,_,_,_],
+    [R,_,B,B,E,B,B,B,B,_,R,_],
+    [R,_,_,B,B,B,B,B,_,_,_,_],
+    [_,_,_,P,B,B,B,P,_,_,_,_],
+    [_,_,_,_,P,B,P,_,_,_,_,_],
+  ]
+})()
+
+/** Eternal Nightmare (boss) — original: colossal nightmare mass, multi-face, crimson tendrils */
+const ETERNAL_NIGHTMARE: Sprite = (() => {
+  const B = '#1a0202', D = '#0a0101', E = '#ff0000', T = '#880000', S = '#440000', F = '#cc0000'
+  return [
+    [_,T,_,T,_,_,T,_,T,_,_,_],
+    [T,B,T,B,B,B,B,B,T,B,T,_],
+    [B,B,B,B,B,B,B,B,B,B,B,_],
+    [B,E,B,B,D,B,D,B,B,E,B,_],
+    [B,B,B,B,B,B,B,B,B,B,B,_],
+    [B,B,F,B,E,B,E,B,F,B,B,_],
+    [S,B,B,B,B,B,B,B,B,B,S,_],
+    [S,T,B,T,B,B,B,T,B,T,S,_],
+    [S,_,T,B,B,B,B,B,T,_,S,_],
+    [_,_,_,T,B,B,B,T,_,_,_,_],
+    [_,_,T,_,T,_,T,_,T,_,_,_],
+    [_,T,_,_,_,_,_,_,_,T,_,_],
+    [T,_,_,_,_,_,_,_,_,_,T,_],
+  ]
+})()
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 
 export const SPRITES: Record<string, Sprite> = {
@@ -425,6 +864,38 @@ export const SPRITES: Record<string, Sprite> = {
   'Void Knight':    VOID_KNIGHT,
   'Demon Lord':     DEMON_LORD,
   'Abyssal Titan':  ABYSSAL_TITAN,
+
+  // Shadowrealm
+  'Shadow Wraith':     SHADOW_WRAITH,
+  'Soul Harvester':    SOUL_HARVESTER,
+  'Dark Phantom':      DARK_PHANTOM,
+  'Cursed Revenant':   CURSED_REVENANT,
+  'Nightmare Stalker': NIGHTMARE_STALKER,
+  'Dread Sovereign':   DREAD_SOVEREIGN,
+
+  // Celestial
+  'Celestial Sentinel':  CELESTIAL_SENTINEL,
+  'Starshard Construct': STARSHARD_CONSTRUCT,
+  'Fallen Seraph':       FALLEN_SERAPH,
+  'Astral Warden':       ASTRAL_WARDEN,
+  'Divine Fury':         DIVINE_FURY,
+  'Celestial Archon':    CELESTIAL_ARCHON,
+
+  // Void
+  'Void Specter':   VOID_SPECTER,
+  'Nullborn':       NULLBORN,
+  'Oblivion Shade': OBLIVION_SHADE,
+  'Entropy Fiend':  ENTROPY_FIEND,
+  'Rift Terror':    RIFT_TERROR,
+  'The Unmaker':    THE_UNMAKER,
+
+  // Nightmare
+  'Nightmare Horror':  NIGHTMARE_HORROR,
+  'Chaos Spawn':       CHAOS_SPAWN,
+  'Abyssal Nightmare': ABYSSAL_NIGHTMARE,
+  'Dread Walker':      DREAD_WALKER,
+  'Soul Eater':        SOUL_EATER,
+  'Eternal Nightmare': ETERNAL_NIGHTMARE,
 }
 
 export const FALLBACK_SPRITE: Sprite = (() => {
