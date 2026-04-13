@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/auth'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { getStatsAtLevel } from '../game/classes'
+import { buildClassSpriteStyle } from '../game/class-sprites'
 import AuthModal from './AuthModal.vue'
 
 const router = useRouter()
@@ -112,6 +113,10 @@ function getBaseStats(id: ClassId) {
   return getStatsAtLevel(id, 1)
 }
 
+function getSpriteStyle(id: ClassId): string {
+  return buildClassSpriteStyle(id)
+}
+
 function begin() {
   if (!canBegin.value || !selectedClass.value) return
   characterStore.createCharacter(name.value.trim(), selectedClass.value)
@@ -202,7 +207,10 @@ async function signOut() {
                 : 'border-gray-700 bg-gray-800/50 hover:border-gray-600',
             ]"
           >
-            <div class="flex items-start justify-between gap-2 sm:gap-4">
+            <div class="flex items-start gap-3 sm:gap-4">
+              <div class="class-sprite-wrap">
+                <div class="class-sprite-px" :style="{ boxShadow: getSpriteStyle(card.id) }"></div>
+              </div>
               <div class="flex-1 min-w-0">
                 <p class="font-bold text-gray-100">{{ card.label }}</p>
                 <p class="text-gray-400 text-xs mt-1">{{ card.flavor }}</p>
@@ -244,3 +252,21 @@ async function signOut() {
   <!-- Auth modal -->
   <AuthModal v-if="showAuthModal" @close="showAuthModal = false" />
 </template>
+
+<style scoped>
+.class-sprite-wrap {
+  position: relative;
+  width: 48px;
+  height: 52px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+.class-sprite-px {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 4px;
+  image-rendering: pixelated;
+}
+</style>
