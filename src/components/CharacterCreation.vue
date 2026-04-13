@@ -193,13 +193,13 @@ async function signOut() {
               <div class="shrink-0 text-right">
                 <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-gray-400">
                   <span class="text-gray-500">HP</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).maxHP }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).maxHP }}</span>
                   <span class="text-gray-500">STR</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).str }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).str }}</span>
                   <span class="text-gray-500">DEX</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).dex }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).dex }}</span>
                   <span class="text-gray-500">INT</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).int }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).int }}</span>
                 </div>
               </div>
             </div>
