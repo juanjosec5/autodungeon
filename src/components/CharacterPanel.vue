@@ -36,7 +36,7 @@ const combatStats = computed(() => {
   const wep = characterStore.effectiveWeaponStats
   const weaponMin = wep?.minDmg ?? 1
   const weaponMax = wep?.maxDmg ?? 3
-  const statBonus = classId === 'mage' ? stats.int : stats.str
+  const statBonus = CLASS_DEFINITIONS[classId].damageStat === 'int' ? stats.int : stats.str
 
   // DPS vs zone average (no crit)
   const defIgnore = passives.defIgnore ?? 0
@@ -44,13 +44,9 @@ const combatStats = computed(() => {
   const minDPS = Math.max(1, weaponMin + statBonus - effEnemyDef)
   const maxDPS = Math.max(1, weaponMax + statBonus - effEnemyDef)
 
-  // Crit chance
-  let critPct: number
-  if (classId === 'rogue') {
-    critPct = Math.round((21 - (passives.critThreshold ?? 17)) / 20 * 100)
-  } else {
-    critPct = 5 // nat 20 only
-  }
+  // Crit chance (data-driven from class passives)
+  const critThreshold = passives.critThreshold ?? 20
+  const critPct = Math.round((21 - critThreshold) / 20 * 100)
 
   // Hit chance vs zone avg
   const hitPct = Math.min(100, Math.max(5, Math.round((21 - avgDef + stats.dex) / 20 * 100)))
@@ -199,9 +195,12 @@ function skillLevel(skillId: SkillId): number {
   border: 1px solid;
   line-height: 1;
 }
-.class-warrior { color: #e88040; border-color: #804020; background: rgba(80,30,0,0.4); }
-.class-rogue   { color: #a060d8; border-color: #502880; background: rgba(40,10,60,0.4); }
-.class-mage    { color: #4090e0; border-color: #204880; background: rgba(10,20,60,0.4); }
+.class-warrior   { color: #e88040; border-color: #804020; background: rgba(80,30,0,0.4); }
+.class-rogue     { color: #a060d8; border-color: #502880; background: rgba(40,10,60,0.4); }
+.class-mage      { color: #4090e0; border-color: #204880; background: rgba(10,20,60,0.4); }
+.class-priest    { color: #e0c060; border-color: #806020; background: rgba(80,60,0,0.4); }
+.class-undead    { color: #60c040; border-color: #206010; background: rgba(10,40,5,0.4); }
+.class-dragonkin { color: #e06030; border-color: #803010; background: rgba(80,20,5,0.4); }
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
 .bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }

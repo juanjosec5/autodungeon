@@ -1,10 +1,12 @@
 import type { ClassId } from '../types/index'
 
 interface ClassPassives {
-  armorEffectiveness?: number // warrior: multiply armor DEF bonus (e.g. 1.1 = +10%)
+  armorEffectiveness?: number // warrior/dragonkin: multiply armor DEF bonus
   regenChance: number
-  critThreshold?: number      // rogue: crits on roll >= this value
+  critThreshold?: number      // rogue/undead/dragonkin: crits on roll >= this value
   defIgnore?: number          // mage: ignore this fraction of enemy DEF
+  regenPower?: number         // priest: multiply heal amount (e.g. 1.4 = +40% healing)
+  lifestealBase?: number      // undead: innate lifesteal fraction on every hit
 }
 
 interface ClassDefinition {
@@ -17,6 +19,7 @@ interface ClassDefinition {
   strPerLevel: number
   dexPerLevel: number
   intPerLevel: number
+  damageStat: 'str' | 'int'  // which stat bonus applies to weapon damage
   passives: ClassPassives
 }
 
@@ -31,6 +34,7 @@ export const CLASS_DEFINITIONS: Record<ClassId, ClassDefinition> = {
     strPerLevel: 2,
     dexPerLevel: 0.5,
     intPerLevel: 0,
+    damageStat: 'str',
     passives: {
       armorEffectiveness: 1.1,
       regenChance: 0.4,
@@ -46,6 +50,7 @@ export const CLASS_DEFINITIONS: Record<ClassId, ClassDefinition> = {
     strPerLevel: 1,
     dexPerLevel: 2,
     intPerLevel: 0.5,
+    damageStat: 'str',
     passives: {
       critThreshold: 17,
       regenChance: 0.3,
@@ -60,9 +65,60 @@ export const CLASS_DEFINITIONS: Record<ClassId, ClassDefinition> = {
     hpPerLevel: 5,
     strPerLevel: 0,
     dexPerLevel: 1,
-    intPerLevel: 2.5,
+    intPerLevel: 2.0,
+    damageStat: 'int',
     passives: {
-      defIgnore: 0.2,
+      defIgnore: 0.15,
+      regenChance: 0.3,
+    },
+  },
+  priest: {
+    baseHP: 90,
+    baseSTR: 3,
+    baseDEX: 5,
+    baseINT: 8,
+    attackSpeed: 1700,
+    hpPerLevel: 9,
+    strPerLevel: 0,
+    dexPerLevel: 0.5,
+    intPerLevel: 2.0,
+    damageStat: 'int',
+    passives: {
+      regenChance: 0.70,
+      regenPower: 1.4,
+    },
+  },
+  undead: {
+    baseHP: 100,
+    baseSTR: 10,
+    baseDEX: 4,
+    baseINT: 2,
+    attackSpeed: 1500,
+    hpPerLevel: 8,
+    strPerLevel: 2.5,
+    dexPerLevel: 0.5,
+    intPerLevel: 0,
+    damageStat: 'str',
+    passives: {
+      critThreshold: 18,
+      regenChance: 0.0,
+      lifestealBase: 0.10,
+    },
+  },
+  dragonkin: {
+    baseHP: 115,
+    baseSTR: 7,
+    baseDEX: 3,
+    baseINT: 4,
+    attackSpeed: 1900,
+    hpPerLevel: 11,
+    strPerLevel: 1.5,
+    dexPerLevel: 0.5,
+    intPerLevel: 0.5,
+    damageStat: 'str',
+    passives: {
+      armorEffectiveness: 1.25,
+      critThreshold: 19,
       regenChance: 0.3,
     },
   },

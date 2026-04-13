@@ -7,9 +7,12 @@ import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/form
 import { SKILL_DEFINITIONS } from '../game/skills'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
-  warrior: { weaponId: 'rusty-sword', armorId: 'leather-scraps' },
-  rogue: { weaponId: 'shiv', armorId: 'leather-scraps' },
-  mage: { weaponId: 'crooked-staff', armorId: 'leather-scraps' },
+  warrior:   { weaponId: 'rusty-sword',  armorId: 'leather-scraps' },
+  rogue:     { weaponId: 'shiv',         armorId: 'leather-scraps' },
+  mage:      { weaponId: 'crooked-staff', armorId: 'leather-scraps' },
+  priest:    { weaponId: 'holy-staff',   armorId: 'leather-scraps' },
+  undead:    { weaponId: 'bone-blade',   armorId: 'leather-scraps' },
+  dragonkin: { weaponId: 'dragon-claw',  armorId: 'leather-scraps' },
 }
 
 const ZONE_UNLOCK_LEVELS: Record<ZoneId, number> = {
