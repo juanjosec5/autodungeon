@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, SkillId } from '../types/index'
+import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, SkillId, ScrapMode } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
@@ -30,16 +30,16 @@ const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as cons
 export const useCharacterStore = defineStore('character', () => {
   const character = ref<Character | null>(null)
 
-  const VALID_THRESHOLDS: (RarityId | 'off')[] = ['off', 'common', 'uncommon', 'rare']
-  const savedThreshold = localStorage.getItem('scrapThreshold') as RarityId | 'off' | null
-  const scrapThreshold = ref<RarityId | 'off'>(
-    savedThreshold && VALID_THRESHOLDS.includes(savedThreshold) ? savedThreshold : 'off',
+  const VALID_SCRAP_MODES: ScrapMode[] = ['off', 'smart', 'smart-c', 'smart-u', 'smart-r']
+  const savedScrapMode = localStorage.getItem('scrapMode') as ScrapMode | null
+  const scrapMode = ref<ScrapMode>(
+    savedScrapMode && VALID_SCRAP_MODES.includes(savedScrapMode) ? savedScrapMode : 'off',
   )
   const autoEquip = ref(localStorage.getItem('autoEquip') === 'true')
 
-  function setScrapThreshold(t: RarityId | 'off'): void {
-    scrapThreshold.value = t
-    localStorage.setItem('scrapThreshold', t)
+  function setScrapMode(mode: ScrapMode): void {
+    scrapMode.value = mode
+    localStorage.setItem('scrapMode', mode)
   }
 
   function toggleAutoEquip(): void {
@@ -47,17 +47,21 @@ export const useCharacterStore = defineStore('character', () => {
     localStorage.setItem('autoEquip', String(autoEquip.value))
   }
 
-  function isBetterThan(newItem: Item, equipped: Item): boolean {
-    const newTier = RARITY_ORDER.indexOf(newItem.rarity)
-    const equippedTier = RARITY_ORDER.indexOf(equipped.rarity)
-    if (newTier !== equippedTier) return newTier > equippedTier
-    // Same rarity — compare primary stat
+  /**
+   * Compares two items using effective stats (off-class penalty applied to both).
+   * Weapons: effective avg damage. Armor: weighted DEF×3 + HP.
+   */
+  function isBetterThan(newItem: Item, equipped: Item, classId: ClassId): boolean {
+    const newPenalty = getOffClassPenalty(newItem, classId)
+    const eqPenalty  = getOffClassPenalty(equipped, classId)
     if (newItem.type === 'weapon') {
-      const newAvg = ((newItem.stats.minDmg ?? 0) + (newItem.stats.maxDmg ?? 0)) / 2
-      const equippedAvg = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2
-      return newAvg > equippedAvg
+      const newEff = ((newItem.stats.minDmg ?? 0) + (newItem.stats.maxDmg ?? 0)) / 2 * newPenalty
+      const eqEff  = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2 * eqPenalty
+      return newEff > eqEff
     } else {
-      return (newItem.stats.defBonus ?? 0) > (equipped.stats.defBonus ?? 0)
+      const newEff = ((newItem.stats.defBonus ?? 0) * 3 + (newItem.stats.hpBonus ?? 0)) * newPenalty
+      const eqEff  = ((equipped.stats.defBonus ?? 0) * 3 + (equipped.stats.hpBonus ?? 0)) * eqPenalty
+      return newEff > eqEff
     }
   }
 
@@ -201,11 +205,11 @@ export const useCharacterStore = defineStore('character', () => {
     const char = character.value
     if (!char) return { sold: false }
 
-    // Auto-equip: equip if strictly better than current gear and class can use it
+    // Auto-equip: equip if strictly better than current gear (penalty-aware) and class can use it
     if (autoEquip.value && getOffClassPenalty(item, char.class) !== 0) {
       const slot = item.type === 'weapon' ? 'weapon' : 'armor'
       const current = char.gear[slot]
-      if (current && isBetterThan(item, current)) {
+      if (current && isBetterThan(item, current, char.class)) {
         char.inventory.push(current)
         char.gear[slot] = item
         _recalcMaxHP()
@@ -213,14 +217,25 @@ export const useCharacterStore = defineStore('character', () => {
       }
     }
 
-    // Auto-scrap: sell if item is at or below the rarity threshold
-    if (scrapThreshold.value !== 'off') {
-      const itemTier = RARITY_ORDER.indexOf(item.rarity)
-      const thresholdTier = RARITY_ORDER.indexOf(scrapThreshold.value)
-      if (itemTier <= thresholdTier) {
-        const gold = getSellPrice(item.rarity)
-        char.gold += gold
-        return { sold: true, gold, reason: 'scrap' }
+    // Smart scrap: sell if worse than equipped (penalty-aware), optionally capped by rarity
+    if (scrapMode.value !== 'off') {
+      const slot = item.type === 'weapon' ? 'weapon' : 'armor'
+      const equipped = char.gear[slot]
+      if (equipped) {
+        const isWorse = !isBetterThan(item, equipped, char.class)
+        let eligible = isWorse
+        if (isWorse && scrapMode.value !== 'smart') {
+          const capRarity: Record<string, RarityId> = {
+            'smart-c': 'common', 'smart-u': 'uncommon', 'smart-r': 'rare',
+          }
+          const cap = capRarity[scrapMode.value]
+          eligible = RARITY_ORDER.indexOf(item.rarity) <= RARITY_ORDER.indexOf(cap)
+        }
+        if (eligible) {
+          const gold = getSellPrice(item.rarity)
+          char.gold += gold
+          return { sold: true, gold, reason: 'scrap' }
+        }
       }
     }
 
@@ -413,8 +428,8 @@ export const useCharacterStore = defineStore('character', () => {
 
   return {
     character,
-    scrapThreshold,
-    setScrapThreshold,
+    scrapMode,
+    setScrapMode,
     autoEquip,
     toggleAutoEquip,
     unlockedZones,

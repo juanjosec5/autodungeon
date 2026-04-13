@@ -102,3 +102,13 @@ export interface CombatLogEntry {
 export type ZoneId = 'forest' | 'dungeon' | 'volcano' | 'abyss' | 'shadowrealm' | 'celestial' | 'void' | 'nightmare'
 export type ClassId = 'warrior' | 'rogue' | 'mage'
 export type RarityId = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+
+/**
+ * Auto-scrap mode:
+ *   'off'     — disabled
+ *   'smart'   — scrap if worse than equipped (any rarity)
+ *   'smart-c' — scrap if worse than equipped AND rarity ≤ common
+ *   'smart-u' — scrap if worse than equipped AND rarity ≤ uncommon
+ *   'smart-r' — scrap if worse than equipped AND rarity ≤ rare
+ */
+export type ScrapMode = 'off' | 'smart' | 'smart-c' | 'smart-u' | 'smart-r'
