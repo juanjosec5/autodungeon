@@ -118,7 +118,13 @@ watch(() => combatStore.regenFlash, () => {
             </div>
           </div>
 
-          <!-- Floating numbers -->
+        </div>
+
+        <!-- Info -->
+        <div class="info">
+          <div class="enemy-name">{{ enemy.name }}</div>
+
+          <!-- Floating numbers — positioned relative to info, float above HP bar -->
           <div class="dmg-layer">
             <div
               v-for="n in floatNumbers"
@@ -128,11 +134,6 @@ watch(() => combatStore.regenFlash, () => {
               :style="{ left: `calc(50% + ${n.offsetX}px)` }"
             >{{ n.text }}</div>
           </div>
-        </div>
-
-        <!-- Info -->
-        <div class="info">
-          <div class="enemy-name">{{ enemy.name }}</div>
 
           <div class="bar-row">
             <span class="bar-lbl">HP</span>
@@ -274,16 +275,20 @@ watch(() => combatStore.regenFlash, () => {
   animation: hit-flash 0.18s ease-out forwards;
 }
 
-/* Floating damage numbers */
+/* Floating numbers — inside .info, floats above HP bar */
 .dmg-layer {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;          /* zero height so it doesn't push layout */
   pointer-events: none;
-  z-index: 20;
+  z-index: 5;
+  overflow: visible;
 }
 .dmg-number {
   position: absolute;
-  top: 38%;
+  top: 32px;           /* ~HP bar vertical position inside .info */
   font-size: 11px;
   color: #ffffff;
   font-family: 'Press Start 2P', monospace;
@@ -306,6 +311,7 @@ watch(() => combatStore.regenFlash, () => {
   flex-direction: column;
   justify-content: center;
   gap: 10px;
+  position: relative;
 }
 
 .enemy-name {

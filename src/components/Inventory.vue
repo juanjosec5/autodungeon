@@ -345,6 +345,28 @@ function statSummary(item: Item): string {
 .threshold-btn:hover { border-color: var(--border-hi); color: var(--text); }
 .threshold-active { border-color: #d8a060 !important; color: #d8a060 !important; }
 
+.autoscrap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 7px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.autoscrap-toggle input { display: none; }
+.autoscrap-toggle::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--border);
+  background: #0e0c1c;
+  flex-shrink: 0;
+}
+.autoscrap-toggle.active { color: #d8a060; }
+.autoscrap-toggle.active::before { background: #d8a060; border-color: #d8a060; }
+
 .btn-scrap { font-size: 8px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; }
 .btn-scrap:hover:not(:disabled) { border-color: #d8a060; }
 

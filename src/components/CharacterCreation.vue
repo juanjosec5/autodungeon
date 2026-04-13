@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ClassId } from '../types/index'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useAuthStore } from '../stores/auth'
+import { useCombatStore } from '../stores/combat'
+import { useZoneStore } from '../stores/zone'
 import { getStatsAtLevel } from '../game/classes'
 import AuthModal from './AuthModal.vue'
 
@@ -12,6 +14,14 @@ const router = useRouter()
 const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
 const authStore = useAuthStore()
+const combatStore = useCombatStore()
+const zoneStore = useZoneStore()
+
+onMounted(() => {
+  combatStore.stopCombat()
+  combatStore.setSpeed(1)
+  zoneStore.resetToForest()
+})
 
 // ── Auth modal ────────────────────────────────────────────────────────────────
 
