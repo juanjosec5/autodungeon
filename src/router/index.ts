@@ -4,6 +4,7 @@ import GameView from '../views/GameView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
+  scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/', component: CharacterCreation },
     { path: '/game', component: GameView },
