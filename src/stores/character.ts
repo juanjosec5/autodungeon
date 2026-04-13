@@ -127,6 +127,8 @@ export const useCharacterStore = defineStore('character', () => {
     if (!data.lifetime) data.lifetime = _blankLifetime()
     if (data.skillPoints === undefined) data.skillPoints = 0
     if (!data.skills) data.skills = {}
+    // Recalculate xpToNext in case the XP formula changed since the save was written
+    data.xpToNext = getXPToNextLevel(data.level)
     character.value = data
   }
 
@@ -195,9 +197,33 @@ export const useCharacterStore = defineStore('character', () => {
       const slot = item.type === 'weapon' ? 'weapon' : 'armor'
       const current = char.gear[slot]
       if (current && isBetterThan(item, current, char.class)) {
-        char.inventory.push(current)
         char.gear[slot] = item
         _recalcMaxHP()
+        // Run the displaced item through scrap logic instead of blindly pushing to inventory
+        const displaced = current
+        let scrapped = false
+        if (scrapMode.value !== 'off') {
+          // displaced is always worse than the newly equipped item
+          let eligible = true
+          if (scrapMode.value !== 'smart') {
+            const capRarity: Record<string, RarityId> = {
+              'smart-c': 'common', 'smart-u': 'uncommon', 'smart-r': 'rare',
+            }
+            const cap = capRarity[scrapMode.value]
+            eligible = RARITY_ORDER.indexOf(displaced.rarity) <= RARITY_ORDER.indexOf(cap)
+          }
+          if (eligible) {
+            char.gold += getSellPrice(displaced.rarity)
+            scrapped = true
+          }
+        }
+        if (!scrapped) {
+          if (char.inventory.length >= 20) {
+            char.gold += getSellPrice(displaced.rarity)
+          } else {
+            char.inventory.push(displaced)
+          }
+        }
         return { sold: false, equipped: true }
       }
     }
