@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats } from '../types/index'
+import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, SkillId } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
-import { getItemById, getSellPrice, getBuyPrice } from '../game/items'
+import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
+import { SKILL_DEFINITIONS } from '../game/skills'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
   warrior: { weaponId: 'rusty-sword', armorId: 'leather-scraps' },
@@ -12,11 +13,17 @@ const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
 }
 
 const ZONE_UNLOCK_LEVELS: Record<ZoneId, number> = {
-  forest: 1,
-  dungeon: 5,
-  volcano: 12,
-  abyss: 20,
+  forest:      1,
+  dungeon:     5,
+  volcano:     12,
+  abyss:       20,
+  shadowrealm: 30,
+  celestial:   45,
+  void:        60,
+  nightmare:   80,
 }
+
+const MAX_LEVEL = 100
 
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
@@ -54,7 +61,7 @@ export const useCharacterStore = defineStore('character', () => {
     }
   }
 
-  // ── Getters ──────────────────────────────────────────────────────────────
+  // ── Getters ──────────────────────────────────────────────────────────────────
 
   const unlockedZones = computed<ZoneId[]>(() => {
     if (!character.value) return ['forest']
@@ -88,7 +95,7 @@ export const useCharacterStore = defineStore('character', () => {
     }
   })
 
-  // ── Actions ──────────────────────────────────────────────────────────────
+  // ── Actions ──────────────────────────────────────────────────────────────────
 
   function _blankLifetime(): LifetimeStats {
     return {
@@ -118,6 +125,8 @@ export const useCharacterStore = defineStore('character', () => {
       inventory: [],
       gold: 0,
       currentZone: 'forest',
+      skillPoints: 0,
+      skills: {},
       createdAt: new Date().toISOString(),
       lastSaved: new Date().toISOString(),
       lifetime: _blankLifetime(),
@@ -125,8 +134,10 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   function restoreCharacter(data: Character): void {
-    // Backwards compat: old saves may not have lifetime field
+    // Backwards compat: old saves may not have these fields
     if (!data.lifetime) data.lifetime = _blankLifetime()
+    if (data.skillPoints === undefined) data.skillPoints = 0
+    if (!data.skills) data.skills = {}
     character.value = data
   }
 
@@ -231,7 +242,6 @@ export const useCharacterStore = defineStore('character', () => {
     const char = character.value
     if (!char) return 0
 
-    const MAX_LEVEL = 40
     char.xp += amount
     let levelsGained = 0
 
@@ -239,6 +249,11 @@ export const useCharacterStore = defineStore('character', () => {
       char.xp -= char.xpToNext
       char.level += 1
       levelsGained++
+
+      // Award a skill point every 5 levels
+      if (char.level % 5 === 0) {
+        char.skillPoints = (char.skillPoints ?? 0) + 1
+      }
 
       const newStats = getStatsAtLevel(char.class, char.level)
       const hpDiff = newStats.maxHP - char.maxHP
@@ -314,7 +329,74 @@ export const useCharacterStore = defineStore('character', () => {
     char.currentZone = zone
   }
 
-  // ── Private helpers ──────────────────────────────────────────────────────
+  /**
+   * Spends one skill point to level up a skill.
+   * Returns 'ok', 'no_points', or 'max_level'.
+   */
+  function spendSkillPoint(skillId: SkillId): 'ok' | 'no_points' | 'max_level' {
+    const char = character.value
+    if (!char) return 'no_points'
+    if ((char.skillPoints ?? 0) <= 0) return 'no_points'
+
+    const def = SKILL_DEFINITIONS.find((s) => s.id === skillId)
+    if (!def) return 'no_points'
+
+    const current = (char.skills ?? {})[skillId] ?? 0
+    if (current >= def.maxLevel) return 'max_level'
+
+    char.skills = { ...(char.skills ?? {}), [skillId]: current + 1 }
+    char.skillPoints = (char.skillPoints ?? 0) - 1
+    return 'ok'
+  }
+
+  /**
+   * Enchants an item (in inventory or equipped) by adding/rerolling a special effect.
+   * Cost: getBuyPrice(rarity) * 3 * 2^enchantCount
+   * Returns 'enchanted', 'no_gold', or 'not_found'.
+   */
+  function enchantItem(itemId: string): 'enchanted' | 'no_gold' | 'not_found' {
+    const char = character.value
+    if (!char) return 'not_found'
+
+    // Search inventory and gear
+    const gearItems = [char.gear.weapon, char.gear.armor].filter(Boolean) as Item[]
+    const item = [...char.inventory, ...gearItems].find((i) => i.id === itemId)
+    if (!item) return 'not_found'
+
+    const enchantCount = item.enchantCount ?? 0
+    const cost = Math.floor(getBuyPrice(item.rarity) * 3 * Math.pow(2, enchantCount))
+    if (char.gold < cost) return 'no_gold'
+
+    const pool = item.type === 'weapon' ? WEAPON_ENCHANTS : ARMOR_ENCHANTS
+    if (!item.stats.special) item.stats.special = []
+
+    const existingTypes = new Set(item.stats.special.map((s) => s.type))
+    const available = pool.filter((e) => !existingTypes.has(e.type))
+
+    if (available.length > 0 && item.stats.special.length < 3) {
+      // Add a new effect not already present
+      const effect = available[Math.floor(Math.random() * available.length)]
+      item.stats.special.push(structuredClone(effect))
+    } else {
+      // Reroll a random existing effect from the pool
+      const replaceIdx = Math.floor(Math.random() * item.stats.special.length)
+      const newEffect = pool[Math.floor(Math.random() * pool.length)]
+      item.stats.special[replaceIdx] = structuredClone(newEffect)
+    }
+
+    item.enchantCount = enchantCount + 1
+    char.gold -= cost
+    return 'enchanted'
+  }
+
+  /**
+   * Returns the cost in gold to enchant a given item next time.
+   */
+  function getEnchantCost(item: Item): number {
+    return Math.floor(getBuyPrice(item.rarity) * 3 * Math.pow(2, item.enchantCount ?? 0))
+  }
+
+  // ── Private helpers ──────────────────────────────────────────────────────────
 
   function _recalcMaxHP(): void {
     const char = character.value
@@ -349,5 +431,8 @@ export const useCharacterStore = defineStore('character', () => {
     applyXP,
     applyDeathPenalty,
     setZone,
+    spendSkillPoint,
+    enchantItem,
+    getEnchantCost,
   }
 })

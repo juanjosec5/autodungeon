@@ -1,4 +1,4 @@
-import type { Item, ZoneId, RarityId } from '../types/index'
+import type { Item, ZoneId, RarityId, SpecialEffect } from '../types/index'
 
 export const ITEM_DEFINITIONS: Item[] = [
 
@@ -330,7 +330,350 @@ export const ITEM_DEFINITIONS: Item[] = [
     allowedClasses: ['mage'],
     stats: { defBonus: 11, hpBonus: 75, special: [{ type: 'spellAmp', percent: 0.4 }, { type: 'regenOnKill', percent: 0.2 }] },
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ── Shadowrealm zone items (dropFromZoneIdx: 4) ───────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Epics
+  {
+    id: 'dread-axe', name: 'Dread Axe', type: 'weapon', category: 'Axe', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 4,
+    stats: { minDmg: 42, maxDmg: 68, special: [{ type: 'lifesteal', value: 0.1 }, { type: 'attackSpeedBonus', percent: 0.08 }] },
+  },
+  {
+    id: 'shadow-knives', name: 'Shadow Knives', type: 'weapon', category: 'Daggers', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 4,
+    stats: { minDmg: 35, maxDmg: 56, special: [{ type: 'critThreshold', rollsAt: 16 }, { type: 'attackSpeedBonus', percent: 0.2 }] },
+  },
+  {
+    id: 'dusk-staff', name: 'Dusk Staff', type: 'weapon', category: 'Staff', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 4,
+    stats: { minDmg: 40, maxDmg: 64, special: [{ type: 'defIgnore', percent: 0.4 }, { type: 'spellAmp', percent: 0.12 }] },
+  },
+  {
+    id: 'shadow-plate', name: 'Shadow Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 4,
+    stats: { defBonus: 20, hpBonus: 70, special: [{ type: 'block', chance: 0.15 }] },
+  },
+  {
+    id: 'dread-shroud', name: 'Dread Shroud', type: 'armor', category: 'Cloak', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 4,
+    stats: { defBonus: 14, hpBonus: 58, special: [{ type: 'dodge', chance: 0.28 }] },
+  },
+  {
+    id: 'cursed-mantle', name: 'Cursed Mantle', type: 'armor', category: 'Robes', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 4,
+    stats: { defBonus: 10, hpBonus: 75, special: [{ type: 'spellAmp', percent: 0.22 }, { type: 'regenOnKill', percent: 0.08 }] },
+  },
+  // BiS Legendaries
+  {
+    id: 'shade-reaper', name: 'Shade Reaper', type: 'weapon', category: 'Axe', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 4,
+    stats: {
+      minDmg: 65, maxDmg: 100,
+      special: [{ type: 'lifesteal', value: 0.2 }, { type: 'defIgnore', percent: 0.25 }, { type: 'critThreshold', rollsAt: 18 }],
+    },
+  },
+  {
+    id: 'twilight-fang', name: 'Twilight Fang', type: 'weapon', category: 'Daggers', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 4,
+    stats: {
+      minDmg: 50, maxDmg: 80,
+      special: [{ type: 'critThreshold', rollsAt: 11 }, { type: 'attackSpeedBonus', percent: 0.4 }, { type: 'poison', dpsMultiplier: 0.25 }],
+    },
+  },
+  {
+    id: 'grimoire-of-dread', name: 'Grimoire of Dread', type: 'weapon', category: 'Tome', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 4,
+    stats: {
+      minDmg: 60, maxDmg: 95,
+      special: [{ type: 'defIgnore', percent: 0.65 }, { type: 'doublecast', chance: 0.3 }, { type: 'spellAmp', percent: 0.25 }],
+    },
+  },
+  {
+    id: 'shadowplate-fortress', name: 'Shadowplate Fortress', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 4,
+    stats: { defBonus: 35, hpBonus: 130, special: [{ type: 'block', chance: 0.2 }, { type: 'regenOnKill', percent: 0.25 }] },
+  },
+  {
+    id: 'dread-stalker-veil', name: "Dread Stalker's Veil", type: 'armor', category: 'Cloak', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 4,
+    stats: { defBonus: 22, hpBonus: 90, special: [{ type: 'dodge', chance: 0.4 }, { type: 'regenOnKill', percent: 0.12 }] },
+  },
+  {
+    id: 'shadow-weave-mantle', name: 'Shadow Weave Mantle', type: 'armor', category: 'Robes', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 4,
+    stats: { defBonus: 16, hpBonus: 110, special: [{ type: 'spellAmp', percent: 0.45 }, { type: 'regenOnKill', percent: 0.25 }] },
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ── Celestial zone items (dropFromZoneIdx: 5) ─────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Epics
+  {
+    id: 'holy-cleaver', name: 'Holy Cleaver', type: 'weapon', category: 'Axe', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 5,
+    stats: { minDmg: 55, maxDmg: 88, special: [{ type: 'defIgnore', percent: 0.15 }, { type: 'lifesteal', value: 0.12 }] },
+  },
+  {
+    id: 'celestial-blades', name: 'Celestial Blades', type: 'weapon', category: 'Daggers', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 5,
+    stats: { minDmg: 46, maxDmg: 74, special: [{ type: 'critThreshold', rollsAt: 15 }, { type: 'attackSpeedBonus', percent: 0.22 }] },
+  },
+  {
+    id: 'star-wand', name: 'Star Wand', type: 'weapon', category: 'Wand', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 5,
+    stats: { minDmg: 52, maxDmg: 84, special: [{ type: 'defIgnore', percent: 0.45 }, { type: 'doublecast', chance: 0.2 }] },
+  },
+  {
+    id: 'astral-plate', name: 'Astral Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 5,
+    stats: { defBonus: 26, hpBonus: 90, special: [{ type: 'block', chance: 0.17 }, { type: 'regenOnKill', percent: 0.1 }] },
+  },
+  {
+    id: 'celestial-shroud', name: 'Celestial Shroud', type: 'armor', category: 'Cloak', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 5,
+    stats: { defBonus: 18, hpBonus: 75, special: [{ type: 'dodge', chance: 0.3 }] },
+  },
+  {
+    id: 'divine-robe', name: 'Divine Robe', type: 'armor', category: 'Robes', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 5,
+    stats: { defBonus: 13, hpBonus: 100, special: [{ type: 'spellAmp', percent: 0.28 }, { type: 'regenOnKill', percent: 0.12 }] },
+  },
+  // BiS Legendaries
+  {
+    id: 'sunblade-divine', name: 'Sunblade Divine', type: 'weapon', category: 'Sword', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 5,
+    stats: {
+      minDmg: 85, maxDmg: 135,
+      special: [{ type: 'lifesteal', value: 0.25 }, { type: 'defIgnore', percent: 0.3 }, { type: 'attackSpeedBonus', percent: 0.2 }],
+    },
+  },
+  {
+    id: 'starburst-knives', name: 'Starburst Knives', type: 'weapon', category: 'Daggers', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 5,
+    stats: {
+      minDmg: 66, maxDmg: 105,
+      special: [{ type: 'critThreshold', rollsAt: 10 }, { type: 'attackSpeedBonus', percent: 0.45 }, { type: 'poison', dpsMultiplier: 0.3 }],
+    },
+  },
+  {
+    id: 'astral-codex', name: 'Astral Codex', type: 'weapon', category: 'Tome', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 5,
+    stats: {
+      minDmg: 80, maxDmg: 125,
+      special: [{ type: 'defIgnore', percent: 0.7 }, { type: 'doublecast', chance: 0.38 }, { type: 'spellAmp', percent: 0.3 }],
+    },
+  },
+  {
+    id: 'celestial-aegis', name: 'Celestial Aegis', type: 'armor', category: 'Shield', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 5,
+    stats: { defBonus: 48, hpBonus: 175, special: [{ type: 'block', chance: 0.25 }, { type: 'regenOnKill', percent: 0.3 }] },
+  },
+  {
+    id: 'starlight-veil', name: 'Starlight Veil', type: 'armor', category: 'Cloak', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 5,
+    stats: { defBonus: 30, hpBonus: 125, special: [{ type: 'dodge', chance: 0.45 }, { type: 'regenOnKill', percent: 0.15 }] },
+  },
+  {
+    id: 'cosmic-mantle', name: 'Cosmic Mantle', type: 'armor', category: 'Robes', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 5,
+    stats: { defBonus: 22, hpBonus: 150, special: [{ type: 'spellAmp', percent: 0.55 }, { type: 'regenOnKill', percent: 0.3 }] },
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ── Void zone items (dropFromZoneIdx: 6) ──────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Epics
+  {
+    id: 'void-cleaver', name: 'Void Cleaver', type: 'weapon', category: 'Axe', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 6,
+    stats: { minDmg: 72, maxDmg: 115, special: [{ type: 'defIgnore', percent: 0.2 }, { type: 'lifesteal', value: 0.15 }] },
+  },
+  {
+    id: 'null-daggers', name: 'Null Daggers', type: 'weapon', category: 'Daggers', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 6,
+    stats: { minDmg: 60, maxDmg: 96, special: [{ type: 'critThreshold', rollsAt: 14 }, { type: 'attackSpeedBonus', percent: 0.25 }] },
+  },
+  {
+    id: 'rift-staff', name: 'Rift Staff', type: 'weapon', category: 'Staff', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 6,
+    stats: { minDmg: 68, maxDmg: 108, special: [{ type: 'defIgnore', percent: 0.5 }, { type: 'doublecast', chance: 0.22 }] },
+  },
+  {
+    id: 'void-plate', name: 'Void Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 6,
+    stats: { defBonus: 34, hpBonus: 120, special: [{ type: 'block', chance: 0.2 }, { type: 'regenOnKill', percent: 0.12 }] },
+  },
+  {
+    id: 'null-shroud', name: 'Null Shroud', type: 'armor', category: 'Cloak', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 6,
+    stats: { defBonus: 24, hpBonus: 100, special: [{ type: 'dodge', chance: 0.35 }] },
+  },
+  {
+    id: 'rift-vestment', name: 'Rift Vestment', type: 'armor', category: 'Robes', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 6,
+    stats: { defBonus: 18, hpBonus: 130, special: [{ type: 'spellAmp', percent: 0.35 }, { type: 'regenOnKill', percent: 0.15 }] },
+  },
+  // BiS Legendaries
+  {
+    id: 'null-executioner', name: 'Null Executioner', type: 'weapon', category: 'Axe', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 6,
+    stats: {
+      minDmg: 110, maxDmg: 175,
+      special: [{ type: 'lifesteal', value: 0.3 }, { type: 'defIgnore', percent: 0.35 }, { type: 'critThreshold', rollsAt: 17 }],
+    },
+  },
+  {
+    id: 'void-piercer', name: 'Void Piercer', type: 'weapon', category: 'Daggers', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 6,
+    stats: {
+      minDmg: 85, maxDmg: 136,
+      special: [{ type: 'critThreshold', rollsAt: 9 }, { type: 'attackSpeedBonus', percent: 0.5 }, { type: 'poison', dpsMultiplier: 0.35 }],
+    },
+  },
+  {
+    id: 'entropy-grimoire', name: 'Entropy Grimoire', type: 'weapon', category: 'Tome', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 6,
+    stats: {
+      minDmg: 105, maxDmg: 165,
+      special: [{ type: 'defIgnore', percent: 0.75 }, { type: 'doublecast', chance: 0.45 }, { type: 'spellAmp', percent: 0.35 }],
+    },
+  },
+  {
+    id: 'nullshield', name: 'Nullshield', type: 'armor', category: 'Shield', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 6,
+    stats: { defBonus: 65, hpBonus: 230, special: [{ type: 'block', chance: 0.3 }, { type: 'regenOnKill', percent: 0.35 }] },
+  },
+  {
+    id: 'void-wraith-cloak', name: 'Void Wraith Cloak', type: 'armor', category: 'Cloak', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 6,
+    stats: { defBonus: 40, hpBonus: 170, special: [{ type: 'dodge', chance: 0.5 }, { type: 'regenOnKill', percent: 0.18 }] },
+  },
+  {
+    id: 'entropy-mantle', name: 'Entropy Mantle', type: 'armor', category: 'Robes', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 6,
+    stats: { defBonus: 30, hpBonus: 200, special: [{ type: 'spellAmp', percent: 0.65 }, { type: 'regenOnKill', percent: 0.35 }] },
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ── Nightmare zone items (dropFromZoneIdx: 7) ─────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Epics
+  {
+    id: 'horror-blade', name: 'Horror Blade', type: 'weapon', category: 'Sword', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 7,
+    stats: { minDmg: 95, maxDmg: 150, special: [{ type: 'defIgnore', percent: 0.25 }, { type: 'lifesteal', value: 0.18 }] },
+  },
+  {
+    id: 'nightmare-blades', name: 'Nightmare Blades', type: 'weapon', category: 'Daggers', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 7,
+    stats: { minDmg: 78, maxDmg: 124, special: [{ type: 'critThreshold', rollsAt: 13 }, { type: 'attackSpeedBonus', percent: 0.28 }] },
+  },
+  {
+    id: 'dread-tome', name: 'Dread Tome', type: 'weapon', category: 'Tome', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 7,
+    stats: { minDmg: 90, maxDmg: 142, special: [{ type: 'defIgnore', percent: 0.55 }, { type: 'doublecast', chance: 0.25 }] },
+  },
+  {
+    id: 'nightmare-plate', name: 'Nightmare Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 7,
+    stats: { defBonus: 45, hpBonus: 160, special: [{ type: 'block', chance: 0.23 }, { type: 'regenOnKill', percent: 0.15 }] },
+  },
+  {
+    id: 'dread-wraith', name: 'Dread Wraith', type: 'armor', category: 'Cloak', rarity: 'epic',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 7,
+    stats: { defBonus: 32, hpBonus: 132, special: [{ type: 'dodge', chance: 0.4 }] },
+  },
+  {
+    id: 'horror-vestment', name: 'Horror Vestment', type: 'armor', category: 'Robes', rarity: 'epic',
+    allowedClasses: ['mage'], dropFromZoneIdx: 7,
+    stats: { defBonus: 24, hpBonus: 175, special: [{ type: 'spellAmp', percent: 0.42 }, { type: 'regenOnKill', percent: 0.18 }] },
+  },
+  // BiS Legendaries
+  {
+    id: 'apocalypse-blade', name: 'Apocalypse Blade', type: 'weapon', category: 'Sword', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 7,
+    stats: {
+      minDmg: 145, maxDmg: 230,
+      special: [{ type: 'lifesteal', value: 0.35 }, { type: 'defIgnore', percent: 0.4 }, { type: 'critThreshold', rollsAt: 16 }],
+    },
+  },
+  {
+    id: 'nightmare-fang', name: 'Nightmare Fang', type: 'weapon', category: 'Daggers', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 7,
+    stats: {
+      minDmg: 112, maxDmg: 178,
+      special: [{ type: 'critThreshold', rollsAt: 8 }, { type: 'attackSpeedBonus', percent: 0.55 }, { type: 'poison', dpsMultiplier: 0.4 }],
+    },
+  },
+  {
+    id: 'tome-of-infinite-dread', name: 'Tome of Infinite Dread', type: 'weapon', category: 'Tome', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 7,
+    stats: {
+      minDmg: 138, maxDmg: 218,
+      special: [{ type: 'defIgnore', percent: 0.8 }, { type: 'doublecast', chance: 0.5 }, { type: 'spellAmp', percent: 0.4 }],
+    },
+  },
+  {
+    id: 'eternal-fortress', name: 'Eternal Fortress', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['warrior'], dropFromZoneIdx: 7,
+    stats: { defBonus: 85, hpBonus: 300, special: [{ type: 'block', chance: 0.35 }, { type: 'regenOnKill', percent: 0.4 }] },
+  },
+  {
+    id: 'nightmare-wraith', name: 'Nightmare Wraith', type: 'armor', category: 'Cloak', rarity: 'legendary',
+    allowedClasses: ['rogue'], dropFromZoneIdx: 7,
+    stats: { defBonus: 55, hpBonus: 225, special: [{ type: 'dodge', chance: 0.55 }, { type: 'regenOnKill', percent: 0.22 }] },
+  },
+  {
+    id: 'dreamweavers-mantle', name: "Dreamweaver's Mantle", type: 'armor', category: 'Robes', rarity: 'legendary',
+    allowedClasses: ['mage'], dropFromZoneIdx: 7,
+    stats: { defBonus: 40, hpBonus: 265, special: [{ type: 'spellAmp', percent: 0.75 }, { type: 'regenOnKill', percent: 0.4 }] },
+  },
 ]
+
+// ── Zone index mapping ────────────────────────────────────────────────────────
+
+export const ZONE_INDEX: Record<ZoneId, number> = {
+  forest: 0, dungeon: 1, volcano: 2, abyss: 3,
+  shadowrealm: 4, celestial: 5, void: 6, nightmare: 7,
+}
+
+// ── BiS pools per zone ────────────────────────────────────────────────────────
+
+const ZONE_BIS_IDS: Record<ZoneId, string[]> = {
+  forest:      ['void-edge', 'godslayer', 'shadowdancer', 'wraithfang', 'celestial-tome', 'eternum', 'aegis-of-eternity', 'voidweave-shroud', 'archmages-mantle'],
+  dungeon:     ['void-edge', 'godslayer', 'shadowdancer', 'wraithfang', 'celestial-tome', 'eternum', 'aegis-of-eternity', 'voidweave-shroud', 'archmages-mantle'],
+  volcano:     ['titans-fist', 'phantom-blades', 'abyssal-tome', 'abyssal-plate', 'void-shroud', 'rift-mantle'],
+  abyss:       ['titans-fist', 'phantom-blades', 'abyssal-tome', 'abyssal-plate', 'void-shroud', 'rift-mantle'],
+  shadowrealm: ['shade-reaper', 'twilight-fang', 'grimoire-of-dread', 'shadowplate-fortress', 'dread-stalker-veil', 'shadow-weave-mantle'],
+  celestial:   ['sunblade-divine', 'starburst-knives', 'astral-codex', 'celestial-aegis', 'starlight-veil', 'cosmic-mantle'],
+  void:        ['null-executioner', 'void-piercer', 'entropy-grimoire', 'nullshield', 'void-wraith-cloak', 'entropy-mantle'],
+  nightmare:   ['apocalypse-blade', 'nightmare-fang', 'tome-of-infinite-dread', 'eternal-fortress', 'nightmare-wraith', 'dreamweavers-mantle'],
+}
+
+// ── Item enchant pools ────────────────────────────────────────────────────────
+
+export const WEAPON_ENCHANTS: SpecialEffect[] = [
+  { type: 'lifesteal', value: 0.08 },
+  { type: 'poison', dpsMultiplier: 0.12 },
+  { type: 'critThreshold', rollsAt: 18 },
+  { type: 'attackSpeedBonus', percent: 0.08 },
+  { type: 'defIgnore', percent: 0.12 },
+]
+
+export const ARMOR_ENCHANTS: SpecialEffect[] = [
+  { type: 'dodge', chance: 0.08 },
+  { type: 'block', chance: 0.08 },
+  { type: 'regenOnKill', percent: 0.08 },
+  { type: 'spellAmp', percent: 0.08 },
+]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 export function getItemById(id: string): Item | undefined {
   return ITEM_DEFINITIONS.find((item) => item.id === id)
@@ -345,7 +688,10 @@ const RARITY_WEIGHTS: { rarity: RarityId; weight: number }[] = [
 ]
 
 /** Boss enemy IDs — allowed to drop Legendary loot via rollLoot */
-const BOSS_IDS = new Set(['forest-troll', 'dark-knight', 'dragon', 'abyssal-titan'])
+const BOSS_IDS = new Set([
+  'forest-troll', 'dark-knight', 'dragon', 'abyssal-titan',
+  'dread-sovereign', 'celestial-archon', 'the-unmaker', 'eternal-nightmare',
+])
 
 function rollRarity(isBoss: boolean): RarityId {
   const roll = Math.random()
@@ -362,6 +708,7 @@ function rollRarity(isBoss: boolean): RarityId {
 
 export function rollLoot(zone: ZoneId, enemyId: string): Item {
   const isBoss = BOSS_IDS.has(enemyId)
+  const zoneIdx = ZONE_INDEX[zone]
   let rarity = rollRarity(isBoss)
 
   // Clamp rarity to zone pool
@@ -370,24 +717,25 @@ export function rollLoot(zone: ZoneId, enemyId: string): Item {
   } else if (zone === 'dungeon') {
     if (rarity === 'legendary') rarity = 'epic'
   }
-  // volcano and abyss: no clamp (volcano boss drops legendary, abyss boss drops legendary)
 
-  const pool = ITEM_DEFINITIONS.filter((item) => item.rarity === rarity)
+  // Filter items by rarity and zone availability
+  const pool = ITEM_DEFINITIONS.filter(
+    (item) =>
+      item.rarity === rarity &&
+      (item.dropFromZoneIdx === undefined || item.dropFromZoneIdx <= zoneIdx),
+  )
   const template = pool[Math.floor(Math.random() * pool.length)]
   return { ...structuredClone(template), defId: template.id, id: crypto.randomUUID() }
 }
 
-/** Guaranteed weapon drop for zone boss — always top rarity for that zone */
-export function rollBossLoot(zone: ZoneId): Item {
-  const rarityByZone: Record<ZoneId, RarityId> = {
-    forest:  'rare',
-    dungeon: 'epic',
-    volcano: 'legendary',
-    abyss:   'legendary',
-  }
-  const rarity = rarityByZone[zone]
-  const pool = ITEM_DEFINITIONS.filter((i) => i.type === 'weapon' && i.rarity === rarity)
-  const template = pool[Math.floor(Math.random() * pool.length)]
+/**
+ * Rolls a zone-specific BiS (best-in-slot) legendary.
+ * Called at 1/200 chance on boss kill.
+ */
+export function rollBisLoot(zone: ZoneId): Item {
+  const ids = ZONE_BIS_IDS[zone]
+  const id = ids[Math.floor(Math.random() * ids.length)]
+  const template = ITEM_DEFINITIONS.find((i) => i.id === id)!
   return { ...structuredClone(template), defId: template.id, id: crypto.randomUUID() }
 }
 
@@ -464,20 +812,72 @@ export const SHOP_ITEMS: { id: string; minZone: number }[] = [
   { id: 'shadow-veil',        minZone: 3 },
   { id: 'starweave-robe',     minZone: 3 },
   { id: 'arcane-barrier',     minZone: 3 },
-  // ── Codex only / late-game legendaries (zone 4) ──
-  { id: 'void-edge',          minZone: 4 },
-  { id: 'godslayer',          minZone: 4 },
-  { id: 'titans-fist',        minZone: 4 },
-  { id: 'shadowdancer',       minZone: 4 },
-  { id: 'wraithfang',         minZone: 4 },
-  { id: 'phantom-blades',     minZone: 4 },
-  { id: 'celestial-tome',     minZone: 4 },
-  { id: 'eternum',            minZone: 4 },
-  { id: 'abyssal-tome',       minZone: 4 },
-  { id: 'aegis-of-eternity',  minZone: 4 },
-  { id: 'voidweave-shroud',   minZone: 4 },
-  { id: 'archmages-mantle',   minZone: 4 },
-  { id: 'abyssal-plate',      minZone: 4 },
-  { id: 'void-shroud',        minZone: 4 },
-  { id: 'rift-mantle',        minZone: 4 },
+  // ── Shadowrealm (zone 4) ──
+  { id: 'dread-axe',          minZone: 4 },
+  { id: 'shadow-knives',      minZone: 4 },
+  { id: 'dusk-staff',         minZone: 4 },
+  { id: 'shadow-plate',       minZone: 4 },
+  { id: 'dread-shroud',       minZone: 4 },
+  { id: 'cursed-mantle',      minZone: 4 },
+  // ── Celestial (zone 5) ──
+  { id: 'holy-cleaver',       minZone: 5 },
+  { id: 'celestial-blades',   minZone: 5 },
+  { id: 'star-wand',          minZone: 5 },
+  { id: 'astral-plate',       minZone: 5 },
+  { id: 'celestial-shroud',   minZone: 5 },
+  { id: 'divine-robe',        minZone: 5 },
+  // ── Void (zone 6) ──
+  { id: 'void-cleaver',       minZone: 6 },
+  { id: 'null-daggers',       minZone: 6 },
+  { id: 'rift-staff',         minZone: 6 },
+  { id: 'void-plate',         minZone: 6 },
+  { id: 'null-shroud',        minZone: 6 },
+  { id: 'rift-vestment',      minZone: 6 },
+  // ── Nightmare (zone 7) ──
+  { id: 'horror-blade',       minZone: 7 },
+  { id: 'nightmare-blades',   minZone: 7 },
+  { id: 'dread-tome',         minZone: 7 },
+  { id: 'nightmare-plate',    minZone: 7 },
+  { id: 'dread-wraith',       minZone: 7 },
+  { id: 'horror-vestment',    minZone: 7 },
+  // ── Legendaries (codex/late-game, zone 4+) ──
+  { id: 'void-edge',               minZone: 4 },
+  { id: 'godslayer',               minZone: 4 },
+  { id: 'titans-fist',             minZone: 4 },
+  { id: 'shadowdancer',            minZone: 4 },
+  { id: 'wraithfang',              minZone: 4 },
+  { id: 'phantom-blades',          minZone: 4 },
+  { id: 'celestial-tome',          minZone: 4 },
+  { id: 'eternum',                 minZone: 4 },
+  { id: 'abyssal-tome',            minZone: 4 },
+  { id: 'aegis-of-eternity',       minZone: 4 },
+  { id: 'voidweave-shroud',        minZone: 4 },
+  { id: 'archmages-mantle',        minZone: 4 },
+  { id: 'abyssal-plate',           minZone: 4 },
+  { id: 'void-shroud',             minZone: 4 },
+  { id: 'rift-mantle',             minZone: 4 },
+  { id: 'shade-reaper',            minZone: 5 },
+  { id: 'twilight-fang',           minZone: 5 },
+  { id: 'grimoire-of-dread',       minZone: 5 },
+  { id: 'shadowplate-fortress',    minZone: 5 },
+  { id: 'dread-stalker-veil',      minZone: 5 },
+  { id: 'shadow-weave-mantle',     minZone: 5 },
+  { id: 'sunblade-divine',         minZone: 6 },
+  { id: 'starburst-knives',        minZone: 6 },
+  { id: 'astral-codex',            minZone: 6 },
+  { id: 'celestial-aegis',         minZone: 6 },
+  { id: 'starlight-veil',          minZone: 6 },
+  { id: 'cosmic-mantle',           minZone: 6 },
+  { id: 'null-executioner',        minZone: 7 },
+  { id: 'void-piercer',            minZone: 7 },
+  { id: 'entropy-grimoire',        minZone: 7 },
+  { id: 'nullshield',              minZone: 7 },
+  { id: 'void-wraith-cloak',       minZone: 7 },
+  { id: 'entropy-mantle',          minZone: 7 },
+  { id: 'apocalypse-blade',        minZone: 8 },
+  { id: 'nightmare-fang',          minZone: 8 },
+  { id: 'tome-of-infinite-dread',  minZone: 8 },
+  { id: 'eternal-fortress',        minZone: 8 },
+  { id: 'nightmare-wraith',        minZone: 8 },
+  { id: 'dreamweavers-mantle',     minZone: 8 },
 ]

@@ -17,14 +17,15 @@ export function calcCrit(
   _dex: number,
   classId: ClassId,
   extraCritThreshold?: number,
+  skillCritBonus: number = 0,
 ): boolean {
   switch (classId) {
     case 'warrior':
-      return roll === 20
+      return roll >= (20 - skillCritBonus)
     case 'rogue':
-      return roll >= (extraCritThreshold ?? 17)
+      return roll >= (extraCritThreshold ?? 17) - skillCritBonus
     case 'mage':
-      return roll === 20
+      return roll >= (20 - skillCritBonus)
   }
 }
 
@@ -37,15 +38,16 @@ export function calcPlayerDamage(params: {
   enemyDef: number
   defIgnorePercent: number
   armorSpellAmp?: number
+  critMultiplier?: number
 }): number {
-  const { classId, str, int, weapon, isCrit, enemyDef, defIgnorePercent, armorSpellAmp = 0 } = params
+  const { classId, str, int, weapon, isCrit, enemyDef, defIgnorePercent, armorSpellAmp = 0, critMultiplier = 1.5 } = params
 
   const minDmg = weapon?.stats.minDmg ?? 1
   const maxDmg = weapon?.stats.maxDmg ?? 3
   const statBonus = classId === 'mage' ? int : str
 
   let raw = rollDamage(minDmg, maxDmg) + statBonus
-  if (isCrit) raw = Math.floor(raw * 1.5)
+  if (isCrit) raw = Math.floor(raw * critMultiplier)
 
   // SpellAmp: mage-only multiplier (weapon + armor stacked) applied before DEF reduction
   if (classId === 'mage') {
