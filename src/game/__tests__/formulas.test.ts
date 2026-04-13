@@ -104,6 +104,12 @@ describe('calcHit', () => {
     expect(calcHit(5, 15)).toBe(true) // 10 + 5 = 15 >= 15
     vi.restoreAllMocks()
   })
+
+  it('natural 20 always hits even against impossibly high DEF', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.99) // d20 = 20
+    expect(calcHit(0, 999)).toBe(true)
+    vi.restoreAllMocks()
+  })
 })
 
 // ── calcCrit ─────────────────────────────────────────────────────────────────
