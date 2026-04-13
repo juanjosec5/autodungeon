@@ -1,8 +1,9 @@
 import type { Character, Enemy, ZoneId } from '../types/index'
 import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount } from './formulas'
-import { rollLoot, rollBossLoot } from './items'
+import { rollLoot, rollBisLoot } from './items'
 import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
+import { getSkillBonuses } from './skills'
 
 // ─── Exported types ───────────────────────────────────────────────────────────
 
@@ -148,6 +149,7 @@ export class CombatEngine {
     if (!this.state || this.state.isPaused || this.isDead) return
     const { character, enemy } = this.state
     const weapon = character.gear.weapon
+    const sb = getSkillBonuses(character.skills ?? {})
 
     // Def ignore
     const classDef = CLASS_DEFINITIONS[character.class]
@@ -166,7 +168,7 @@ export class CombatEngine {
 
     const roll = d20()
     const hits = calcHit(character.stats.dex, enemy.def)
-    const isCrit = hits && calcCrit(roll, character.stats.dex, character.class, extraCritThreshold)
+    const isCrit = hits && calcCrit(roll, character.stats.dex, character.class, extraCritThreshold, sb.critThresholdReduction)
 
     if (!hits) {
       this.emit({ type: 'player_miss', payload: { enemyName: enemy.name } })
@@ -189,7 +191,8 @@ export class CombatEngine {
         isCrit,
         enemyDef: enemy.def,
         defIgnorePercent,
-        armorSpellAmp,
+        armorSpellAmp: armorSpellAmp + sb.spellAmpBonus,
+        critMultiplier: 1.5 + sb.critDamageBonus,
       }
 
       let damage = calcPlayerDamage(dmgParams)
@@ -257,31 +260,32 @@ export class CombatEngine {
   private enemyTick(): void {
     if (!this.state || this.state.isPaused || this.isDead) return
     const { character, enemy } = this.state
+    const sb = getSkillBonuses(character.skills ?? {})
 
-    // Dodge
-    const dodgeChance =
+    // Dodge (armor + skill)
+    const armorDodge =
       (character.gear.armor?.stats.special?.find((s) => s.type === 'dodge') as
         | { type: 'dodge'; chance: number }
         | undefined)?.chance ?? 0
-    if (Math.random() < dodgeChance) {
+    if (Math.random() < armorDodge + sb.dodgeBonus) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Block
-    const blockChance =
+    // Block (armor + skill)
+    const armorBlock =
       (character.gear.armor?.stats.special?.find((s) => s.type === 'block') as
         | { type: 'block'; chance: number }
         | undefined)?.chance ?? 0
-    if (Math.random() < blockChance) {
+    if (Math.random() < armorBlock + sb.blockBonus) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Player DEF
+    // Player DEF (armor + warrior bonus + iron-skin skill)
     const armorDef = character.gear.armor?.stats.defBonus ?? 0
     const warriorBonus = character.class === 'warrior' ? armorDef * 0.1 : 0
-    const playerDef = Math.floor(armorDef + warriorBonus)
+    const playerDef = Math.floor(armorDef + warriorBonus) + sb.flatDef
 
     const damage = calcEnemyDamage(enemy.atk, playerDef)
     character.currentHP -= damage
@@ -323,10 +327,18 @@ export class CombatEngine {
     // XP
     this.emit({ type: 'xp_gained', payload: { amount: enemy.xpReward } })
 
-    // Loot — boss gets guaranteed weapon drop on top of regular loot
+    // Loot
     if (enemy.isBoss) {
-      const bonusItem = rollBossLoot(this.state.zone)
-      this.emit({ type: 'loot_dropped', payload: { item: bonusItem, isBossLoot: true } })
+      // Regular loot drop (same as normal enemies)
+      const regularItem = rollLoot(this.state.zone, enemy.id)
+      this.emit({ type: 'loot_dropped', payload: { item: regularItem } })
+
+      // 1/200 chance for zone-specific BiS legendary
+      if (Math.random() < 1 / 200) {
+        const bisItem = rollBisLoot(this.state.zone)
+        this.emit({ type: 'loot_dropped', payload: { item: bisItem, isBossLoot: true } })
+      }
+
       this.emit({ type: 'boss_defeated', payload: { enemyName: enemy.name } })
       this.state.killCount = 0
       this.state.killsToNextBoss = randomBetween(10, 15)

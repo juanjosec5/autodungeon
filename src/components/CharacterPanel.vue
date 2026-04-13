@@ -3,7 +3,8 @@ import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useZoneStore } from '../stores/zone'
 import { CLASS_DEFINITIONS } from '../game/classes'
-import type { ZoneId } from '../types/index'
+import { SKILL_DEFINITIONS } from '../game/skills'
+import type { ZoneId, SkillId } from '../types/index'
 
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
@@ -21,6 +22,7 @@ const xpPercent = computed(() => {
 
 const ZONE_AVG_DEF: Record<ZoneId, number> = {
   forest: 4, dungeon: 7, volcano: 14, abyss: 19,
+  shadowrealm: 25, celestial: 34, void: 43, nightmare: 60,
 }
 
 const combatStats = computed(() => {
@@ -71,6 +73,33 @@ const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
   localStorage.setItem('collapsed_character', String(collapsed.value))
+}
+
+const collapsedSkills = ref(localStorage.getItem('collapsed_skills') === 'true')
+function toggleSkills() {
+  collapsedSkills.value = !collapsedSkills.value
+  localStorage.setItem('collapsed_skills', String(collapsedSkills.value))
+}
+
+const skillFlash = ref<string | null>(null)
+let skillFlashTimer: ReturnType<typeof setTimeout> | null = null
+function spendSkill(skillId: SkillId) {
+  const result = characterStore.spendSkillPoint(skillId)
+  if (result === 'ok') {
+    skillFlash.value = null
+  } else if (result === 'no_points') {
+    skillFlash.value = 'No skill points!'
+    if (skillFlashTimer) clearTimeout(skillFlashTimer)
+    skillFlashTimer = setTimeout(() => { skillFlash.value = null }, 1800)
+  } else {
+    skillFlash.value = 'Already maxed!'
+    if (skillFlashTimer) clearTimeout(skillFlashTimer)
+    skillFlashTimer = setTimeout(() => { skillFlash.value = null }, 1800)
+  }
+}
+
+function skillLevel(skillId: SkillId): number {
+  return (char.value?.skills ?? {})[skillId] ?? 0
 }
 </script>
 
@@ -124,6 +153,34 @@ function toggleCollapse() {
           <span class="cs-value">{{ combatStats.hitPct }}%</span>
           <span class="cs-label">Eff. DEF</span>
           <span class="cs-value">{{ combatStats.effDef }}</span>
+        </div>
+      </div>
+
+      <!-- Skills subsection -->
+      <div class="skills-section">
+        <button class="cs-header" @click="toggleSkills">
+          <span class="cs-title">
+            Skills
+            <span v-if="(char.skillPoints ?? 0) > 0" class="skill-pts-badge">{{ char.skillPoints }} pt{{ (char.skillPoints ?? 0) !== 1 ? 's' : '' }}</span>
+          </span>
+          <span class="collapse-btn cs-chevron">{{ collapsedSkills ? '►' : '▾' }}</span>
+        </button>
+        <div v-if="!collapsedSkills" class="skills-list">
+          <span v-if="skillFlash" class="skill-flash">{{ skillFlash }}</span>
+          <div v-for="skill in SKILL_DEFINITIONS" :key="skill.id" class="skill-row">
+            <div class="skill-info">
+              <span class="skill-name">{{ skill.name }}</span>
+              <span class="skill-desc">{{ skill.description }}</span>
+            </div>
+            <div class="skill-right">
+              <span class="skill-level">{{ skillLevel(skill.id) }}/{{ skill.maxLevel }}</span>
+              <button
+                class="skill-btn"
+                :disabled="(char.skillPoints ?? 0) === 0 || skillLevel(skill.id) >= skill.maxLevel"
+                @click="spendSkill(skill.id)"
+              >+</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -180,4 +237,71 @@ function toggleCollapse() {
 }
 .cs-label { font-size: 7px; color: var(--text-dim); }
 .cs-value { font-size: 7px; color: var(--text); text-align: right; }
+
+.skills-section {
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+.skill-pts-badge {
+  background: var(--gold);
+  color: #000;
+  font-size: 6px;
+  padding: 1px 4px;
+  margin-left: 6px;
+  display: inline-block;
+}
+.skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 5px;
+}
+.skill-flash {
+  font-size: 7px;
+  color: #e06060;
+  text-align: center;
+  display: block;
+}
+.skill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  padding: 5px 6px;
+}
+.skill-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.skill-name { font-size: 7px; color: var(--text-hi); }
+.skill-desc { font-size: 6px; color: var(--text-dim); }
+.skill-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.skill-level { font-size: 7px; color: var(--gold); white-space: nowrap; }
+.skill-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  background: #2a2850;
+  color: var(--gold);
+  border: 2px solid var(--border);
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 1px 1px 0 #000;
+}
+.skill-btn:hover:not(:disabled) { border-color: var(--gold); }
+.skill-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 </style>

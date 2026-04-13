@@ -36,6 +36,42 @@ export const ENEMY_DEFINITIONS: Enemy[] = [
   { id: 'void-shade',   name: 'Void Shade',   zone: 'abyss',   hp: 280, maxHp: 280, atk: [22,34],  def: 16, xpReward: 560,  attackSpeed: 1600 },
   // Boss
   { id: 'abyssal-titan',name: 'Abyssal Titan',zone: 'abyss',   hp: 1950, maxHp: 1950, atk: [55,88],  def: 52, xpReward: 7000, attackSpeed: 2800, isBoss: true },
+
+  // ── Shadowrealm (L30) ────────────────────────────────────────────────────────
+  { id: 'shadow-wraith',   name: 'Shadow Wraith',   zone: 'shadowrealm', hp: 450,  maxHp: 450,  atk: [30,48],  def: 22, xpReward: 900,  attackSpeed: 1400 },
+  { id: 'nightmare-stalker',name:'Nightmare Stalker',zone: 'shadowrealm', hp: 520,  maxHp: 520,  atk: [34,54],  def: 24, xpReward: 1040, attackSpeed: 1500 },
+  { id: 'soul-harvester',  name: 'Soul Harvester',  zone: 'shadowrealm', hp: 580,  maxHp: 580,  atk: [36,58],  def: 25, xpReward: 1160, attackSpeed: 1600 },
+  { id: 'dark-phantom',    name: 'Dark Phantom',    zone: 'shadowrealm', hp: 640,  maxHp: 640,  atk: [38,62],  def: 26, xpReward: 1280, attackSpeed: 1300 },
+  { id: 'cursed-revenant', name: 'Cursed Revenant', zone: 'shadowrealm', hp: 700,  maxHp: 700,  atk: [40,66],  def: 28, xpReward: 1400, attackSpeed: 1800 },
+  // Boss
+  { id: 'dread-sovereign', name: 'Dread Sovereign', zone: 'shadowrealm', hp: 4500, maxHp: 4500, atk: [90,140], def: 80, xpReward: 15000, attackSpeed: 2700, isBoss: true },
+
+  // ── Celestial (L45) ──────────────────────────────────────────────────────────
+  { id: 'celestial-sentinel',   name: 'Celestial Sentinel',   zone: 'celestial', hp: 850,  maxHp: 850,  atk: [45,72],  def: 32, xpReward: 1700, attackSpeed: 1400 },
+  { id: 'starshard-construct',  name: 'Starshard Construct',  zone: 'celestial', hp: 920,  maxHp: 920,  atk: [48,78],  def: 35, xpReward: 1840, attackSpeed: 2000 },
+  { id: 'fallen-seraph',        name: 'Fallen Seraph',        zone: 'celestial', hp: 980,  maxHp: 980,  atk: [50,82],  def: 33, xpReward: 1960, attackSpeed: 1500 },
+  { id: 'astral-warden',        name: 'Astral Warden',        zone: 'celestial', hp: 1050, maxHp: 1050, atk: [52,84],  def: 36, xpReward: 2100, attackSpeed: 1900 },
+  { id: 'divine-fury',          name: 'Divine Fury',          zone: 'celestial', hp: 1100, maxHp: 1100, atk: [55,88],  def: 34, xpReward: 2200, attackSpeed: 1500 },
+  // Boss
+  { id: 'celestial-archon',     name: 'Celestial Archon',     zone: 'celestial', hp: 9000, maxHp: 9000, atk: [140,220], def: 120, xpReward: 30000, attackSpeed: 2600, isBoss: true },
+
+  // ── Void (L60) ───────────────────────────────────────────────────────────────
+  { id: 'void-specter',   name: 'Void Specter',   zone: 'void', hp: 1200, maxHp: 1200, atk: [60, 96],  def: 40, xpReward: 2400, attackSpeed: 1400 },
+  { id: 'nullborn',       name: 'Nullborn',       zone: 'void', hp: 1300, maxHp: 1300, atk: [65,104],  def: 42, xpReward: 2600, attackSpeed: 1800 },
+  { id: 'entropy-fiend',  name: 'Entropy Fiend',  zone: 'void', hp: 1400, maxHp: 1400, atk: [70,112],  def: 45, xpReward: 2800, attackSpeed: 2000 },
+  { id: 'oblivion-shade', name: 'Oblivion Shade', zone: 'void', hp: 1450, maxHp: 1450, atk: [72,116],  def: 44, xpReward: 2900, attackSpeed: 1600 },
+  { id: 'rift-terror',    name: 'Rift Terror',    zone: 'void', hp: 1500, maxHp: 1500, atk: [75,120],  def: 46, xpReward: 3000, attackSpeed: 1700 },
+  // Boss
+  { id: 'the-unmaker',    name: 'The Unmaker',    zone: 'void', hp: 18000, maxHp: 18000, atk: [220,340], def: 180, xpReward: 60000, attackSpeed: 2500, isBoss: true },
+
+  // ── Nightmare (L80) ──────────────────────────────────────────────────────────
+  { id: 'nightmare-horror',  name: 'Nightmare Horror',  zone: 'nightmare', hp: 1800, maxHp: 1800, atk: [88,140],  def: 55, xpReward: 3600,  attackSpeed: 1400 },
+  { id: 'chaos-spawn',       name: 'Chaos Spawn',       zone: 'nightmare', hp: 1900, maxHp: 1900, atk: [92,148],  def: 58, xpReward: 3800,  attackSpeed: 1700 },
+  { id: 'abyssal-nightmare', name: 'Abyssal Nightmare', zone: 'nightmare', hp: 2000, maxHp: 2000, atk: [96,155],  def: 60, xpReward: 4000,  attackSpeed: 1800 },
+  { id: 'dread-walker',      name: 'Dread Walker',      zone: 'nightmare', hp: 2200, maxHp: 2200, atk: [100,162], def: 62, xpReward: 4400,  attackSpeed: 1900 },
+  { id: 'soul-eater',        name: 'Soul Eater',        zone: 'nightmare', hp: 2400, maxHp: 2400, atk: [105,170], def: 65, xpReward: 4800,  attackSpeed: 1600 },
+  // Boss
+  { id: 'eternal-nightmare', name: 'Eternal Nightmare', zone: 'nightmare', hp: 35000, maxHp: 35000, atk: [350,540], def: 280, xpReward: 120000, attackSpeed: 2500, isBoss: true },
 ]
 
 /** Normal (non-boss) enemies for a zone — used for random spawning */

@@ -12,7 +12,7 @@ const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
 const saveStore = useSaveStore()
 
-const ZONE_ORDER: ZoneId[] = ['forest', 'dungeon', 'volcano', 'abyss']
+const ZONE_ORDER: ZoneId[] = ['forest', 'dungeon', 'volcano', 'abyss', 'shadowrealm', 'celestial', 'void', 'nightmare']
 const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
 const availableItems = computed(() => {
@@ -131,13 +131,17 @@ const RARITY_LABEL: Record<string, string> = {
 
 // ── Zone preview (codex tab) ──────────────────────────────────────────────────
 
-const activeTab = ref<'shop' | 'codex'>('shop')
+const activeTab = ref<'shop' | 'codex' | 'enchant'>('shop')
 
 const ZONE_META = [
-  { name: 'Forest',  minZoneIdx: 0, unlockLevel: 1  },
-  { name: 'Dungeon', minZoneIdx: 1, unlockLevel: 5  },
-  { name: 'Volcano', minZoneIdx: 2, unlockLevel: 12 },
-  { name: 'Abyss',   minZoneIdx: 3, unlockLevel: 20 },
+  { name: 'Forest',      minZoneIdx: 0, maxZoneIdx: 0, unlockLevel: 1  },
+  { name: 'Dungeon',     minZoneIdx: 1, maxZoneIdx: 1, unlockLevel: 5  },
+  { name: 'Volcano',     minZoneIdx: 2, maxZoneIdx: 2, unlockLevel: 12 },
+  { name: 'Abyss',       minZoneIdx: 3, maxZoneIdx: 3, unlockLevel: 20 },
+  { name: 'Shadowrealm', minZoneIdx: 4, maxZoneIdx: 4, unlockLevel: 30 },
+  { name: 'Celestial',   minZoneIdx: 5, maxZoneIdx: 5, unlockLevel: 45 },
+  { name: 'Void',        minZoneIdx: 6, maxZoneIdx: 6, unlockLevel: 60 },
+  { name: 'Nightmare',   minZoneIdx: 7, maxZoneIdx: 7, unlockLevel: 80 },
 ] as const
 
 type ZoneSection = {
@@ -152,9 +156,9 @@ const codexZones = computed<ZoneSection[]>(() => {
   const currentZoneIdx = ZONE_ORDER.indexOf(zoneStore.activeZone)
   const charLevel = characterStore.character?.level ?? 1
 
-  return ZONE_META.map(({ name, minZoneIdx, unlockLevel }) => {
+  return ZONE_META.map(({ name, minZoneIdx, maxZoneIdx, unlockLevel }) => {
     const items = SHOP_ITEMS
-      .filter(({ minZone }) => minZone === minZoneIdx || (minZoneIdx === 3 && minZone >= 3))
+      .filter(({ minZone }) => minZone >= minZoneIdx && minZone <= maxZoneIdx)
       .map(({ id }) => ITEM_DEFINITIONS.find((i) => i.id === id)!)
       .filter(Boolean)
     return {
@@ -184,6 +188,31 @@ function selectPreview(item: Item, locked: boolean) {
     previewLocked.value = locked
   }
 }
+
+// ── Enchant tab ───────────────────────────────────────────────────────────────
+
+const enchantableItems = computed<Item[]>(() => {
+  const c = char.value
+  if (!c) return []
+  const gear = [c.gear.weapon, c.gear.armor].filter(Boolean) as Item[]
+  return [...gear, ...c.inventory]
+})
+
+const enchantFlash = ref<string | null>(null)
+let enchantFlashTimer: ReturnType<typeof setTimeout> | null = null
+function doEnchant(item: Item) {
+  const result = characterStore.enchantItem(item.id)
+  if (result === 'enchanted') {
+    enchantFlash.value = `${item.name} enchanted!`
+    saveStore.saveCharacter()
+  } else if (result === 'no_gold') {
+    enchantFlash.value = 'Not enough gold!'
+  } else {
+    enchantFlash.value = 'Item not found!'
+  }
+  if (enchantFlashTimer) clearTimeout(enchantFlashTimer)
+  enchantFlashTimer = setTimeout(() => { enchantFlash.value = null }, 2000)
+}
 </script>
 
 <template>
@@ -197,6 +226,7 @@ function selectPreview(item: Item, locked: boolean) {
     <div v-if="!collapsed" class="shop-tabs">
       <button class="shop-tab" :class="{ active: activeTab === 'shop' }" @click="activeTab = 'shop'">Buy</button>
       <button class="shop-tab" :class="{ active: activeTab === 'codex' }" @click="activeTab = 'codex'">Codex</button>
+      <button class="shop-tab" :class="{ active: activeTab === 'enchant' }" @click="activeTab = 'enchant'">Enchant</button>
     </div>
 
     <div class="inner" v-if="!collapsed && activeTab === 'shop'">
@@ -376,6 +406,37 @@ function selectPreview(item: Item, locked: boolean) {
           </button>
           <span v-else class="codex-locked-label">🔒 Zone locked</span>
           <button class="pixel-btn" @click="previewItem = null">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enchant tab -->
+    <div class="inner" v-if="!collapsed && activeTab === 'enchant'">
+      <div class="gold-row">
+        <span class="gold-label">Gold:</span>
+        <span class="gold-val">{{ char?.gold ?? 0 }}g</span>
+        <span v-if="enchantFlash" class="flash-msg">{{ enchantFlash }}</span>
+      </div>
+      <p class="enchant-hint">Add or reroll a special effect on any owned item. Cost doubles each enchant.</p>
+      <div v-if="enchantableItems.length === 0" class="enchant-empty">No items to enchant.</div>
+      <div
+        v-for="item in enchantableItems"
+        :key="item.id"
+        class="enchant-row"
+        :class="rarityClass(item.rarity)"
+      >
+        <div class="enchant-item-info">
+          <span class="enchant-item-name">{{ item.name }}</span>
+          <span class="enchant-item-specials">{{ specialLine(item) || 'No specials' }}</span>
+          <span v-if="(item.enchantCount ?? 0) > 0" class="enchant-count">Enchanted ×{{ item.enchantCount }}</span>
+        </div>
+        <div class="enchant-item-right">
+          <span class="enchant-cost">{{ characterStore.getEnchantCost(item) }}g</span>
+          <button
+            class="pixel-btn btn-gold enchant-btn"
+            :disabled="(char?.gold ?? 0) < characterStore.getEnchantCost(item)"
+            @click="doEnchant(item)"
+          >✦</button>
         </div>
       </div>
     </div>
@@ -636,4 +697,47 @@ function selectPreview(item: Item, locked: boolean) {
 .codex-slot:hover { border-color: var(--border-hi); }
 
 .codex-locked-label { font-size: 7px; color: var(--text-dim); }
+
+/* Enchant tab */
+.enchant-hint {
+  font-size: 7px;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.8;
+}
+.enchant-empty { font-size: 7px; color: var(--text-dim); text-align: center; padding: 8px; }
+.enchant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #100e20;
+  border: 2px solid var(--border);
+  padding: 6px 8px;
+}
+.enchant-row.r-uncommon  { border-color: #2d7a30; }
+.enchant-row.r-rare      { border-color: #2a5898; }
+.enchant-row.r-epic      { border-color: #80306a; }
+.enchant-row.r-legendary { border-color: #987820; }
+.enchant-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.enchant-item-name    { font-size: 7px; color: var(--text-hi); }
+.enchant-item-specials { font-size: 6px; color: #a080d0; }
+.enchant-count { font-size: 6px; color: var(--gold-dim, #c09030); }
+.enchant-item-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.enchant-cost { font-size: 7px; color: var(--gold); white-space: nowrap; }
+.enchant-btn {
+  font-size: 10px;
+  padding: 4px 7px;
+}
 </style>

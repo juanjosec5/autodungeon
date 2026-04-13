@@ -68,16 +68,16 @@ onUnmounted(() => {
       <!-- Main grid -->
       <div class="main-grid">
 
-        <!-- Col 1: Character + Gear + Zone + Speed -->
+        <!-- Col 1: Character + Zone + Speed -->
         <div class="col">
           <CharacterPanel class="mo-1" />
-          <GearPanel class="mo-2" />
           <ZoneSelector class="mo-4" />
           <SpeedControl class="mo-5" />
         </div>
 
-        <!-- Col 2: Inventory + Shop -->
+        <!-- Col 2: Gear + Inventory + Shop -->
         <div class="col col-wide">
+          <GearPanel class="mo-2" />
           <Inventory class="mo-3" />
           <ShopPanel class="mo-7" />
         </div>
