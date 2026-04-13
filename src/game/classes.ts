@@ -138,5 +138,5 @@ export function getStatsAtLevel(
 }
 
 export function getXPToNextLevel(level: number): number {
-  return Math.floor(100 * 1.15 ** level)
+  return Math.floor(100 * 1.13 ** level)
 }

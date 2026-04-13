@@ -131,8 +131,8 @@ describe('dragonkin', () => {
 })
 
 describe('getXPToNextLevel', () => {
-  it('returns 115 for level 1 (floor(100 * 1.15^1))', () => {
-    expect(getXPToNextLevel(1)).toBe(Math.floor(100 * 1.15))
+  it('returns 113 for level 1 (floor(100 * 1.13^1))', () => {
+    expect(getXPToNextLevel(1)).toBe(Math.floor(100 * 1.13))
   })
 
   it('increases monotonically', () => {

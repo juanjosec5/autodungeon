@@ -255,6 +255,40 @@ describe('addToInventory', () => {
     expect(store.character!.inventory.some((i) => i.id === 'weak-eq')).toBe(true)
   })
 
+  it('auto-equip + smart scrap: displaced item is scrapped when below rarity cap', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    store.toggleAutoEquip() // enable
+    store.setScrapMode('smart-r') // scrap up to rare
+
+    const weak = makeItem({ id: 'weak-eq', rarity: 'common', stats: { minDmg: 1, maxDmg: 2 } })
+    store.character!.gear.weapon = weak
+    const goldBefore = store.character!.gold
+
+    const strong = makeItem({ id: 'strong-drop', rarity: 'common', stats: { minDmg: 50, maxDmg: 60 } })
+    const result = store.addToInventory(strong)
+    expect(result).toEqual({ sold: false, equipped: true })
+    expect(store.character!.gear.weapon?.id).toBe('strong-drop')
+    // Old common weapon should be scrapped (sold), NOT kept in inventory
+    expect(store.character!.inventory.some((i) => i.id === 'weak-eq')).toBe(false)
+    expect(store.character!.gold).toBeGreaterThan(goldBefore)
+  })
+
+  it('auto-equip + smart-r scrap: displaced epic is kept in inventory (above rarity cap)', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    store.toggleAutoEquip()
+    store.setScrapMode('smart-r') // scrap only up to rare
+
+    const epicOld = makeItem({ id: 'epic-displaced', rarity: 'epic', stats: { minDmg: 10, maxDmg: 15 } })
+    store.character!.gear.weapon = epicOld
+
+    const legendary = makeItem({ id: 'legendary-new', rarity: 'legendary', allowedClasses: ['warrior'], stats: { minDmg: 50, maxDmg: 60 } })
+    store.addToInventory(legendary)
+    // Epic above rarity cap → stays in inventory
+    expect(store.character!.inventory.some((i) => i.id === 'epic-displaced')).toBe(true)
+  })
+
   it('auto-equip: does not equip off-class legendary', () => {
     const store = getStore()
     createTestCharacter(store) // warrior

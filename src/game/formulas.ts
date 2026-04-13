@@ -21,7 +21,9 @@ export function getSpecial<K extends SpecialEffect['type']>(
 }
 
 export function calcHit(dex: number, enemyDef: number): boolean {
-  return d20() + dex >= enemyDef
+  const roll = d20()
+  if (roll === 20) return true  // natural 20 always hits
+  return roll + dex >= enemyDef
 }
 
 export function calcCrit(

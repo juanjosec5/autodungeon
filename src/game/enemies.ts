@@ -29,13 +29,13 @@ export const ENEMY_DEFINITIONS: Enemy[] = [
   { id: 'dragon',       name: 'Dragon',       zone: 'volcano', hp: 900, maxHp: 900, atk: [38, 60], def: 40, xpReward: 3500, attackSpeed: 2500, isBoss: true },
 
   // ── Abyss ────────────────────────────────────────────────────────────────────
-  { id: 'shadow-imp',   name: 'Shadow Imp',   zone: 'abyss',   hp: 210, maxHp: 210, atk: [16,26],  def: 14, xpReward: 420,  attackSpeed: 1400 },
-  { id: 'void-hound',   name: 'Void Hound',   zone: 'abyss',   hp: 260, maxHp: 260, atk: [20,32],  def: 18, xpReward: 520,  attackSpeed: 1400 },
-  { id: 'void-knight',  name: 'Void Knight',  zone: 'abyss',   hp: 320, maxHp: 320, atk: [24,38],  def: 24, xpReward: 640,  attackSpeed: 1900 },
-  { id: 'demon-lord',   name: 'Demon Lord',   zone: 'abyss',   hp: 420, maxHp: 420, atk: [28,44],  def: 20, xpReward: 880,  attackSpeed: 2100 },
-  { id: 'void-shade',   name: 'Void Shade',   zone: 'abyss',   hp: 280, maxHp: 280, atk: [22,34],  def: 16, xpReward: 560,  attackSpeed: 1600 },
+  { id: 'shadow-imp',   name: 'Shadow Imp',   zone: 'abyss',   hp: 210, maxHp: 210, atk: [16,26],  def: 14, xpReward: 525,  attackSpeed: 1400 },
+  { id: 'void-hound',   name: 'Void Hound',   zone: 'abyss',   hp: 260, maxHp: 260, atk: [20,32],  def: 18, xpReward: 650,  attackSpeed: 1400 },
+  { id: 'void-knight',  name: 'Void Knight',  zone: 'abyss',   hp: 320, maxHp: 320, atk: [24,38],  def: 24, xpReward: 800,  attackSpeed: 1900 },
+  { id: 'demon-lord',   name: 'Demon Lord',   zone: 'abyss',   hp: 420, maxHp: 420, atk: [28,44],  def: 20, xpReward: 1100, attackSpeed: 2100 },
+  { id: 'void-shade',   name: 'Void Shade',   zone: 'abyss',   hp: 280, maxHp: 280, atk: [22,34],  def: 16, xpReward: 700,  attackSpeed: 1600 },
   // Boss
-  { id: 'abyssal-titan',name: 'Abyssal Titan',zone: 'abyss',   hp: 1950, maxHp: 1950, atk: [55,88],  def: 52, xpReward: 7000, attackSpeed: 2800, isBoss: true },
+  { id: 'abyssal-titan',name: 'Abyssal Titan',zone: 'abyss',   hp: 1400, maxHp: 1400, atk: [40,64], def: 40, xpReward: 8000, attackSpeed: 2800, isBoss: true },
 
   // ── Shadowrealm (L30) ────────────────────────────────────────────────────────
   { id: 'shadow-wraith',   name: 'Shadow Wraith',   zone: 'shadowrealm', hp: 450,  maxHp: 450,  atk: [30,48],  def: 22, xpReward: 900,  attackSpeed: 1400 },
@@ -44,7 +44,7 @@ export const ENEMY_DEFINITIONS: Enemy[] = [
   { id: 'dark-phantom',    name: 'Dark Phantom',    zone: 'shadowrealm', hp: 640,  maxHp: 640,  atk: [38,62],  def: 26, xpReward: 1280, attackSpeed: 1300 },
   { id: 'cursed-revenant', name: 'Cursed Revenant', zone: 'shadowrealm', hp: 700,  maxHp: 700,  atk: [40,66],  def: 28, xpReward: 1400, attackSpeed: 1800 },
   // Boss
-  { id: 'dread-sovereign', name: 'Dread Sovereign', zone: 'shadowrealm', hp: 4500, maxHp: 4500, atk: [90,140], def: 80, xpReward: 15000, attackSpeed: 2700, isBoss: true },
+  { id: 'dread-sovereign', name: 'Dread Sovereign', zone: 'shadowrealm', hp: 3500, maxHp: 3500, atk: [68,108], def: 65, xpReward: 16000, attackSpeed: 2700, isBoss: true },
 
   // ── Celestial (L45) ──────────────────────────────────────────────────────────
   { id: 'celestial-sentinel',   name: 'Celestial Sentinel',   zone: 'celestial', hp: 850,  maxHp: 850,  atk: [45,72],  def: 32, xpReward: 1700, attackSpeed: 1400 },

@@ -62,15 +62,19 @@ const combatStats = computed(() => {
   const zone = zoneStore.activeZone
   const avgDef = ZONE_AVG_DEF[zone]
 
+  // Use current enemy's actual DEF when in combat, zone average otherwise
+  const activeDef = combatStore.currentEnemy?.def ?? avgDef
+  const vsEnemy = activeDef !== avgDef  // true when showing live enemy stats
+
   // Weapon
   const wep = characterStore.effectiveWeaponStats
   const weaponMin = wep?.minDmg ?? 1
   const weaponMax = wep?.maxDmg ?? 3
   const statBonus = CLASS_DEFINITIONS[classId].damageStat === 'int' ? stats.int : stats.str
 
-  // DPS vs zone average (no crit)
+  // DPS vs active target (no crit)
   const defIgnore = passives.defIgnore ?? 0
-  const effEnemyDef = Math.floor(avgDef * (1 - defIgnore))
+  const effEnemyDef = Math.floor(activeDef * (1 - defIgnore))
   const minDPS = Math.max(1, weaponMin + statBonus - effEnemyDef)
   const maxDPS = Math.max(1, weaponMax + statBonus - effEnemyDef)
 
@@ -78,15 +82,15 @@ const combatStats = computed(() => {
   const critThreshold = passives.critThreshold ?? 20
   const critPct = Math.round((21 - critThreshold) / 20 * 100)
 
-  // Hit chance vs zone avg
-  const hitPct = Math.min(100, Math.max(5, Math.round((21 - avgDef + stats.dex) / 20 * 100)))
+  // Hit chance: nat-20 always hits → 5% floor. nat-1 misses → 95% cap.
+  const hitPct = Math.min(95, Math.max(5, Math.round((21 - activeDef + stats.dex) / 20 * 100)))
 
   // Effective player DEF
   const baseArmorDef = characterStore.effectiveArmorStats?.defBonus ?? 0
   const armorEff = passives.armorEffectiveness ?? 1.0
   const effDef = Math.floor(baseArmorDef * armorEff)
 
-  return { minDPS, maxDPS, critPct, hitPct, effDef }
+  return { minDPS, maxDPS, critPct, hitPct, effDef, vsEnemy }
 })
 
 const collapsedStats = ref(localStorage.getItem('collapsed_combatStats') === 'true')
@@ -172,7 +176,10 @@ function skillLevel(skillId: SkillId): number {
       <!-- Combat Stats subsection -->
       <div v-if="combatStats" class="combat-stats-section">
         <button class="cs-header" @click="toggleStats">
-          <span class="cs-title">Combat Stats</span>
+          <span class="cs-title">
+            Combat Stats
+            <span v-if="combatStats.vsEnemy" class="cs-live-badge">live</span>
+          </span>
           <span class="collapse-btn cs-chevron">{{ collapsedStats ? '►' : '▾' }}</span>
         </button>
         <div v-if="!collapsedStats" class="cs-grid">
@@ -297,6 +304,15 @@ function skillLevel(skillId: SkillId): number {
   padding: 0 0 4px;
 }
 .cs-title { font-size: 7px; color: var(--text-dim); }
+.cs-live-badge {
+  background: #30a060;
+  color: #000;
+  font-size: 5px;
+  padding: 1px 3px;
+  margin-left: 5px;
+  display: inline-block;
+  vertical-align: middle;
+}
 .cs-chevron { font-size: 12px; transform: translateY(-2px); }
 .cs-grid {
   display: grid;
