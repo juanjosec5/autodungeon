@@ -27,6 +27,19 @@ export interface Item {
   }
 }
 
+export interface LifetimeStats {
+  kills: number
+  bossKills: number
+  deaths: number
+  damageDealt: number
+  damageReceived: number
+  goldEarned: number
+  itemsLooted: number
+  itemsScrapped: number
+  highestHit: number
+  timePlayed: number   // ms, accumulated on save
+}
+
 export interface Character {
   id: string
   userId?: string
@@ -51,6 +64,7 @@ export interface Character {
   currentZone: 'forest' | 'dungeon' | 'volcano' | 'abyss'
   createdAt: string
   lastSaved: string
+  lifetime: LifetimeStats
 }
 
 export interface Enemy {

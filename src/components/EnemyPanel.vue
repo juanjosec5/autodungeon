@@ -52,12 +52,14 @@ watch(() => combatStore.enemyAttackShake, () => {
   })
 })
 
-// ── Floating damage numbers ───────────────────────────────────────────────────
+// ── Floating numbers ──────────────────────────────────────────────────────────
 
-interface DamageNumber {
+type FloatType = 'damage' | 'crit' | 'miss' | 'regen' | 'lifesteal'
+
+interface FloatNumber {
   id: number
-  value: number
-  isCrit: boolean
+  text: string
+  type: FloatType
   offsetX: number
 }
 
@@ -67,20 +69,32 @@ function toggleCollapse() {
   localStorage.setItem('collapsed_enemy', String(collapsed.value))
 }
 
-const damageNumbers = ref<DamageNumber[]>([])
-let dmgIdCounter = 0
+const floatNumbers = ref<FloatNumber[]>([])
+let floatIdCounter = 0
+
+function pushFloat(text: string, type: FloatType) {
+  const id = floatIdCounter++
+  floatNumbers.value.push({ id, text, type, offsetX: Math.round(Math.random() * 24 - 12) })
+  setTimeout(() => {
+    floatNumbers.value = floatNumbers.value.filter((n) => n.id !== id)
+  }, 900)
+}
 
 watch(() => combatStore.enemyHitFlash, () => {
-  const id = dmgIdCounter++
-  damageNumbers.value.push({
-    id,
-    value: combatStore.lastEnemyDamage,
-    isCrit: combatStore.lastEnemyCrit,
-    offsetX: Math.round(Math.random() * 24 - 12), // -12 to +12px spread
-  })
-  setTimeout(() => {
-    damageNumbers.value = damageNumbers.value.filter((d) => d.id !== id)
-  }, 900)
+  const dmg = combatStore.lastEnemyDamage
+  pushFloat(String(dmg), combatStore.lastEnemyCrit ? 'crit' : 'damage')
+})
+
+watch(() => combatStore.playerMissFlash, () => {
+  pushFloat('MISS', 'miss')
+})
+
+watch(() => combatStore.lifestealFlash, () => {
+  pushFloat('+' + combatStore.lastLifestealAmount, 'lifesteal')
+})
+
+watch(() => combatStore.regenFlash, () => {
+  pushFloat('+' + combatStore.lastRegenAmount, 'regen')
 })
 </script>
 
@@ -104,21 +118,22 @@ watch(() => combatStore.enemyHitFlash, () => {
             </div>
           </div>
 
-          <!-- Floating damage numbers -->
-          <div class="dmg-layer">
-            <div
-              v-for="dmg in damageNumbers"
-              :key="dmg.id"
-              class="dmg-number"
-              :class="{ crit: dmg.isCrit }"
-              :style="{ left: `calc(50% + ${dmg.offsetX}px)` }"
-            >{{ dmg.value }}</div>
-          </div>
         </div>
 
         <!-- Info -->
         <div class="info">
           <div class="enemy-name">{{ enemy.name }}</div>
+
+          <!-- Floating numbers — positioned relative to info, float above HP bar -->
+          <div class="dmg-layer">
+            <div
+              v-for="n in floatNumbers"
+              :key="n.id"
+              class="dmg-number"
+              :class="n.type"
+              :style="{ left: `calc(50% + ${n.offsetX}px)` }"
+            >{{ n.text }}</div>
+          </div>
 
           <div class="bar-row">
             <span class="bar-lbl">HP</span>
@@ -260,16 +275,20 @@ watch(() => combatStore.enemyHitFlash, () => {
   animation: hit-flash 0.18s ease-out forwards;
 }
 
-/* Floating damage numbers */
+/* Floating numbers — inside .info, floats above HP bar */
 .dmg-layer {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;          /* zero height so it doesn't push layout */
   pointer-events: none;
-  z-index: 20;
+  z-index: 5;
+  overflow: visible;
 }
 .dmg-number {
   position: absolute;
-  top: 38%;
+  top: 32px;           /* ~HP bar vertical position inside .info */
   font-size: 11px;
   color: #ffffff;
   font-family: 'Press Start 2P', monospace;
@@ -278,10 +297,10 @@ watch(() => combatStore.enemyHitFlash, () => {
   transform: translateX(-50%);
   animation: float-dmg 0.9s ease-out forwards;
 }
-.dmg-number.crit {
-  font-size: 13px;
-  color: #ffcc00;
-}
+.dmg-number.crit      { font-size: 13px; color: #ffcc00; }
+.dmg-number.miss      { font-size: 9px;  color: #7868a0; }
+.dmg-number.regen     { font-size: 10px; color: #40d898; }
+.dmg-number.lifesteal { font-size: 10px; color: #20c8c8; }
 
 /* Info panel */
 .info {
@@ -292,6 +311,7 @@ watch(() => combatStore.enemyHitFlash, () => {
   flex-direction: column;
   justify-content: center;
   gap: 10px;
+  position: relative;
 }
 
 .enemy-name {

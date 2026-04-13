@@ -203,26 +203,28 @@ export class CombatEngine {
 
       enemy.hp -= damage
 
+      // Lifesteal — calculated before emit so payload includes it
+      const lifestealSpecial = weapon?.stats.special?.find((s) => s.type === 'lifesteal') as
+        | { type: 'lifesteal'; value: number }
+        | undefined
+      let lifestealHeal = 0
+      if (lifestealSpecial) {
+        lifestealHeal = Math.floor(damage * lifestealSpecial.value)
+        character.currentHP = Math.min(character.maxHP, character.currentHP + lifestealHeal)
+      }
+
       const eventType = isCrit ? 'player_crit' : 'player_hit'
       this.emit({
         type: eventType,
         payload: {
           damage,
           poisonDamage,
+          lifestealHeal: lifestealHeal > 0 ? lifestealHeal : undefined,
           enemyName: enemy.name,
           enemyHP: enemy.hp,
           enemyMaxHP: enemy.maxHp,
         },
       })
-
-      // Lifesteal
-      const lifestealSpecial = weapon?.stats.special?.find((s) => s.type === 'lifesteal') as
-        | { type: 'lifesteal'; value: number }
-        | undefined
-      if (lifestealSpecial) {
-        const heal = Math.floor(damage * lifestealSpecial.value)
-        character.currentHP = Math.min(character.maxHP, character.currentHP + heal)
-      }
 
       // Doublecast (mage only)
       if (character.class === 'mage') {

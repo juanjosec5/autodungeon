@@ -204,10 +204,17 @@ function statSummary(item: Item): string {
       <div class="inv-header">
         <span class="inv-count">{{ char?.inventory.length ?? 0 }} / {{ SLOTS }}</span>
         <div class="inv-actions">
-          <label class="autoscrap-toggle" :class="{ active: characterStore.autoScrap }">
-            <input type="checkbox" :checked="characterStore.autoScrap" @change="characterStore.toggleAutoScrap()" />
-            Auto-scrap
-          </label>
+          <div class="scrap-threshold">
+            <span class="scrap-label">Scrap:</span>
+            <button
+              v-for="opt in (['off', 'common', 'uncommon', 'rare'] as const)"
+              :key="opt"
+              class="threshold-btn"
+              :class="{ 'threshold-active': characterStore.scrapThreshold === opt }"
+              :title="opt === 'off' ? 'No auto-scrap' : `Auto-scrap ${opt} and below`"
+              @click="characterStore.setScrapThreshold(opt)"
+            >{{ opt === 'off' ? 'Off' : opt[0].toUpperCase() }}</button>
+          </div>
           <label class="autoscrap-toggle" :class="{ active: characterStore.autoEquip }">
             <input type="checkbox" :checked="characterStore.autoEquip" @change="characterStore.toggleAutoEquip()" />
             Auto-equip
@@ -318,6 +325,25 @@ function statSummary(item: Item): string {
 .inv-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .inv-count  { font-size: 8px; color: var(--text-dim); }
 .inv-actions { display: flex; gap: 5px; align-items: center; }
+
+.scrap-threshold {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.scrap-label { font-size: 7px; color: var(--text-dim); margin-right: 2px; white-space: nowrap; }
+.threshold-btn {
+  font-size: 7px;
+  padding: 2px 5px;
+  background: #0e0c1c;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.threshold-btn:hover { border-color: var(--border-hi); color: var(--text); }
+.threshold-active { border-color: #d8a060 !important; color: #d8a060 !important; }
 
 .autoscrap-toggle {
   display: flex;

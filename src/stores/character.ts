@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Character, Item, ZoneId, ClassId } from '../types/index'
+import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
@@ -23,12 +23,16 @@ const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as cons
 export const useCharacterStore = defineStore('character', () => {
   const character = ref<Character | null>(null)
 
-  const autoScrap = ref(localStorage.getItem('autoScrap') === 'true')
+  const VALID_THRESHOLDS: (RarityId | 'off')[] = ['off', 'common', 'uncommon', 'rare']
+  const savedThreshold = localStorage.getItem('scrapThreshold') as RarityId | 'off' | null
+  const scrapThreshold = ref<RarityId | 'off'>(
+    savedThreshold && VALID_THRESHOLDS.includes(savedThreshold) ? savedThreshold : 'off',
+  )
   const autoEquip = ref(localStorage.getItem('autoEquip') === 'true')
 
-  function toggleAutoScrap(): void {
-    autoScrap.value = !autoScrap.value
-    localStorage.setItem('autoScrap', String(autoScrap.value))
+  function setScrapThreshold(t: RarityId | 'off'): void {
+    scrapThreshold.value = t
+    localStorage.setItem('scrapThreshold', t)
   }
 
   function toggleAutoEquip(): void {
@@ -86,6 +90,14 @@ export const useCharacterStore = defineStore('character', () => {
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
+  function _blankLifetime(): LifetimeStats {
+    return {
+      kills: 0, bossKills: 0, deaths: 0, damageDealt: 0,
+      damageReceived: 0, goldEarned: 0, itemsLooted: 0,
+      itemsScrapped: 0, highestHit: 0, timePlayed: 0,
+    }
+  }
+
   function createCharacter(name: string, classId: ClassId): void {
     const stats = getStatsAtLevel(classId, 1)
     const starter = STARTER_GEAR[classId]
@@ -108,11 +120,26 @@ export const useCharacterStore = defineStore('character', () => {
       currentZone: 'forest',
       createdAt: new Date().toISOString(),
       lastSaved: new Date().toISOString(),
+      lifetime: _blankLifetime(),
     }
   }
 
   function restoreCharacter(data: Character): void {
+    // Backwards compat: old saves may not have lifetime field
+    if (!data.lifetime) data.lifetime = _blankLifetime()
     character.value = data
+  }
+
+  function updateLifetime(delta: Partial<LifetimeStats>): void {
+    const char = character.value
+    if (!char) return
+    for (const [k, v] of Object.entries(delta) as [keyof LifetimeStats, number][]) {
+      if (k === 'highestHit') {
+        char.lifetime.highestHit = Math.max(char.lifetime.highestHit, v)
+      } else {
+        (char.lifetime[k] as number) += v
+      }
+    }
   }
 
   function equipItem(item: Item): void {
@@ -175,15 +202,11 @@ export const useCharacterStore = defineStore('character', () => {
       }
     }
 
-    // Auto-scrap: sell if item is lower tier than currently equipped slot
-    if (autoScrap.value) {
+    // Auto-scrap: sell if item is at or below the rarity threshold
+    if (scrapThreshold.value !== 'off') {
       const itemTier = RARITY_ORDER.indexOf(item.rarity)
-      const weaponTier = char.gear.weapon ? RARITY_ORDER.indexOf(char.gear.weapon.rarity) : -1
-      const armorTier  = char.gear.armor  ? RARITY_ORDER.indexOf(char.gear.armor.rarity)  : -1
-      const isJunk =
-        (item.type === 'weapon' && weaponTier >= 0 && itemTier < weaponTier) ||
-        (item.type === 'armor'  && armorTier  >= 0 && itemTier < armorTier)
-      if (isJunk) {
+      const thresholdTier = RARITY_ORDER.indexOf(scrapThreshold.value)
+      if (itemTier <= thresholdTier) {
         const gold = getSellPrice(item.rarity)
         char.gold += gold
         return { sold: true, gold, reason: 'scrap' }
@@ -308,8 +331,8 @@ export const useCharacterStore = defineStore('character', () => {
 
   return {
     character,
-    autoScrap,
-    toggleAutoScrap,
+    scrapThreshold,
+    setScrapThreshold,
     autoEquip,
     toggleAutoEquip,
     unlockedZones,
@@ -317,6 +340,7 @@ export const useCharacterStore = defineStore('character', () => {
     effectiveArmorStats,
     createCharacter,
     restoreCharacter,
+    updateLifetime,
     equipItem,
     unequipItem,
     addToInventory,

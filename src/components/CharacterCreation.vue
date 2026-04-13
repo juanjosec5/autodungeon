@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ClassId } from '../types/index'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useAuthStore } from '../stores/auth'
+import { useCombatStore } from '../stores/combat'
+import { useZoneStore } from '../stores/zone'
 import { getStatsAtLevel } from '../game/classes'
 import AuthModal from './AuthModal.vue'
 
@@ -12,6 +14,14 @@ const router = useRouter()
 const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
 const authStore = useAuthStore()
+const combatStore = useCombatStore()
+const zoneStore = useZoneStore()
+
+onMounted(() => {
+  combatStore.stopCombat()
+  combatStore.setSpeed(1)
+  zoneStore.resetToForest()
+})
 
 // ── Auth modal ────────────────────────────────────────────────────────────────
 
@@ -183,13 +193,13 @@ async function signOut() {
               <div class="shrink-0 text-right">
                 <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-gray-400">
                   <span class="text-gray-500">HP</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).maxHP }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).maxHP }}</span>
                   <span class="text-gray-500">STR</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).str }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).str }}</span>
                   <span class="text-gray-500">DEX</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).dex }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).dex }}</span>
                   <span class="text-gray-500">INT</span>
-                  <span class="text-gray-200 font-mono">{{ getBaseStats(card.id).int }}</span>
+                  <span class="text-gray-200">{{ getBaseStats(card.id).int }}</span>
                 </div>
               </div>
             </div>

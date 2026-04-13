@@ -14,5 +14,9 @@ export const useZoneStore = defineStore('zone', () => {
     // GameView watches activeZone and calls combatStore.restartCombat()
   }
 
-  return { activeZone, setZone }
+  function resetToForest(): void {
+    activeZone.value = 'forest'
+  }
+
+  return { activeZone, setZone, resetToForest }
 })

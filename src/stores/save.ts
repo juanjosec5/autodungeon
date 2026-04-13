@@ -20,6 +20,13 @@ export const useSaveStore = defineStore('save', () => {
     if (!char) return
 
     isSaving.value = true
+
+    // Accumulate time played since last save
+    if (char.lifetime) {
+      const elapsed = Date.now() - new Date(char.lastSaved).getTime()
+      char.lifetime.timePlayed += Math.max(0, elapsed)
+    }
+
     char.lastSaved = new Date().toISOString()
 
     try {
