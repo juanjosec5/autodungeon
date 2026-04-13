@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useCharacterStore } from '../character'
 import { getXPToNextLevel } from '../../game/classes'
@@ -38,10 +38,6 @@ function makeItem(overrides: Partial<Item> = {}): Item {
     stats: { minDmg: 5, maxDmg: 10 },
     ...overrides,
   }
-}
-
-function makeArmor(overrides: Partial<Item> = {}): Item {
-  return makeItem({ type: 'armor', category: 'plate', stats: { defBonus: 5, hpBonus: 20 }, ...overrides })
 }
 
 function getStore() {
