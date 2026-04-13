@@ -34,6 +34,13 @@ export const useCombatStore = defineStore('combat', () => {
   const killCount = ref(0)
   const killsToNextBoss = ref(12)
 
+  // Floating number triggers
+  const playerMissFlash = ref(0)
+  const lifestealFlash = ref(0)
+  const lastLifestealAmount = ref(0)
+  const regenFlash = ref(0)
+  const lastRegenAmount = ref(0)
+
   // ── Session stats (resets on page load) ──────────────────────────────────
 
   const session = reactive({
@@ -62,38 +69,54 @@ export const useCombatStore = defineStore('combat', () => {
     const p = event.payload
 
     switch (event.type) {
-      case 'player_hit':
+      case 'player_hit': {
+        const dmg = p.damage as number
         if (currentEnemy.value) {
           currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
         }
-        lastEnemyDamage.value = p.damage as number
+        lastEnemyDamage.value = dmg
         lastEnemyCrit.value = false
         enemyHitFlash.value++
+        characterStore.updateLifetime({ damageDealt: dmg, highestHit: dmg })
+        if (p.lifestealHeal) {
+          lastLifestealAmount.value = p.lifestealHeal as number
+          lifestealFlash.value++
+        }
         addLogEntry({
           type: 'hit',
-          message: `You hit ${p.enemyName} for ${p.damage} damage. (${p.enemyHP}/${p.enemyMaxHP})`,
+          message: `You hit ${p.enemyName} for ${dmg} damage. (${p.enemyHP}/${p.enemyMaxHP})`,
         })
         break
+      }
 
-      case 'player_crit':
+      case 'player_crit': {
+        const dmg = p.damage as number
         if (currentEnemy.value) {
           currentEnemy.value = { ...currentEnemy.value, hp: p.enemyHP as number }
         }
-        lastEnemyDamage.value = p.damage as number
+        lastEnemyDamage.value = dmg
         lastEnemyCrit.value = true
         enemyHitFlash.value++
+        characterStore.updateLifetime({ damageDealt: dmg, highestHit: dmg })
+        if (p.lifestealHeal) {
+          lastLifestealAmount.value = p.lifestealHeal as number
+          lifestealFlash.value++
+        }
         addLogEntry({
           type: 'crit',
-          message: `⚡ CRIT! You hit ${p.enemyName} for ${p.damage} damage!`,
+          message: `⚡ CRIT! You hit ${p.enemyName} for ${dmg} damage!`,
         })
         break
+      }
 
       case 'player_miss':
+        playerMissFlash.value++
         addLogEntry({ type: 'miss', message: `You missed ${p.enemyName}.` })
         break
 
       case 'enemy_hit':
         enemyAttackShake.value++
+        characterStore.updateLifetime({ damageReceived: p.damage as number })
         addLogEntry({
           type: 'hit',
           message: `${p.enemyName} hits you for ${p.damage} damage. (${p.playerHP}/${p.playerMaxHP})`,
@@ -105,10 +128,12 @@ export const useCombatStore = defineStore('combat', () => {
         addLogEntry({ type: 'hit', message: `💀 ${p.enemyName} has been slain!` })
         if (bossKill) {
           session.bossKills++
+          characterStore.updateLifetime({ bossKills: 1 })
         } else {
           session.kills++
           killCount.value = engine.getKillCount()
           killsToNextBoss.value = engine.getKillsToNextBoss()
+          characterStore.updateLifetime({ kills: 1 })
         }
         break
       }
@@ -157,12 +182,16 @@ export const useCombatStore = defineStore('combat', () => {
         if (result.sold) {
           const gold = result.gold
           session.goldEarned += gold
-          const msg = result.reason === 'scrap'
-            ? `🗑 Auto-scrapped ${item.name} for ${gold}g`
-            : `💰 Inventory full — sold ${item.name} for ${gold}g`
-          addLogEntry({ type: 'sell', message: msg })
+          characterStore.updateLifetime({ goldEarned: gold })
+          if (result.reason === 'scrap') {
+            characterStore.updateLifetime({ itemsScrapped: 1 })
+            addLogEntry({ type: 'sell', message: `🗑 Auto-scrapped ${item.name} for ${gold}g` })
+          } else {
+            addLogEntry({ type: 'sell', message: `💰 Inventory full — sold ${item.name} for ${gold}g` })
+          }
         } else {
           session.itemsLooted++
+          characterStore.updateLifetime({ itemsLooted: 1 })
           if (result.equipped) {
             addLogEntry({ type: 'loot', message: `⚡ Auto-equipped ${item.name} (${item.rarity})` })
           } else {
@@ -182,6 +211,8 @@ export const useCombatStore = defineStore('combat', () => {
         break
 
       case 'hp_regen':
+        lastRegenAmount.value = p.amount as number
+        regenFlash.value++
         addLogEntry({
           type: 'regen',
           message: `💚 Recovered ${p.amount} HP. (${p.currentHP}/${characterStore.character?.maxHP})`,
@@ -192,6 +223,7 @@ export const useCombatStore = defineStore('combat', () => {
         const char = characterStore.character!
         const xpLoss = Math.floor(char.xp * 0.1)
         const goldLoss = Math.floor(char.gold * 0.15)
+        characterStore.updateLifetime({ deaths: 1 })
         addLogEntry({
           type: 'death',
           message: `☠️ You were slain by ${p.enemyName}! Lost ${xpLoss}xp and ${goldLoss}g.`,
@@ -288,6 +320,11 @@ export const useCombatStore = defineStore('combat', () => {
     isBossActive,
     killCount,
     killsToNextBoss,
+    playerMissFlash,
+    lifestealFlash,
+    lastLifestealAmount,
+    regenFlash,
+    lastRegenAmount,
     session,
     startCombat,
     stopCombat,

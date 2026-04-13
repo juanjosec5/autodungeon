@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { computed, watch, ref, nextTick } from 'vue'
+import { computed, watch, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { useCombatStore } from '../stores/combat'
+import { useCharacterStore } from '../stores/character'
 import type { CombatLogEntry } from '../types/index'
 
 const combatStore = useCombatStore()
+const characterStore = useCharacterStore()
 const logEl = ref<HTMLElement | null>(null)
+
+// Live clock for time-played display
+const now = ref(Date.now())
+let clockTimer: ReturnType<typeof setInterval>
+onMounted(() => { clockTimer = setInterval(() => { now.value = Date.now() }, 1000) })
+onUnmounted(() => clearInterval(clockTimer))
 
 const entryClass: Record<CombatLogEntry['type'], string> = {
   hit:     'l-hit',
@@ -24,8 +32,33 @@ function toggleCollapse() {
   localStorage.setItem('collapsed_combatlog', String(collapsed.value))
 }
 
-type FilterMode = 'all' | 'combat' | 'loot' | 'system'
+type FilterMode = 'all' | 'combat' | 'loot' | 'system' | 'stats'
 const filterMode = ref<FilterMode>('all')
+
+function fmtTime(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (h > 0) return `${h}h ${m}m ${sec}s`
+  if (m > 0) return `${m}m ${sec}s`
+  return `${sec}s`
+}
+
+function fmtNumber(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'k'
+  return String(n)
+}
+
+const lifetimeStats = computed(() => {
+  const lt = characterStore.character?.lifetime
+  const lastSaved = characterStore.character?.lastSaved
+  if (!lt) return null
+  // Add time since last save for live display
+  const liveDelta = lastSaved ? Math.max(0, now.value - new Date(lastSaved).getTime()) : 0
+  return { ...lt, timePlayed: lt.timePlayed + liveDelta }
+})
 
 const COMBAT_TYPES = new Set<CombatLogEntry['type']>(['hit', 'crit', 'miss'])
 const LOOT_TYPES   = new Set<CombatLogEntry['type']>(['loot', 'sell'])
@@ -69,9 +102,37 @@ watch(
       <button class="filter-tab" :class="{ active: filterMode === 'combat' }" @click="filterMode = 'combat'">Combat</button>
       <button class="filter-tab" :class="{ active: filterMode === 'loot' }"   @click="filterMode = 'loot'">Loot</button>
       <button class="filter-tab" :class="{ active: filterMode === 'system' }" @click="filterMode = 'system'">System</button>
+      <button class="filter-tab" :class="{ active: filterMode === 'stats' }"  @click="filterMode = 'stats'">Stats</button>
     </div>
 
-    <div v-if="!collapsed" ref="logEl" class="log-body">
+    <!-- Lifetime stats panel -->
+    <div v-if="!collapsed && filterMode === 'stats'" class="stats-body">
+      <template v-if="lifetimeStats">
+        <div class="stat-row">
+          <span class="sl">Kills</span><span class="sv">{{ fmtNumber(lifetimeStats.kills) }}</span>
+          <span class="sl">Boss kills</span><span class="sv">{{ fmtNumber(lifetimeStats.bossKills) }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="sl">Deaths</span><span class="sv">{{ lifetimeStats.deaths }}</span>
+          <span class="sl">Items looted</span><span class="sv">{{ fmtNumber(lifetimeStats.itemsLooted) }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="sl">Dmg dealt</span><span class="sv">{{ fmtNumber(lifetimeStats.damageDealt) }}</span>
+          <span class="sl">Dmg received</span><span class="sv">{{ fmtNumber(lifetimeStats.damageReceived) }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="sl">Best hit</span><span class="sv">{{ lifetimeStats.highestHit }}</span>
+          <span class="sl">Gold earned</span><span class="sv">{{ fmtNumber(lifetimeStats.goldEarned) }}g</span>
+        </div>
+        <div class="stat-row">
+          <span class="sl">Scrapped</span><span class="sv">{{ fmtNumber(lifetimeStats.itemsScrapped) }}</span>
+          <span class="sl">Time played</span><span class="sv">{{ fmtTime(lifetimeStats.timePlayed) }}</span>
+        </div>
+      </template>
+      <div v-else class="log-empty">No stats yet.</div>
+    </div>
+
+    <div v-if="!collapsed && filterMode !== 'stats'" ref="logEl" class="log-body">
       <div
         v-for="entry in log"
         :key="entry.id"
@@ -137,6 +198,21 @@ watch(
   border-bottom: 1px solid rgba(255,255,255,0.03);
 }
 .log-empty { font-size: 9px; color: var(--text-dim); text-align: center; padding: 20px 0; }
+
+.stats-body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+}
+.sl { font-size: 7px; color: var(--text-dim); }
+.sv { font-size: 8px; color: var(--text); text-align: right; }
 .l-hit    { color: #e0d8f0; }
 .l-crit   { color: #f0d820; }
 .l-miss   { color: #7868a0; }
