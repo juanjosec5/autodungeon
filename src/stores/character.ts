@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, SkillId, ScrapMode } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
-import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS } from '../game/items'
-import { getOffClassPenalty } from '../game/formulas'
+import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
+import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
 import { SKILL_DEFINITIONS } from '../game/skills'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
@@ -30,10 +30,10 @@ const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as cons
 export const useCharacterStore = defineStore('character', () => {
   const character = ref<Character | null>(null)
 
-  const VALID_SCRAP_MODES: ScrapMode[] = ['off', 'smart', 'smart-c', 'smart-u', 'smart-r']
+  const SCRAP_MODES = ['off', 'smart', 'smart-c', 'smart-u', 'smart-r'] as const satisfies readonly ScrapMode[]
   const savedScrapMode = localStorage.getItem('scrapMode') as ScrapMode | null
   const scrapMode = ref<ScrapMode>(
-    savedScrapMode && VALID_SCRAP_MODES.includes(savedScrapMode) ? savedScrapMode : 'off',
+    savedScrapMode && (SCRAP_MODES as readonly string[]).includes(savedScrapMode) ? savedScrapMode : 'off',
   )
   const autoEquip = ref(localStorage.getItem('autoEquip') === 'true')
 
@@ -45,24 +45,6 @@ export const useCharacterStore = defineStore('character', () => {
   function toggleAutoEquip(): void {
     autoEquip.value = !autoEquip.value
     localStorage.setItem('autoEquip', String(autoEquip.value))
-  }
-
-  /**
-   * Compares two items using effective stats (off-class penalty applied to both).
-   * Weapons: effective avg damage. Armor: weighted DEF×3 + HP.
-   */
-  function isBetterThan(newItem: Item, equipped: Item, classId: ClassId): boolean {
-    const newPenalty = getOffClassPenalty(newItem, classId)
-    const eqPenalty  = getOffClassPenalty(equipped, classId)
-    if (newItem.type === 'weapon') {
-      const newEff = ((newItem.stats.minDmg ?? 0) + (newItem.stats.maxDmg ?? 0)) / 2 * newPenalty
-      const eqEff  = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2 * eqPenalty
-      return newEff > eqEff
-    } else {
-      const newEff = ((newItem.stats.defBonus ?? 0) * 3 + (newItem.stats.hpBonus ?? 0)) * newPenalty
-      const eqEff  = ((equipped.stats.defBonus ?? 0) * 3 + (equipped.stats.hpBonus ?? 0)) * eqPenalty
-      return newEff > eqEff
-    }
   }
 
   // ── Getters ──────────────────────────────────────────────────────────────────
@@ -291,8 +273,7 @@ export const useCharacterStore = defineStore('character', () => {
   function applyDeathPenalty(): void {
     const char = character.value
     if (!char) return
-    const xpLoss = Math.floor(char.xp * 0.1)
-    const goldLoss = Math.floor(char.gold * 0.15)
+    const { xpLoss, goldLoss } = calcDeathPenalty(char.xp, char.gold)
     char.xp = Math.max(0, char.xp - xpLoss)
     char.gold = Math.max(0, char.gold - goldLoss)
     char.currentHP = char.maxHP
@@ -378,8 +359,7 @@ export const useCharacterStore = defineStore('character', () => {
     const item = [...char.inventory, ...gearItems].find((i) => i.id === itemId)
     if (!item) return 'not_found'
 
-    const enchantCount = item.enchantCount ?? 0
-    const cost = Math.floor(getBuyPrice(item.rarity) * 3 * Math.pow(2, enchantCount))
+    const cost = calcEnchantCost(item)
     if (char.gold < cost) return 'no_gold'
 
     const pool = item.type === 'weapon' ? WEAPON_ENCHANTS : ARMOR_ENCHANTS
@@ -399,7 +379,7 @@ export const useCharacterStore = defineStore('character', () => {
       item.stats.special[replaceIdx] = structuredClone(newEffect)
     }
 
-    item.enchantCount = enchantCount + 1
+    item.enchantCount = (item.enchantCount ?? 0) + 1
     char.gold -= cost
     return 'enchanted'
   }
@@ -408,7 +388,7 @@ export const useCharacterStore = defineStore('character', () => {
    * Returns the cost in gold to enchant a given item next time.
    */
   function getEnchantCost(item: Item): number {
-    return Math.floor(getBuyPrice(item.rarity) * 3 * Math.pow(2, item.enchantCount ?? 0))
+    return calcEnchantCost(item)
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────────

@@ -221,22 +221,21 @@ export const useCombatStore = defineStore('combat', () => {
 
       case 'player_dead': {
         const char = characterStore.character!
+        // Preview losses for log message, then apply
         const xpLoss = Math.floor(char.xp * 0.1)
         const goldLoss = Math.floor(char.gold * 0.15)
+        characterStore.applyDeathPenalty()
         characterStore.updateLifetime({ deaths: 1 })
         addLogEntry({
           type: 'death',
           message: `☠️ You were slain by ${p.enemyName}! Lost ${xpLoss}xp and ${goldLoss}g.`,
         })
-        characterStore.applyDeathPenalty()
         _triggerSave()
         isRunning.value = false
         setTimeout(() => restartCombat(), 2000)
         break
       }
 
-      case 'zone_cleared':
-        break
     }
   }
 

@@ -1,11 +1,10 @@
 import type { ClassId } from '../types/index'
 
 interface ClassPassives {
-  armorEffectiveness?: number // multiply final DEF bonus by this value
+  armorEffectiveness?: number // warrior: multiply armor DEF bonus (e.g. 1.1 = +10%)
   regenChance: number
-  critThreshold?: number // rogue: crits on roll >= this OR dex >= 12
-  defIgnore?: number // mage: ignore this fraction of enemy DEF
-  critCondition?: 'natural20' // warrior/mage: crit only on roll === 20
+  critThreshold?: number      // rogue: crits on roll >= this value
+  defIgnore?: number          // mage: ignore this fraction of enemy DEF
 }
 
 interface ClassDefinition {
@@ -35,7 +34,6 @@ export const CLASS_DEFINITIONS: Record<ClassId, ClassDefinition> = {
     passives: {
       armorEffectiveness: 1.1,
       regenChance: 0.4,
-      critCondition: 'natural20',
     },
   },
   rogue: {
@@ -66,7 +64,6 @@ export const CLASS_DEFINITIONS: Record<ClassId, ClassDefinition> = {
     passives: {
       defIgnore: 0.2,
       regenChance: 0.3,
-      critCondition: 'natural20',
     },
   },
 }
