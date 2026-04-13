@@ -1,5 +1,5 @@
 import type { Character, Enemy, ZoneId } from '../types/index'
-import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount } from './formulas'
+import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial } from './formulas'
 import { rollLoot, rollBisLoot } from './items'
 import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
@@ -31,7 +31,6 @@ export type CombatEventType =
   | 'xp_gained'
   | 'level_up'
   | 'hp_regen'
-  | 'zone_cleared'
 
 export interface CombatEvent {
   type: CombatEventType
@@ -41,10 +40,6 @@ export interface CombatEvent {
 export type CombatEventHandler = (event: CombatEvent) => void
 
 // ─── CombatEngine ─────────────────────────────────────────────────────────────
-
-function randomBetween(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
 
 export class CombatEngine {
   private state: CombatState | null = null
@@ -59,7 +54,7 @@ export class CombatEngine {
     this.state = {
       ...state,
       killCount: 0,
-      killsToNextBoss: randomBetween(10, 15),
+      killsToNextBoss: rollDamage(10, 15),
     }
     this.isDead = false
     this.schedulePlayerTick()
@@ -125,11 +120,8 @@ export class CombatEngine {
     const { character, speed } = this.state
     const weapon = character.gear.weapon
     const baseInterval = CLASS_DEFINITIONS[character.class].attackSpeed
-    const bonus =
-      (weapon?.stats.special?.find((s) => s.type === 'attackSpeedBonus') as
-        | { type: 'attackSpeedBonus'; percent: number }
-        | undefined)?.percent ?? 0
-    return Math.floor((baseInterval * (1 - bonus)) / speed)
+    const speedBonus = getSpecial(weapon?.stats.special, 'attackSpeedBonus')?.percent ?? 0
+    return Math.floor((baseInterval * (1 - speedBonus)) / speed)
   }
 
   private getEnemyAttackInterval(): number {
@@ -151,37 +143,24 @@ export class CombatEngine {
     const weapon = character.gear.weapon
     const sb = getSkillBonuses(character.skills ?? {})
 
-    // Def ignore
+    // Def ignore: base class passive + weapon special
     const classDef = CLASS_DEFINITIONS[character.class]
     const baseDefIgnore = classDef.passives.defIgnore ?? 0
-    const weaponDefIgnore =
-      (weapon?.stats.special?.find((s) => s.type === 'defIgnore') as
-        | { type: 'defIgnore'; percent: number }
-        | undefined)?.percent ?? 0
+    const weaponDefIgnore = getSpecial(weapon?.stats.special, 'defIgnore')?.percent ?? 0
     const defIgnorePercent = Math.min(0.9, baseDefIgnore + weaponDefIgnore)
 
-    // Crit threshold from weapon
-    const extraCritThreshold =
-      (weapon?.stats.special?.find((s) => s.type === 'critThreshold') as
-        | { type: 'critThreshold'; rollsAt: number }
-        | undefined)?.rollsAt
+    // Crit threshold from weapon special
+    const extraCritThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
 
     const roll = d20()
     const hits = calcHit(character.stats.dex, enemy.def)
-    const isCrit = hits && calcCrit(roll, character.stats.dex, character.class, extraCritThreshold, sb.critThresholdReduction)
+    const isCrit = hits && calcCrit(roll, character.class, extraCritThreshold, sb.critThresholdReduction)
 
     if (!hits) {
       this.emit({ type: 'player_miss', payload: { enemyName: enemy.name } })
     } else {
-      // Poison special
-      const poisonSpecial = weapon?.stats.special?.find((s) => s.type === 'poison') as
-        | { type: 'poison'; dpsMultiplier: number }
-        | undefined
-
-      const armorSpellAmp =
-        (character.gear.armor?.stats.special?.find((s) => s.type === 'spellAmp') as
-          | { type: 'spellAmp'; percent: number }
-          | undefined)?.percent ?? 0
+      const poisonSpecial = getSpecial(weapon?.stats.special, 'poison')
+      const armorSpellAmp = getSpecial(character.gear.armor?.stats.special, 'spellAmp')?.percent ?? 0
 
       const dmgParams = {
         classId: character.class,
@@ -206,10 +185,8 @@ export class CombatEngine {
 
       enemy.hp -= damage
 
-      // Lifesteal — calculated before emit so payload includes it
-      const lifestealSpecial = weapon?.stats.special?.find((s) => s.type === 'lifesteal') as
-        | { type: 'lifesteal'; value: number }
-        | undefined
+      // Lifesteal
+      const lifestealSpecial = getSpecial(weapon?.stats.special, 'lifesteal')
       let lifestealHeal = 0
       if (lifestealSpecial) {
         lifestealHeal = Math.floor(damage * lifestealSpecial.value)
@@ -231,9 +208,7 @@ export class CombatEngine {
 
       // Doublecast (mage only)
       if (character.class === 'mage') {
-        const doublecastSpecial = weapon?.stats.special?.find((s) => s.type === 'doublecast') as
-          | { type: 'doublecast'; chance: number }
-          | undefined
+        const doublecastSpecial = getSpecial(weapon?.stats.special, 'doublecast')
         if (doublecastSpecial && Math.random() < doublecastSpecial.chance) {
           const bonusDamage = calcPlayerDamage(dmgParams)
           enemy.hp -= bonusDamage
@@ -263,29 +238,24 @@ export class CombatEngine {
     const sb = getSkillBonuses(character.skills ?? {})
 
     // Dodge (armor + skill)
-    const armorDodge =
-      (character.gear.armor?.stats.special?.find((s) => s.type === 'dodge') as
-        | { type: 'dodge'; chance: number }
-        | undefined)?.chance ?? 0
+    const armorDodge = getSpecial(character.gear.armor?.stats.special, 'dodge')?.chance ?? 0
     if (Math.random() < armorDodge + sb.dodgeBonus) {
       this.scheduleEnemyTick()
       return
     }
 
     // Block (armor + skill)
-    const armorBlock =
-      (character.gear.armor?.stats.special?.find((s) => s.type === 'block') as
-        | { type: 'block'; chance: number }
-        | undefined)?.chance ?? 0
+    const armorBlock = getSpecial(character.gear.armor?.stats.special, 'block')?.chance ?? 0
     if (Math.random() < armorBlock + sb.blockBonus) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Player DEF (armor + warrior bonus + iron-skin skill)
+    // Player DEF: armor base + warrior armorEffectiveness bonus + iron-skin skill
+    const classDef = CLASS_DEFINITIONS[character.class]
     const armorDef = character.gear.armor?.stats.defBonus ?? 0
-    const warriorBonus = character.class === 'warrior' ? armorDef * 0.1 : 0
-    const playerDef = Math.floor(armorDef + warriorBonus) + sb.flatDef
+    const armorEffBonus = (classDef.passives.armorEffectiveness ?? 1) - 1
+    const playerDef = Math.floor(armorDef * (1 + armorEffBonus)) + sb.flatDef
 
     const damage = calcEnemyDamage(enemy.atk, playerDef)
     character.currentHP -= damage
@@ -323,13 +293,10 @@ export class CombatEngine {
 
     enemy.hp = 0
     this.emit({ type: 'enemy_dead', payload: { enemyName: enemy.name, isBoss: enemy.isBoss ?? false } })
-
-    // XP
     this.emit({ type: 'xp_gained', payload: { amount: enemy.xpReward } })
 
     // Loot
     if (enemy.isBoss) {
-      // Regular loot drop (same as normal enemies)
       const regularItem = rollLoot(this.state.zone, enemy.id)
       this.emit({ type: 'loot_dropped', payload: { item: regularItem } })
 
@@ -341,19 +308,16 @@ export class CombatEngine {
 
       this.emit({ type: 'boss_defeated', payload: { enemyName: enemy.name } })
       this.state.killCount = 0
-      this.state.killsToNextBoss = randomBetween(10, 15)
+      this.state.killsToNextBoss = rollDamage(10, 15)
     } else {
       const item = rollLoot(this.state.zone, enemy.id)
       this.emit({ type: 'loot_dropped', payload: { item } })
       this.state.killCount++
     }
 
-    // Regen on kill
+    // Regen on kill: class base chance + armor bonus
+    const regenOnKillBonus = getSpecial(character.gear.armor?.stats.special, 'regenOnKill')?.percent ?? 0
     const classDef = CLASS_DEFINITIONS[character.class]
-    const regenOnKillBonus =
-      (character.gear.armor?.stats.special?.find((s) => s.type === 'regenOnKill') as
-        | { type: 'regenOnKill'; percent: number }
-        | undefined)?.percent ?? 0
     const totalRegenChance = Math.min(0.9, classDef.passives.regenChance + regenOnKillBonus)
     if (Math.random() < totalRegenChance) {
       const healAmt = calcRegenAmount(character.maxHP)
@@ -378,6 +342,11 @@ export class CombatEngine {
     this.schedulePlayerTick()
     this.scheduleEnemyTick()
   }
+}
+
+// Reuse rollDamage for integer range — same formula, named clearly in context
+function rollDamage(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
 export default CombatEngine
