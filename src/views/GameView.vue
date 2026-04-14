@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
@@ -25,6 +25,20 @@ const zoneStore = useZoneStore()
 const authStore = useAuthStore()
 const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
+
+type PanelId = 'gear' | 'inventory' | 'zone' | 'speed' | 'shop' | 'challenges' | 'log'
+
+const activePanel = ref<PanelId>('gear')
+
+const NAV_ITEMS: { id: PanelId; icon: string; label: string }[] = [
+  { id: 'gear',       icon: '⚔',  label: 'Gear'       },
+  { id: 'inventory',  icon: '🎒', label: 'Inventory'  },
+  { id: 'zone',       icon: '🗺', label: 'Zone'       },
+  { id: 'speed',      icon: '⚡', label: 'Speed'      },
+  { id: 'shop',       icon: '🛒', label: 'Shop'       },
+  { id: 'challenges', icon: '🏆', label: 'Challenges' },
+  { id: 'log',        icon: '📜', label: 'Log'        },
+]
 
 // Restart combat whenever the active zone changes
 watch(() => zoneStore.activeZone, () => {
@@ -76,32 +90,38 @@ onUnmounted(() => {
     </div>
 
     <div class="content">
-      <!-- Enemy — full width -->
-      <EnemyPanel class="enemy-row" />
+      <!-- Enemy — full width, always visible -->
+      <EnemyPanel />
 
-      <!-- Main grid -->
-      <div class="main-grid">
+      <!-- Character — full width, always visible -->
+      <CharacterPanel class="char-wide" />
 
-        <!-- Col 1: Character + Zone + Speed -->
-        <div class="col">
-          <CharacterPanel class="mo-1" />
-          <ZoneSelector class="mo-4" />
-          <SpeedControl class="mo-5" />
+      <!-- Panel area: side nav + main content -->
+      <div class="panel-area">
+        <!-- Side navigation -->
+        <nav class="side-nav">
+          <button
+            v-for="item in NAV_ITEMS"
+            :key="item.id"
+            class="nav-btn"
+            :class="{ 'nav-active': activePanel === item.id }"
+            @click="activePanel = item.id"
+          >
+            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-label">{{ item.label }}</span>
+          </button>
+        </nav>
+
+        <!-- Selected panel -->
+        <div class="main-panel">
+          <GearPanel         v-if="activePanel === 'gear'" />
+          <Inventory         v-if="activePanel === 'inventory'" />
+          <ZoneSelector      v-if="activePanel === 'zone'" />
+          <SpeedControl      v-if="activePanel === 'speed'" />
+          <ShopPanel         v-if="activePanel === 'shop'" />
+          <AchievementsPanel v-if="activePanel === 'challenges'" />
+          <CombatLog         v-if="activePanel === 'log'" class="log-fill" />
         </div>
-
-        <!-- Col 2: Gear + Inventory + Shop -->
-        <div class="col col-wide">
-          <GearPanel class="mo-2" />
-          <Inventory class="mo-3" />
-          <ShopPanel class="mo-7" />
-        </div>
-
-        <!-- Col 3: Achievements + Combat Log -->
-        <div class="col">
-          <AchievementsPanel class="mo-8" />
-          <CombatLog class="log-fill mo-6" />
-        </div>
-
       </div>
     </div>
 
@@ -150,54 +170,72 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.main-grid {
-  display: grid;
+/* Panel area: side nav + main content */
+.panel-area {
+  display: flex;
   gap: 12px;
-  grid-template-columns: 1fr;
+  align-items: flex-start;
 }
 
-.col {
+/* Side nav — vertical on desktop */
+.side-nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 76px;
 }
 
-.log-fill {
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 4px 7px;
+  background: #0e0c1c;
+  border: 2px solid var(--border);
+  font-family: 'Press Start 2P', monospace;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.1s, background 0.1s;
+}
+.nav-btn:hover {
+  border-color: var(--border-hi);
+  background: #141228;
+}
+.nav-btn.nav-active {
+  background: #1a1830;
+  border-color: var(--gold);
+}
+
+.nav-icon  { font-size: 14px; line-height: 1; }
+.nav-label { font-size: 5px; color: var(--text-dim); letter-spacing: 0.5px; }
+.nav-btn.nav-active .nav-label { color: var(--gold); }
+
+/* Main panel — fills remaining space */
+.main-panel {
   flex: 1;
-  min-height: 0;
+  min-width: 0;
 }
 
-/* Mobile: flatten cols so panels can be reordered */
+.log-fill { min-height: 320px; }
+
+/* Mobile: side nav becomes horizontal tab bar */
 @media (max-width: 639px) {
-  .col { display: contents; }
-  .mo-1 { order: 1; }
-  .mo-2 { order: 2; }
-  .mo-3 { order: 3; }
-  .mo-4 { order: 4; }
-  .mo-5 { order: 5; }
-  .mo-6 { order: 6; }
-  .mo-7 { order: 7; }
-  .mo-8 { order: 8; }
-}
-
-/* Tablet: 2 columns */
-@media (min-width: 640px) {
-  .main-grid {
-    grid-template-columns: 1fr 1fr;
+  .panel-area {
+    flex-direction: column;
   }
-  .col-wide {
-    grid-column: span 2;
+  .side-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
   }
-}
-
-/* Desktop: 3 columns */
-@media (min-width: 1024px) {
-  .main-grid {
-    grid-template-columns: 1fr 1fr 1fr;
-    align-items: start;
+  .nav-btn {
+    flex: 1;
+    min-width: 56px;
+    padding: 7px 2px 5px;
   }
-  .col-wide {
-    grid-column: span 1;
-  }
+  .nav-icon  { font-size: 12px; }
+  .nav-label { font-size: 5px; }
 }
 </style>
