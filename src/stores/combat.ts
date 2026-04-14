@@ -182,6 +182,12 @@ export const useCombatStore = defineStore('combat', () => {
         import('./loot').then(({ useLootStore }) => {
           useLootStore().lastDroppedItem = item
         })
+        // Track discovery for Codex
+        const discoverId = item.defId ?? item.id
+        const char = characterStore.character
+        if (char && char.discoveredItems && !char.discoveredItems.includes(discoverId)) {
+          char.discoveredItems.push(discoverId)
+        }
         const isBossLoot = p.isBossLoot as boolean | undefined
         const result = characterStore.addToInventory(item)
         if (result.sold) {

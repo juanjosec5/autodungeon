@@ -128,6 +128,14 @@ export const useCharacterStore = defineStore('character', () => {
     if (data.skillPoints === undefined) data.skillPoints = 0
     if (!data.skills) data.skills = {}
     if (!data.zoneAchievements) data.zoneAchievements = {}
+    if (!data.discoveredItems) {
+      // Seed from existing gear + inventory so old saves don't lose known items
+      const existing = new Set<string>()
+      if (data.gear.weapon) existing.add(data.gear.weapon.defId ?? data.gear.weapon.id)
+      if (data.gear.armor)  existing.add(data.gear.armor.defId  ?? data.gear.armor.id)
+      for (const item of data.inventory) existing.add(item.defId ?? item.id)
+      data.discoveredItems = [...existing]
+    }
     // Recalculate xpToNext in case the XP formula changed since the save was written
     data.xpToNext = getXPToNextLevel(data.level)
     character.value = data
