@@ -77,6 +77,7 @@ export interface Character {
   createdAt: string
   lastSaved: string
   lifetime: LifetimeStats
+  zoneAchievements?: Partial<Record<ZoneId, ZoneAchievementProgress>>
 }
 
 export interface Enemy {
@@ -102,6 +103,15 @@ export interface CombatLogEntry {
 export type ZoneId = 'forest' | 'dungeon' | 'volcano' | 'abyss' | 'shadowrealm' | 'celestial' | 'void' | 'nightmare'
 export type ClassId = 'warrior' | 'rogue' | 'mage' | 'priest' | 'undead' | 'dragonkin'
 export type RarityId = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+
+export interface ZoneAchievementProgress {
+  kills: number
+  bossKills: number
+  crits: number
+  damageDealt: number
+  enemyTypesSeen: string[]
+  setRewarded: boolean
+}
 
 /**
  * Auto-scrap mode:

@@ -127,6 +127,7 @@ export const useCharacterStore = defineStore('character', () => {
     if (!data.lifetime) data.lifetime = _blankLifetime()
     if (data.skillPoints === undefined) data.skillPoints = 0
     if (!data.skills) data.skills = {}
+    if (!data.zoneAchievements) data.zoneAchievements = {}
     // Recalculate xpToNext in case the XP formula changed since the save was written
     data.xpToNext = getXPToNextLevel(data.level)
     character.value = data

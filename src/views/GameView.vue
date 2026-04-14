@@ -6,6 +6,7 @@ import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { useAuthStore } from '../stores/auth'
 import { useCharacterStore } from '../stores/character'
+import { useAchievementStore } from '../stores/achievement'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
@@ -15,6 +16,7 @@ import ZoneSelector from '../components/ZoneSelector.vue'
 import SpeedControl from '../components/SpeedControl.vue'
 import DeathModal from '../components/DeathModal.vue'
 import ShopPanel from '../components/ShopPanel.vue'
+import AchievementsPanel from '../components/AchievementsPanel.vue'
 
 const router = useRouter()
 const saveStore = useSaveStore()
@@ -22,11 +24,23 @@ const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
 const authStore = useAuthStore()
 const characterStore = useCharacterStore()
+const achievementStore = useAchievementStore()
 
 // Restart combat whenever the active zone changes
 watch(() => zoneStore.activeZone, () => {
   if (combatStore.isRunning) combatStore.restartCombat()
 })
+
+// Notify combat log when a zone challenge set is completed
+watch(() => achievementStore.rewardNotifications, (notifications) => {
+  for (const n of [...notifications]) {
+    combatStore.addLogEntry({
+      type: 'levelup',
+      message: `🏆 ${n.zoneName} challenges complete! Received: ${n.weaponName} + ${n.armorName}`,
+    })
+    achievementStore.clearNotification(n.zone)
+  }
+}, { deep: true })
 
 onMounted(async () => {
   // Character already set means we just came from character creation — skip load
@@ -68,11 +82,12 @@ onUnmounted(() => {
       <!-- Main grid -->
       <div class="main-grid">
 
-        <!-- Col 1: Character + Zone + Speed -->
+        <!-- Col 1: Character + Zone + Speed + Achievements -->
         <div class="col">
           <CharacterPanel class="mo-1" />
           <ZoneSelector class="mo-4" />
           <SpeedControl class="mo-5" />
+          <AchievementsPanel class="mo-8" />
         </div>
 
         <!-- Col 2: Gear + Inventory + Shop -->
@@ -162,6 +177,7 @@ onUnmounted(() => {
   .mo-5 { order: 5; }
   .mo-6 { order: 6; }
   .mo-7 { order: 7; }
+  .mo-8 { order: 8; }
 }
 
 /* Tablet: 2 columns */

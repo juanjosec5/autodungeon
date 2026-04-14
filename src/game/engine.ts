@@ -294,7 +294,7 @@ export class CombatEngine {
     this.playerTickTimer = null
 
     enemy.hp = 0
-    this.emit({ type: 'enemy_dead', payload: { enemyName: enemy.name, isBoss: enemy.isBoss ?? false } })
+    this.emit({ type: 'enemy_dead', payload: { enemyId: enemy.id, enemyName: enemy.name, isBoss: enemy.isBoss ?? false } })
     this.emit({ type: 'xp_gained', payload: { amount: enemy.xpReward } })
 
     // Loot

@@ -590,6 +590,24 @@ const ITEM_SPRITES: Record<string, Sprite> = {
   'nightmare-dragonplate':   bodyArmor('#200404', '#120202', '#660000'),
   'apocalyptic-dragonplate': bodyArmor('#150303', '#0a0101', '#550000'),
 
+  // ── Achievement reward items ──
+  'reward-forest-blade':     sword('#509040', '#308020', '#70c050', '#203810'),
+  'reward-dungeon-axe':      axe('#808090', '#484850', '#cc2020'),
+  'reward-volcano-sword':    wideSword('#c04010', '#802008', '#ff8020', '#401008'),
+  'reward-abyss-axe':        axe('#1a0838', '#0e0420', '#8800cc'),
+  'reward-shadow-axe':       axe('#1a0a28', '#0e0518', '#cc44ff'),
+  'reward-celestial-sword':  wideSword('#ffd700', '#c09000', '#ffffff', '#806000'),
+  'reward-void-axe':         axe('#020830', '#010418', '#00eeff'),
+  'reward-nightmare-axe':    axe('#1a0303', '#0f0101', '#cc0000'),
+  'reward-forest-plate':     bodyArmor('#386828', '#244018', '#70c050'),
+  'reward-dungeon-plate':    bodyArmor('#302838', '#1e1a28', '#808090'),
+  'reward-volcano-plate':    bodyArmor('#602010', '#401008', '#c04010'),
+  'reward-abyss-plate':      bodyArmor('#150630', '#0a0418', '#6600aa'),
+  'reward-shadow-plate':     bodyArmor('#0e0820', '#080514', '#8040c0'),
+  'reward-celestial-plate':  bodyArmor('#c0b040', '#906800', '#ffffff'),
+  'reward-void-plate':       bodyArmor('#03040f', '#010208', '#003366'),
+  'reward-nightmare-plate':  bodyArmor('#100202', '#080101', '#550000'),
+
   // ── Abyss zone items — warrior / rogue / mage ──
   'abyssal-sword':        wideSword('#1a0a38', '#100620', '#6020c0', '#080318'),
   'shadow-pierce':        twinDaggers('#2a1840', '#140c20', '#8050d0'),

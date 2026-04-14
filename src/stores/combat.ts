@@ -7,6 +7,7 @@ import { spawnEnemy } from '../game/enemies'
 import { useCharacterStore } from './character'
 import { useZoneStore } from './zone'
 import { useSaveStore } from './save'
+import { useAchievementStore } from './achievement'
 
 const MAX_LOG = 100
 
@@ -78,6 +79,7 @@ export const useCombatStore = defineStore('combat', () => {
         lastEnemyCrit.value = false
         enemyHitFlash.value++
         characterStore.updateLifetime({ damageDealt: dmg, highestHit: dmg })
+        useAchievementStore().trackDamage(useZoneStore().activeZone, dmg)
         if (p.lifestealHeal) {
           lastLifestealAmount.value = p.lifestealHeal as number
           lifestealFlash.value++
@@ -98,6 +100,8 @@ export const useCombatStore = defineStore('combat', () => {
         lastEnemyCrit.value = true
         enemyHitFlash.value++
         characterStore.updateLifetime({ damageDealt: dmg, highestHit: dmg })
+        useAchievementStore().trackDamage(useZoneStore().activeZone, dmg)
+        useAchievementStore().trackCrit(useZoneStore().activeZone)
         if (p.lifestealHeal) {
           lastLifestealAmount.value = p.lifestealHeal as number
           lifestealFlash.value++
@@ -126,6 +130,7 @@ export const useCombatStore = defineStore('combat', () => {
       case 'enemy_dead': {
         const bossKill = p.isBoss as boolean | undefined
         addLogEntry({ type: 'hit', message: `💀 ${p.enemyName} has been slain!` })
+        useAchievementStore().trackKill(useZoneStore().activeZone, p.enemyId as string, bossKill ?? false)
         if (bossKill) {
           session.bossKills++
           characterStore.updateLifetime({ bossKills: 1 })
