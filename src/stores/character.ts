@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, SkillId, ScrapMode } from '../types/index'
+import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, UpgradeId, ScrapMode } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
 import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
-import { SKILL_DEFINITIONS } from '../game/skills'
+import { applyUpgrade, rollUpgradeChoices, autoPickUpgrade } from '../game/upgrades'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
   warrior:   { weaponId: 'rusty-sword',  armorId: 'leather-scraps' },
@@ -114,8 +114,8 @@ export const useCharacterStore = defineStore('character', () => {
       inventory: [],
       gold: 0,
       currentZone: 'forest',
-      skillPoints: 0,
-      skills: {},
+      upgrades: {},
+      pendingLevelUps: 0,
       createdAt: new Date().toISOString(),
       lastSaved: new Date().toISOString(),
       lifetime: _blankLifetime(),
@@ -125,8 +125,6 @@ export const useCharacterStore = defineStore('character', () => {
   function restoreCharacter(data: Character): void {
     // Backwards compat: old saves may not have these fields
     if (!data.lifetime) data.lifetime = _blankLifetime()
-    if (data.skillPoints === undefined) data.skillPoints = 0
-    if (!data.skills) data.skills = {}
     if (!data.zoneAchievements) data.zoneAchievements = {}
     if (!data.discoveredItems) {
       // Seed from existing gear + inventory so old saves don't lose known items
@@ -136,6 +134,18 @@ export const useCharacterStore = defineStore('character', () => {
       for (const item of data.inventory) existing.add(item.defId ?? item.id)
       data.discoveredItems = [...existing]
     }
+    // Migrate old skills → upgrades (best-effort)
+    if (!data.upgrades) {
+      data.upgrades = {}
+      const s = data.skills ?? {}
+      if (s['iron-skin'])       data.upgrades['flat-def']    = (s['iron-skin']       ?? 0)
+      if (s['killing-blow'])    data.upgrades['crit-chance'] = (s['killing-blow']    ?? 0)
+      if (s['lucky-strike'])    data.upgrades['crit-damage'] = (s['lucky-strike']    ?? 0)
+      if (s['survivors-will'])  data.upgrades['dodge']       = (s['survivors-will']  ?? 0)
+      if (s['veterans-guard'])  data.upgrades['block']       = (s['veterans-guard']  ?? 0)
+      if (s['battle-focus'])    data.upgrades['spell-amp']   = (s['battle-focus']    ?? 0)
+    }
+    if (data.pendingLevelUps === undefined) data.pendingLevelUps = 0
     // Recalculate xpToNext in case the XP formula changed since the save was written
     data.xpToNext = getXPToNextLevel(data.level)
     character.value = data
@@ -284,11 +294,7 @@ export const useCharacterStore = defineStore('character', () => {
       char.xp -= char.xpToNext
       char.level += 1
       levelsGained++
-
-      // Award a skill point every 5 levels
-      if (char.level % 5 === 0) {
-        char.skillPoints = (char.skillPoints ?? 0) + 1
-      }
+      char.pendingLevelUps = (char.pendingLevelUps ?? 0) + 1
 
       const newStats = getStatsAtLevel(char.class, char.level)
       const hpDiff = newStats.maxHP - char.maxHP
@@ -364,23 +370,34 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   /**
-   * Spends one skill point to level up a skill.
-   * Returns 'ok', 'no_points', or 'max_level'.
+   * Applies a chosen level-up upgrade. Decrements pendingLevelUps.
+   * Returns 'ok' or 'invalid'.
    */
-  function spendSkillPoint(skillId: SkillId): 'ok' | 'no_points' | 'max_level' {
+  function selectUpgrade(upgradeId: UpgradeId): 'ok' | 'invalid' {
     const char = character.value
-    if (!char) return 'no_points'
-    if ((char.skillPoints ?? 0) <= 0) return 'no_points'
-
-    const def = SKILL_DEFINITIONS.find((s) => s.id === skillId)
-    if (!def) return 'no_points'
-
-    const current = (char.skills ?? {})[skillId] ?? 0
-    if (current >= def.maxLevel) return 'max_level'
-
-    char.skills = { ...(char.skills ?? {}), [skillId]: current + 1 }
-    char.skillPoints = (char.skillPoints ?? 0) - 1
+    if (!char || (char.pendingLevelUps ?? 0) <= 0) return 'invalid'
+    applyUpgrade(char, upgradeId)
+    char.pendingLevelUps = (char.pendingLevelUps ?? 1) - 1
     return 'ok'
+  }
+
+  /**
+   * Auto-selects the best upgrade from the rolled choices for idle players.
+   */
+  function autoSelectUpgrade(choices: import('../game/upgrades').UpgradeDef[]): 'ok' | 'invalid' {
+    const char = character.value
+    if (!char) return 'invalid'
+    const best = autoPickUpgrade(char.class, choices)
+    return selectUpgrade(best.id)
+  }
+
+  /**
+   * Rolls upgrade choices for the current character (deterministic per call).
+   */
+  function getUpgradeChoices(): import('../game/upgrades').UpgradeDef[] {
+    const char = character.value
+    if (!char) return []
+    return rollUpgradeChoices(char.class, char.upgrades ?? {})
   }
 
   /**
@@ -464,7 +481,9 @@ export const useCharacterStore = defineStore('character', () => {
     applyXP,
     applyDeathPenalty,
     setZone,
-    spendSkillPoint,
+    selectUpgrade,
+    autoSelectUpgrade,
+    getUpgradeChoices,
     enchantItem,
     getEnchantCost,
   }

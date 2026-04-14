@@ -4,10 +4,16 @@ import { useCharacterStore } from '../stores/character'
 import { getOffClassPenalty } from '../game/formulas'
 import { getSellPrice } from '../game/items'
 import { getItemSpriteStyle } from '../game/item-sprites'
+import { getActiveSet } from '../game/sets'
 import type { Item } from '../types/index'
 
 const characterStore = useCharacterStore()
 const char = computed(() => characterStore.character)
+
+const activeSet = computed(() => {
+  if (!char.value) return null
+  return getActiveSet(char.value.gear.weapon, char.value.gear.armor)
+})
 
 const SLOTS = 50
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
@@ -267,6 +273,7 @@ function statSummary(item: Item): string {
             <div class="slot-head">
               <span :class="['slot-name', rarityClass[char.gear.weapon.rarity]]">{{ char.gear.weapon.name }}</span>
               <span :class="['slot-badge', rarityClass[char.gear.weapon.rarity]]">{{ char.gear.weapon.rarity }}</span>
+              <span v-if="activeSet" class="set-pip" title="Set bonus active">✦</span>
             </div>
             <div class="slot-stats">{{ statLine(char.gear.weapon) }}</div>
             <div v-if="specialLine(char.gear.weapon)" class="slot-special">{{ specialLine(char.gear.weapon) }}</div>
@@ -290,6 +297,7 @@ function statSummary(item: Item): string {
             <div class="slot-head">
               <span :class="['slot-name', rarityClass[char.gear.armor.rarity]]">{{ char.gear.armor.name }}</span>
               <span :class="['slot-badge', rarityClass[char.gear.armor.rarity]]">{{ char.gear.armor.rarity }}</span>
+              <span v-if="activeSet" class="set-pip" title="Set bonus active">✦</span>
             </div>
             <div class="slot-stats">{{ statLine(char.gear.armor) }}</div>
             <div v-if="specialLine(char.gear.armor)" class="slot-special">{{ specialLine(char.gear.armor) }}</div>
@@ -483,6 +491,12 @@ function statSummary(item: Item): string {
   opacity: 0.8;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+.set-pip {
+  font-size: 8px;
+  color: var(--gold);
+  flex-shrink: 0;
+  line-height: 1;
 }
 .slot-stats   { font-size: 8px; color: var(--text); }
 .slot-special { font-size: 7px; color: #a080d0; line-height: 1.6; }

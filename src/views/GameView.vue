@@ -13,6 +13,7 @@ import CombatLog from '../components/CombatLog.vue'
 import ItemsPanel from '../components/ItemsPanel.vue'
 import ZoneSelector from '../components/ZoneSelector.vue'
 import DeathModal from '../components/DeathModal.vue'
+import LevelUpModal from '../components/LevelUpModal.vue'
 import ShopPanel from '../components/ShopPanel.vue'
 import CodexPanel from '../components/CodexPanel.vue'
 import EnchantPanel from '../components/EnchantPanel.vue'
@@ -163,6 +164,7 @@ onUnmounted(() => {
     </div>
 
     <DeathModal />
+    <LevelUpModal />
   </div>
 </template>
 

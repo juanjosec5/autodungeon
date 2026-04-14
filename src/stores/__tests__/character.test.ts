@@ -306,57 +306,35 @@ describe('addToInventory', () => {
   })
 })
 
-// ── spendSkillPoint ───────────────────────────────────────────────────────────
+// ── selectUpgrade ──────────────────��──────────────────────────────────────────
 
-describe('spendSkillPoint', () => {
-  it('returns no_points when no skill points available', () => {
+describe('selectUpgrade', () => {
+  it('returns invalid when no pending level-ups', () => {
     const store = getStore()
     createTestCharacter(store)
-    expect(store.character!.skillPoints).toBe(0)
-    const result = store.spendSkillPoint('iron-skin')
-    expect(result).toBe('no_points')
+    expect(store.character!.pendingLevelUps).toBe(0)
+    const result = store.selectUpgrade('flat-def')
+    expect(result).toBe('invalid')
   })
 
-  it('successfully spends a skill point', () => {
+  it('successfully applies an upgrade and decrements pendingLevelUps', () => {
     const store = getStore()
     createTestCharacter(store)
-    store.character!.skillPoints = 1
-    const result = store.spendSkillPoint('iron-skin')
+    store.character!.pendingLevelUps = 1
+    const result = store.selectUpgrade('flat-def')
     expect(result).toBe('ok')
-    expect(store.character!.skills['iron-skin']).toBe(1)
-    expect(store.character!.skillPoints).toBe(0)
+    expect(store.character!.upgrades['flat-def']).toBe(1)
+    expect(store.character!.pendingLevelUps).toBe(0)
   })
 
-  it('increments skill level on successive spends', () => {
+  it('increments upgrade count on successive selections', () => {
     const store = getStore()
     createTestCharacter(store)
-    store.character!.skillPoints = 3
-    store.spendSkillPoint('iron-skin')
-    store.spendSkillPoint('iron-skin')
-    store.spendSkillPoint('iron-skin')
-    expect(store.character!.skills['iron-skin']).toBe(3)
-  })
-
-  it('returns max_level when skill is at cap', () => {
-    const store = getStore()
-    createTestCharacter(store)
-    // iron-skin maxLevel = 5
-    store.character!.skillPoints = 10
-    for (let i = 0; i < 5; i++) store.spendSkillPoint('iron-skin')
-    const result = store.spendSkillPoint('iron-skin')
-    expect(result).toBe('max_level')
-    expect(store.character!.skills['iron-skin']).toBe(5) // not incremented
-    // Skill point should NOT have been consumed
-    expect(store.character!.skillPoints).toBe(5)
-  })
-
-  it('returns no_points for unknown skill id', () => {
-    const store = getStore()
-    createTestCharacter(store)
-    store.character!.skillPoints = 5
-    // @ts-expect-error intentional invalid id
-    const result = store.spendSkillPoint('not-a-real-skill')
-    expect(result).toBe('no_points')
+    store.character!.pendingLevelUps = 3
+    store.selectUpgrade('flat-def')
+    store.selectUpgrade('flat-def')
+    store.selectUpgrade('flat-def')
+    expect(store.character!.upgrades['flat-def']).toBe(3)
   })
 })
 
