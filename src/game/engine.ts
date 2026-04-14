@@ -3,7 +3,8 @@ import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmo
 import { rollLoot, rollBisLoot } from './items'
 import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
-import { getSkillBonuses } from './skills'
+import { getUpgradeBonuses } from './upgrades'
+import { getActiveSet } from './sets'
 
 // ─── Exported types ───────────────────────────────────────────────────────────
 
@@ -119,9 +120,13 @@ export class CombatEngine {
     if (!this.state) return 1000
     const { character, speed } = this.state
     const weapon = character.gear.weapon
+    const ub = getUpgradeBonuses(character.upgrades ?? {})
     const baseInterval = CLASS_DEFINITIONS[character.class].attackSpeed
     const speedBonus = getSpecial(weapon?.stats.special, 'attackSpeedBonus')?.percent ?? 0
-    return Math.floor((baseInterval * (1 - speedBonus)) / speed)
+    const setBonus = getActiveSet(character.gear.weapon, character.gear.armor)
+    const setSpeedReduction = setBonus?.bonus.type === 'atk_speed' ? setBonus.bonus.value : 0
+    const interval = Math.max(200, (baseInterval * (1 - speedBonus)) - ub.attackSpeedReduction - setSpeedReduction)
+    return Math.floor(interval / speed)
   }
 
   private getEnemyAttackInterval(): number {
@@ -141,26 +146,31 @@ export class CombatEngine {
     if (!this.state || this.state.isPaused || this.isDead) return
     const { character, enemy } = this.state
     const weapon = character.gear.weapon
-    const sb = getSkillBonuses(character.skills ?? {})
+    const ub = getUpgradeBonuses(character.upgrades ?? {})
+    const activeSet = getActiveSet(character.gear.weapon, character.gear.armor)
+    const setBonus = activeSet?.bonus ?? null
 
-    // Def ignore: base class passive + weapon special
+    // Def ignore: base class passive + weapon special + upgrade bonus
     const classDef = CLASS_DEFINITIONS[character.class]
     const baseDefIgnore = classDef.passives.defIgnore ?? 0
     const weaponDefIgnore = getSpecial(weapon?.stats.special, 'defIgnore')?.percent ?? 0
-    const defIgnorePercent = Math.min(0.9, baseDefIgnore + weaponDefIgnore)
+    const defIgnorePercent = Math.min(0.9, baseDefIgnore + weaponDefIgnore + ub.defIgnoreBonus)
 
     // Crit threshold from weapon special
     const extraCritThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
 
     const roll = d20()
     const hits = calcHit(character.stats.dex, enemy.def)
-    const isCrit = hits && calcCrit(roll, character.class, extraCritThreshold, sb.critThresholdReduction)
+    const isCrit = hits && calcCrit(roll, character.class, extraCritThreshold, ub.critThresholdReduction)
 
     if (!hits) {
       this.emit({ type: 'player_miss', payload: { enemyName: enemy.name } })
     } else {
       const poisonSpecial = getSpecial(weapon?.stats.special, 'poison')
       const armorSpellAmp = getSpecial(character.gear.armor?.stats.special, 'spellAmp')?.percent ?? 0
+      const setSpellAmp = setBonus?.type === 'spell_amp' ? setBonus.value : 0
+
+      const setCritDamage = setBonus?.type === 'crit_damage' ? setBonus.value : 0
 
       const dmgParams = {
         classId: character.class,
@@ -170,11 +180,16 @@ export class CombatEngine {
         isCrit,
         enemyDef: enemy.def,
         defIgnorePercent,
-        armorSpellAmp: armorSpellAmp + sb.spellAmpBonus,
-        critMultiplier: 1.5 + sb.critDamageBonus,
+        armorSpellAmp: armorSpellAmp + ub.spellAmpBonus + setSpellAmp,
+        critMultiplier: 1.5 + ub.critDamageBonus + setCritDamage,
       }
 
       let damage = calcPlayerDamage(dmgParams)
+
+      // Set damage_pct bonus applied after base calc
+      if (setBonus?.type === 'damage_pct') {
+        damage = Math.floor(damage * (1 + setBonus.value))
+      }
 
       // Poison
       let poisonDamage: number | undefined
@@ -185,10 +200,11 @@ export class CombatEngine {
 
       enemy.hp -= damage
 
-      // Lifesteal (weapon special + class innate)
+      // Lifesteal (weapon special + class innate + upgrade + set)
       const lifestealSpecial = getSpecial(weapon?.stats.special, 'lifesteal')
       const lifestealBase = classDef.passives.lifestealBase ?? 0
-      const totalLifestealFraction = (lifestealSpecial?.value ?? 0) + lifestealBase
+      const setLifesteal = setBonus?.type === 'lifesteal' ? setBonus.value : 0
+      const totalLifestealFraction = (lifestealSpecial?.value ?? 0) + lifestealBase + ub.lifestealBonus + setLifesteal
       let lifestealHeal = 0
       if (totalLifestealFraction > 0) {
         lifestealHeal = Math.floor(damage * totalLifestealFraction)
@@ -237,27 +253,31 @@ export class CombatEngine {
   private enemyTick(): void {
     if (!this.state || this.state.isPaused || this.isDead) return
     const { character, enemy } = this.state
-    const sb = getSkillBonuses(character.skills ?? {})
+    const ub = getUpgradeBonuses(character.upgrades ?? {})
+    const activeSet = getActiveSet(character.gear.weapon, character.gear.armor)
+    const setBonus = activeSet?.bonus ?? null
 
-    // Dodge (armor + skill) — capped at 75% to prevent near-immunity
+    // Dodge (armor + upgrade + set) — capped at 75% to prevent near-immunity
     const armorDodge = getSpecial(character.gear.armor?.stats.special, 'dodge')?.chance ?? 0
-    if (Math.random() < Math.min(0.75, armorDodge + sb.dodgeBonus)) {
+    const setDodge = setBonus?.type === 'dodge' ? setBonus.value : 0
+    if (Math.random() < Math.min(0.75, armorDodge + ub.dodgeBonus + setDodge)) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Block (armor + skill) — capped at 75%
+    // Block (armor + upgrade) — capped at 75%
     const armorBlock = getSpecial(character.gear.armor?.stats.special, 'block')?.chance ?? 0
-    if (Math.random() < Math.min(0.75, armorBlock + sb.blockBonus)) {
+    if (Math.random() < Math.min(0.75, armorBlock + ub.blockBonus)) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Player DEF: armor base + warrior armorEffectiveness bonus + iron-skin skill
+    // Player DEF: armor base + warrior armorEffectiveness bonus + upgrade flat DEF + set flat DEF
     const classDef = CLASS_DEFINITIONS[character.class]
     const armorDef = character.gear.armor?.stats.defBonus ?? 0
     const armorEffBonus = (classDef.passives.armorEffectiveness ?? 1) - 1
-    const playerDef = Math.floor(armorDef * (1 + armorEffBonus)) + sb.flatDef
+    const setFlatDef = setBonus?.type === 'flat_def' ? setBonus.value : 0
+    const playerDef = Math.floor(armorDef * (1 + armorEffBonus)) + ub.flatDef + setFlatDef
 
     const damage = calcEnemyDamage(enemy.atk, playerDef)
     character.currentHP -= damage
@@ -317,10 +337,13 @@ export class CombatEngine {
       this.state.killCount++
     }
 
-    // Regen on kill: class base chance + armor bonus
+    // Regen on kill: class base chance + armor bonus + upgrade bonus + set bonus
     const regenOnKillBonus = getSpecial(character.gear.armor?.stats.special, 'regenOnKill')?.percent ?? 0
     const classDef = CLASS_DEFINITIONS[character.class]
-    const totalRegenChance = Math.min(0.9, classDef.passives.regenChance + regenOnKillBonus)
+    const ub = getUpgradeBonuses(character.upgrades ?? {})
+    const activeSet = getActiveSet(character.gear.weapon, character.gear.armor)
+    const setRegenBonus = activeSet?.bonus.type === 'hp_regen_pct' ? activeSet.bonus.value : 0
+    const totalRegenChance = Math.min(0.9, classDef.passives.regenChance + regenOnKillBonus + ub.regenOnKillBonus + setRegenBonus)
     if (Math.random() < totalRegenChance) {
       const regenPower = classDef.passives.regenPower ?? 1
       const healAmt = Math.floor(calcRegenAmount(character.maxHP) * regenPower)

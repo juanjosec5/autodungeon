@@ -34,6 +34,7 @@ export const useCombatStore = defineStore('combat', () => {
   const isBossActive = ref(false)
   const killCount = ref(0)
   const killsToNextBoss = ref(12)
+  const pausedForLevelUp = ref(false)
 
   // Floating number triggers
   const playerMissFlash = ref(0)
@@ -173,6 +174,12 @@ export const useCombatStore = defineStore('combat', () => {
           })
           engine.updateCharacter(characterStore.character!)
           _triggerSave()
+          // Pause combat so the player can choose an upgrade
+          if ((characterStore.character?.pendingLevelUps ?? 0) > 0) {
+            engine.pause()
+            isPaused.value = true
+            pausedForLevelUp.value = true
+          }
         }
         break
       }
@@ -316,6 +323,14 @@ export const useCombatStore = defineStore('combat', () => {
     setTimeout(() => startCombat(), 100)
   }
 
+  /** Called by LevelUpModal after the last pending upgrade is selected. */
+  function resumeAfterLevelUp(): void {
+    if (!pausedForLevelUp.value) return
+    pausedForLevelUp.value = false
+    engine.resume()
+    isPaused.value = false
+  }
+
   return {
     currentEnemy,
     combatLog,
@@ -330,6 +345,7 @@ export const useCombatStore = defineStore('combat', () => {
     isBossActive,
     killCount,
     killsToNextBoss,
+    pausedForLevelUp,
     playerMissFlash,
     lifestealFlash,
     lastLifestealAmount,
@@ -342,6 +358,7 @@ export const useCombatStore = defineStore('combat', () => {
     resumeCombat,
     setSpeed,
     restartCombat,
+    resumeAfterLevelUp,
     addLogEntry,
   }
 })

@@ -4,11 +4,12 @@ import { useCharacterStore } from '../stores/character'
 import { useZoneStore } from '../stores/zone'
 import { useCombatStore } from '../stores/combat'
 import { CLASS_DEFINITIONS } from '../game/classes'
-import { SKILL_DEFINITIONS, getSkillBonuses } from '../game/skills'
+import { getUpgradeBonuses } from '../game/upgrades'
+import { getActiveSet } from '../game/sets'
 import { getSpecial } from '../game/formulas'
 import { buildClassSpriteStyle } from '../game/class-sprites'
 import { fmtNum } from '../utils/format'
-import type { ZoneId, SkillId } from '../types/index'
+import type { ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
@@ -57,17 +58,23 @@ const ZONE_AVG_DEF: Record<ZoneId, number> = {
   shadowrealm: 25, celestial: 34, void: 43, nightmare: 60,
 }
 
+const activeSet = computed(() => {
+  if (!char.value) return null
+  return getActiveSet(char.value.gear.weapon, char.value.gear.armor)
+})
+
 const combatStats = computed(() => {
   if (!char.value) return null
   const { class: classId, stats } = char.value
   const passives = CLASS_DEFINITIONS[classId].passives
   const zone = zoneStore.activeZone
   const avgDef = ZONE_AVG_DEF[zone]
-  const sb = getSkillBonuses(char.value.skills ?? {})
+  const ub = getUpgradeBonuses(char.value.upgrades ?? {})
+  const setBonus = activeSet.value?.bonus ?? null
 
   // Use current enemy's actual DEF when in combat, zone average otherwise
   const activeDef = combatStore.currentEnemy?.def ?? avgDef
-  const vsEnemy = activeDef !== avgDef  // true when showing live enemy stats
+  const vsEnemy = activeDef !== avgDef
 
   // Weapon
   const wep = characterStore.effectiveWeaponStats
@@ -76,62 +83,81 @@ const combatStats = computed(() => {
   const statBonus = CLASS_DEFINITIONS[classId].damageStat === 'int' ? stats.int : stats.str
 
   // DPS vs active target (no crit)
-  const defIgnore = passives.defIgnore ?? 0
+  const defIgnoreBase = passives.defIgnore ?? 0
+  const defIgnore = Math.min(0.9, defIgnoreBase + ub.defIgnoreBonus)
   const effEnemyDef = Math.floor(activeDef * (1 - defIgnore))
   const minDPS = Math.max(1, weaponMin + statBonus - effEnemyDef)
   const maxDPS = Math.max(1, weaponMax + statBonus - effEnemyDef)
 
-  // Crit chance — class base threshold, reduced by killing-blow skill
+  // Crit chance
   const baseCritThreshold = passives.critThreshold ?? 20
-  const effectiveCritThreshold = Math.max(2, baseCritThreshold - sb.critThresholdReduction)
+  const effectiveCritThreshold = Math.max(2, baseCritThreshold - ub.critThresholdReduction)
   const critPct = Math.round((21 - effectiveCritThreshold) / 20 * 100)
 
-  // Crit multiplier — base 1.5× plus lucky-strike bonus
-  const critMultiplier = 1.5 + sb.critDamageBonus
+  // Crit multiplier
+  const setCritDamage = setBonus?.type === 'crit_damage' ? setBonus.value : 0
+  const critMultiplier = 1.5 + ub.critDamageBonus + setCritDamage
 
-  // Hit chance: nat-20 always hits → 5% floor. nat-1 misses → 95% cap.
+  // Hit chance
   const hitPct = Math.min(95, Math.max(5, Math.round((21 - activeDef + stats.dex) / 20 * 100)))
 
-  // Effective player DEF — armor base × class armorEffectiveness + iron-skin flat bonus
+  // Effective player DEF
   const baseArmorDef = characterStore.effectiveArmorStats?.defBonus ?? 0
   const armorEff = passives.armorEffectiveness ?? 1.0
-  const effDef = Math.floor(baseArmorDef * armorEff) + sb.flatDef
+  const setFlatDef = setBonus?.type === 'flat_def' ? setBonus.value : 0
+  const effDef = Math.floor(baseArmorDef * armorEff) + ub.flatDef + setFlatDef
 
-  // Effective dodge & block (armor + skills, capped at 75%)
+  // Dodge & block
   const armor = char.value.gear.armor
   const armorDodge = getSpecial(armor?.stats.special, 'dodge')?.chance ?? 0
   const armorBlock = getSpecial(armor?.stats.special, 'block')?.chance ?? 0
-  const effDodge = Math.round(Math.min(0.75, armorDodge + sb.dodgeBonus) * 100)
-  const effBlock = Math.round(Math.min(0.75, armorBlock + sb.blockBonus) * 100)
+  const setDodge = setBonus?.type === 'dodge' ? setBonus.value : 0
+  const effDodge = Math.round(Math.min(0.75, armorDodge + ub.dodgeBonus + setDodge) * 100)
+  const effBlock = Math.round(Math.min(0.75, armorBlock + ub.blockBonus) * 100)
 
   return { minDPS, maxDPS, critPct, critMultiplier, hitPct, effDef, effDodge, effBlock, vsEnemy }
+})
+
+// ── Upgrades summary pills ────────────────────────────────────────────────────
+
+const upgradesSummary = computed(() => {
+  if (!char.value) return []
+  const ub = getUpgradeBonuses(char.value.upgrades ?? {})
+  const pills: string[] = []
+  if (ub.flatDef > 0)               pills.push(`+${ub.flatDef} DEF`)
+  if (ub.critDamageBonus > 0)       pills.push(`+${Math.round(ub.critDamageBonus * 100)}% crit`)
+  if (ub.lifestealBonus > 0)        pills.push(`+${Math.round(ub.lifestealBonus * 100)}% lifesteal`)
+  if (ub.spellAmpBonus > 0)         pills.push(`+${Math.round(ub.spellAmpBonus * 100)}% spell`)
+  if (ub.dodgeBonus > 0)            pills.push(`+${Math.round(ub.dodgeBonus * 100)}% dodge`)
+  if (ub.blockBonus > 0)            pills.push(`+${Math.round(ub.blockBonus * 100)}% block`)
+  if (ub.defIgnoreBonus > 0)        pills.push(`+${Math.round(ub.defIgnoreBonus * 100)}% pierce`)
+  if (ub.regenOnKillBonus > 0)      pills.push(`+${Math.round(ub.regenOnKillBonus * 100)}% regen`)
+  if (ub.attackSpeedReduction > 0)  pills.push(`−${ub.attackSpeedReduction}ms atk`)
+  return pills
+})
+
+// ── Set bonus label ───────────────────────────────────────────────────────────
+
+const setBonusLabel = computed(() => {
+  const s = activeSet.value
+  if (!s) return null
+  const b = s.bonus
+  switch (b.type) {
+    case 'damage_pct':   return `+${Math.round(b.value * 100)}% dmg`
+    case 'flat_def':     return `+${b.value} DEF`
+    case 'lifesteal':    return `+${Math.round(b.value * 100)}% lifesteal`
+    case 'crit_damage':  return `+${Math.round(b.value * 100)}% crit mult`
+    case 'dodge':        return `+${Math.round(b.value * 100)}% dodge`
+    case 'atk_speed':    return `−${b.value}ms atk`
+    case 'spell_amp':    return `+${Math.round(b.value * 100)}% spell amp`
+    case 'hp_regen_pct': return `+${Math.round(b.value * 100)}% regen chance`
+  }
 })
 
 const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
   localStorage.setItem('collapsed_character', String(collapsed.value))
-}
-
-const skillFlash = ref<string | null>(null)
-let skillFlashTimer: ReturnType<typeof setTimeout> | null = null
-function spendSkill(skillId: SkillId) {
-  const result = characterStore.spendSkillPoint(skillId)
-  if (result === 'ok') {
-    skillFlash.value = null
-  } else if (result === 'no_points') {
-    skillFlash.value = 'No skill points!'
-    if (skillFlashTimer) clearTimeout(skillFlashTimer)
-    skillFlashTimer = setTimeout(() => { skillFlash.value = null }, 1800)
-  } else {
-    skillFlash.value = 'Already maxed!'
-    if (skillFlashTimer) clearTimeout(skillFlashTimer)
-    skillFlashTimer = setTimeout(() => { skillFlash.value = null }, 1800)
-  }
-}
-
-function skillLevel(skillId: SkillId): number {
-  return (char.value?.skills ?? {})[skillId] ?? 0
 }
 </script>
 
@@ -177,9 +203,14 @@ function skillLevel(skillId: SkillId): number {
           </div>
           <span class="gold">{{ fmtNum(char.gold) }}g</span>
         </div>
+
+        <!-- Upgrades summary -->
+        <div v-if="upgradesSummary.length > 0" class="upgrades-summary">
+          <span v-for="pill in upgradesSummary" :key="pill" class="upg-pill">{{ pill }}</span>
+        </div>
       </div>
 
-      <!-- Col 2: Combat Stats -->
+      <!-- Col 2: Combat Stats + Set Bonus -->
       <div v-if="combatStats" class="char-col char-combat-col">
         <div class="col-title">
           Combat Stats
@@ -205,33 +236,15 @@ function skillLevel(skillId: SkillId): number {
             <span class="cs-value">{{ combatStats.effBlock }}%</span>
           </template>
         </div>
-      </div>
 
-      <!-- Col 3: Skills -->
-      <div class="char-col char-skills-col">
-        <div class="col-title">
-          Skills
-          <span v-if="(char.skillPoints ?? 0) > 0" class="skill-pts-badge">
-            {{ char.skillPoints }} pt{{ (char.skillPoints ?? 0) !== 1 ? 's' : '' }}
-          </span>
-        </div>
-        <div class="skills-list">
-          <span v-if="skillFlash" class="skill-flash">{{ skillFlash }}</span>
-          <div v-for="skill in SKILL_DEFINITIONS" :key="skill.id" class="skill-row">
-            <div class="skill-info">
-              <span class="skill-name">{{ skill.name }}</span>
-              <span class="skill-desc">{{ skill.description }}</span>
-            </div>
-            <div class="skill-right">
-              <span class="skill-level">{{ skillLevel(skill.id) }}/{{ skill.maxLevel }}</span>
-              <button
-                class="skill-btn"
-                :disabled="(char.skillPoints ?? 0) === 0 || skillLevel(skill.id) >= skill.maxLevel"
-                @click="spendSkill(skill.id)"
-              >+</button>
-            </div>
+        <!-- Set Bonus -->
+        <template v-if="activeSet && setBonusLabel">
+          <div class="set-bonus-row">
+            <span class="set-icon">✦</span>
+            <span class="set-name">{{ activeSet.name }}</span>
+            <span class="set-val">{{ setBonusLabel }}</span>
           </div>
-        </div>
+        </template>
       </div>
 
     </div>
@@ -247,10 +260,10 @@ function skillLevel(skillId: SkillId): number {
   gap: 12px;
 }
 
-/* Wide: 3-column side by side — identity gets more room */
+/* Wide: 2-column — identity gets more room */
 @media (min-width: 640px) {
   .inner {
-    grid-template-columns: 2fr 1.5fr 1.5fr;
+    grid-template-columns: 2fr 1.5fr;
     gap: 0;
   }
   .char-col {
@@ -259,15 +272,14 @@ function skillLevel(skillId: SkillId): number {
   }
   .char-col:first-child { padding-left: 0; }
   .char-col:last-child  { padding-right: 0; }
-  .char-combat-col,
-  .char-skills-col {
+  .char-combat-col {
     border-left: 1px solid var(--border);
   }
 }
 
 .char-col { display: flex; flex-direction: column; gap: 10px; }
 
-/* Divider title for col 2 & 3 */
+/* Divider title for col 2 */
 .col-title {
   font-size: 7px;
   color: var(--text-dim);
@@ -340,6 +352,24 @@ function skillLevel(skillId: SkillId): number {
 .stat b { color: var(--text); font-weight: normal; }
 .gold { font-size: 8px; color: var(--gold); }
 
+/* Upgrades summary pills */
+.upgrades-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.upg-pill {
+  font-size: 6px;
+  color: #80d0a0;
+  background: rgba(80, 180, 100, 0.08);
+  border: 1px solid rgba(80, 180, 100, 0.25);
+  padding: 1px 4px;
+  white-space: nowrap;
+}
+
+/* Combat stats */
 .cs-live-badge {
   background: #30a060;
   color: #000;
@@ -356,64 +386,17 @@ function skillLevel(skillId: SkillId): number {
 .cs-label { font-size: 7px; color: var(--text-dim); }
 .cs-value { font-size: 7px; color: var(--text); text-align: right; }
 
-.skill-pts-badge {
-  background: var(--gold);
-  color: #000;
-  font-size: 6px;
-  padding: 1px 4px;
-  display: inline-block;
-}
-.skills-list {
+/* Set bonus */
+.set-bonus-row {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 5px;
-}
-.skill-flash {
-  font-size: 7px;
-  color: #e06060;
-  text-align: center;
-  display: block;
-}
-.skill-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
   padding: 5px 6px;
+  background: rgba(255, 200, 60, 0.06);
+  border: 1px solid rgba(255, 200, 60, 0.22);
+  margin-top: auto;
 }
-.skill-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-.skill-name { font-size: 7px; color: var(--text-hi); }
-.skill-desc { font-size: 6px; color: var(--text-dim); }
-.skill-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.skill-level { font-size: 7px; color: var(--gold); white-space: nowrap; }
-.skill-btn {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  background: #2a2850;
-  color: var(--gold);
-  border: 2px solid var(--border);
-  width: 22px;
-  height: 22px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  box-shadow: 1px 1px 0 #000;
-}
-.skill-btn:hover:not(:disabled) { border-color: var(--gold); }
-.skill-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.set-icon { font-size: 8px; color: var(--gold); flex-shrink: 0; }
+.set-name { font-size: 6px; color: var(--gold); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-val  { font-size: 6px; color: #80d0a0; flex-shrink: 0; white-space: nowrap; }
 </style>

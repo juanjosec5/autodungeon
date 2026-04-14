@@ -42,6 +42,23 @@ export interface LifetimeStats {
   timePlayed: number
 }
 
+export type UpgradeId =
+  | 'str-up'
+  | 'dex-up'
+  | 'int-up'
+  | 'hp-up'
+  | 'flat-def'
+  | 'atk-speed'
+  | 'crit-chance'
+  | 'crit-damage'
+  | 'dodge'
+  | 'block'
+  | 'lifesteal'
+  | 'spell-amp'
+  | 'def-ignore'
+  | 'regen-kill'
+
+// Keep SkillId for backward-compat migration in restoreCharacter
 export type SkillId =
   | 'iron-skin'
   | 'killing-blow'
@@ -72,8 +89,11 @@ export interface Character {
   inventory: Item[]
   gold: number
   currentZone: ZoneId
-  skillPoints: number
-  skills: Partial<Record<SkillId, number>>
+  upgrades: Partial<Record<UpgradeId, number>>
+  pendingLevelUps: number
+  // Legacy — kept for migration only, not used by engine
+  skillPoints?: number
+  skills?: Partial<Record<SkillId, number>>
   createdAt: string
   lastSaved: string
   lifetime: LifetimeStats
