@@ -4,17 +4,14 @@ import { useRouter } from 'vue-router'
 import type { ClassId } from '../types/index'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
-import { useAuthStore } from '../stores/auth'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { getStatsAtLevel } from '../game/classes'
 import { buildClassSpriteStyle } from '../game/class-sprites'
-import AuthModal from './AuthModal.vue'
 
 const router = useRouter()
 const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
-const authStore = useAuthStore()
 const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
 
@@ -22,14 +19,6 @@ onMounted(() => {
   combatStore.stopCombat()
   combatStore.setSpeed(1)
   zoneStore.resetToForest()
-})
-
-// ── Auth modal ────────────────────────────────────────────────────────────────
-
-const showAuthModal = ref(false)
-const supabaseAvailable = computed(() => {
-  const url = import.meta.env.VITE_SUPABASE_URL
-  return typeof url === 'string' && url.length > 0
 })
 
 // ── Saved character check ────────────────────────────────────────────────────
@@ -123,30 +112,10 @@ function begin() {
   router.push('/game')
 }
 
-async function signOut() {
-  await authStore.signOut()
-  hasSaved.value = false
-  savedName.value = ''
-}
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center px-3 sm:px-4 py-6 sm:py-12" style="font-size: 10px">
-
-    <!-- Auth bar -->
-    <div class="w-full max-w-lg mb-4 flex justify-end items-center gap-3 text-xs">
-      <template v-if="!authStore.isGuest">
-        <span class="text-gray-500">{{ authStore.session?.user.email }}</span>
-        <button @click="signOut" class="text-gray-500 hover:text-gray-300 transition-colors">Sign out</button>
-      </template>
-      <button
-        v-else-if="supabaseAvailable"
-        @click="showAuthModal = true"
-        class="text-amber-500 hover:text-amber-400 font-semibold transition-colors"
-      >
-        Sign in to sync saves
-      </button>
-    </div>
 
     <!-- Title -->
     <h1 class="text-2xl sm:text-4xl font-black tracking-wide sm:tracking-widest text-amber-400 mb-2 uppercase text-center">
@@ -160,7 +129,7 @@ async function signOut() {
         <div>
           <p class="text-amber-300 font-semibold">Continue as {{ savedName }}</p>
           <p class="text-gray-400 text-xs mt-0.5">
-            {{ authStore.isGuest ? 'Saved in this browser' : 'Cloud save' }}
+            Saved in this browser
           </p>
         </div>
         <button
@@ -250,7 +219,6 @@ async function signOut() {
   </div>
 
   <!-- Auth modal -->
-  <AuthModal v-if="showAuthModal" @close="showAuthModal = false" />
 </template>
 
 <style scoped>

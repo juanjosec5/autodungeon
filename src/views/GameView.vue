@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
-import { useAuthStore } from '../stores/auth'
 import { useCharacterStore } from '../stores/character'
 import { useAchievementStore } from '../stores/achievement'
 import CharacterPanel from '../components/CharacterPanel.vue'
@@ -25,7 +24,6 @@ const router = useRouter()
 const saveStore = useSaveStore()
 const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
-const authStore = useAuthStore()
 const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
 
@@ -100,8 +98,6 @@ onUnmounted(() => {
         <span v-else-if="saveStore.lastSaved" class="meta-saved">
           Saved {{ new Date(saveStore.lastSaved).toLocaleTimeString() }}
         </span>
-        <span v-if="!authStore.isGuest" class="meta-user">{{ authStore.session?.user.email }}</span>
-        <span v-else class="meta-user">Guest</span>
 
         <!-- Controls popover trigger -->
         <div class="controls-wrap">
