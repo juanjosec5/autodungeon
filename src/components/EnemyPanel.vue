@@ -412,7 +412,7 @@ watch(() => combatStore.regenFlash, () => {
   }
   .arena {
     width: 100%;
-    height: 110px;
+    height: 160px;
     border-right: none;
     border-bottom: 2px solid var(--border);
   }
