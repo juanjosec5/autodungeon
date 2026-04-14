@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, UpgradeId, ScrapMode } from '../types/index'
+import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, UpgradeId, ScrapMode, OfflineResult } from '../types/index'
+import { usePrestigeStore } from './prestige'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
 import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
@@ -32,6 +33,7 @@ const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as cons
 
 export const useCharacterStore = defineStore('character', () => {
   const character = ref<Character | null>(null)
+  const pendingOfflineResult = ref<OfflineResult | null>(null)  // not persisted
 
   const SCRAP_MODES = ['off', 'smart', 'smart-c', 'smart-u', 'smart-r'] as const satisfies readonly ScrapMode[]
   const savedScrapMode = localStorage.getItem('scrapMode') as ScrapMode | null
@@ -100,6 +102,13 @@ export const useCharacterStore = defineStore('character', () => {
     const weapon = structuredClone(getItemById(starter.weaponId)) ?? null
     const armor = structuredClone(getItemById(starter.armorId)) ?? null
 
+    // Apply prestige HP bonus if any stacks purchased
+    const prestigeStore = usePrestigeStore()
+    const baseMaxHP = stats.maxHP
+    const finalMaxHP = prestigeStore.hpMultiplier > 1
+      ? Math.floor(baseMaxHP * prestigeStore.hpMultiplier)
+      : baseMaxHP
+
     character.value = {
       id: crypto.randomUUID(),
       name,
@@ -107,8 +116,8 @@ export const useCharacterStore = defineStore('character', () => {
       level: 1,
       xp: 0,
       xpToNext: getXPToNextLevel(1),
-      currentHP: stats.maxHP,
-      maxHP: stats.maxHP,
+      currentHP: finalMaxHP,
+      maxHP: finalMaxHP,
       stats: { str: stats.str, dex: stats.dex, int: stats.int },
       gear: { weapon, armor },
       inventory: [],
@@ -446,6 +455,51 @@ export const useCharacterStore = defineStore('character', () => {
     return calcEnchantCost(item)
   }
 
+  /**
+   * Applies offline rewards (gold, XP, items) earned while the tab was closed.
+   * Level-ups are silent — they add to pendingLevelUps so the player picks
+   * upgrades on next session, but no upgrade choice modal fires during this call.
+   */
+  function applyOfflineRewards(result: OfflineResult): void {
+    const char = character.value
+    if (!char) return
+
+    char.gold += result.goldEarned
+    char.xp += result.xpEarned
+
+    // Respect 50-item inventory cap
+    for (const item of result.itemsFound) {
+      if (char.inventory.length < 50) {
+        char.inventory.push(item)
+      }
+    }
+
+    // Silent level-ups — apply stat gains but no upgrade choices yet
+    while (char.xp >= char.xpToNext && char.level < MAX_LEVEL) {
+      char.xp -= char.xpToNext
+      char.level++
+      char.pendingLevelUps = (char.pendingLevelUps ?? 0) + 1
+      const newStats = getStatsAtLevel(char.class, char.level)
+      const hpDiff = newStats.maxHP - char.maxHP
+      char.maxHP = newStats.maxHP
+      char.currentHP = Math.min(char.maxHP, char.currentHP + Math.max(0, hpDiff))
+      char.stats.str = newStats.str
+      char.stats.dex = newStats.dex
+      char.stats.int = newStats.int
+      char.xpToNext = getXPToNextLevel(char.level)
+    }
+
+    if (char.level >= MAX_LEVEL) {
+      char.xp = Math.min(char.xp, char.xpToNext)
+    }
+
+    updateLifetime({
+      kills: result.kills,
+      goldEarned: result.goldEarned,
+      itemsLooted: result.itemsFound.length,
+    })
+  }
+
   // ── Private helpers ──────────────────────────────────────────────────────────
 
   function _recalcMaxHP(): void {
@@ -463,6 +517,7 @@ export const useCharacterStore = defineStore('character', () => {
 
   return {
     character,
+    pendingOfflineResult,
     scrapMode,
     setScrapMode,
     autoEquip,
@@ -479,6 +534,7 @@ export const useCharacterStore = defineStore('character', () => {
     sellItems,
     buyItem,
     applyXP,
+    applyOfflineRewards,
     applyDeathPenalty,
     setZone,
     selectUpgrade,

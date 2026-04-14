@@ -16,6 +16,7 @@ export interface CombatState {
   isPaused: boolean
   killCount: number        // normal kills since last boss
   killsToNextBoss: number  // threshold, rerolled after each boss
+  dropRateBonus: number    // prestige Fortune bonus (0–0.5)
 }
 
 export type CombatEventType =
@@ -54,6 +55,7 @@ export class CombatEngine {
   start(state: Omit<CombatState, 'killCount' | 'killsToNextBoss'>): void {
     this.state = {
       ...state,
+      dropRateBonus: state.dropRateBonus ?? 0,
       killCount: 0,
       killsToNextBoss: rollDamage(10, 15),
     }
@@ -318,8 +320,9 @@ export class CombatEngine {
     this.emit({ type: 'xp_gained', payload: { amount: enemy.xpReward } })
 
     // Loot
+    const dropBonus = this.state.dropRateBonus ?? 0
     if (enemy.isBoss) {
-      const regularItem = rollLoot(this.state.zone, enemy.id)
+      const regularItem = rollLoot(this.state.zone, enemy.id, dropBonus)
       this.emit({ type: 'loot_dropped', payload: { item: regularItem } })
 
       // 1/200 chance for zone-specific BiS legendary
@@ -332,7 +335,7 @@ export class CombatEngine {
       this.state.killCount = 0
       this.state.killsToNextBoss = rollDamage(10, 15)
     } else {
-      const item = rollLoot(this.state.zone, enemy.id)
+      const item = rollLoot(this.state.zone, enemy.id, dropBonus)
       this.emit({ type: 'loot_dropped', payload: { item } })
       this.state.killCount++
     }
