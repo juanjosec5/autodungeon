@@ -24,6 +24,7 @@ html, body {
   color: var(--text);
   font-family: 'Press Start 2P', monospace;
   image-rendering: pixelated;
+  overflow-x: hidden;
 }
 
 /* ── Pixel panel ── */
