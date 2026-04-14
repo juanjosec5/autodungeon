@@ -82,12 +82,11 @@ onUnmounted(() => {
       <!-- Main grid -->
       <div class="main-grid">
 
-        <!-- Col 1: Character + Zone + Speed + Achievements -->
+        <!-- Col 1: Character + Zone + Speed -->
         <div class="col">
           <CharacterPanel class="mo-1" />
           <ZoneSelector class="mo-4" />
           <SpeedControl class="mo-5" />
-          <AchievementsPanel class="mo-8" />
         </div>
 
         <!-- Col 2: Gear + Inventory + Shop -->
@@ -97,8 +96,9 @@ onUnmounted(() => {
           <ShopPanel class="mo-7" />
         </div>
 
-        <!-- Col 3: Combat Log -->
+        <!-- Col 3: Achievements + Combat Log -->
         <div class="col">
+          <AchievementsPanel class="mo-8" />
           <CombatLog class="log-fill mo-6" />
         </div>
 
