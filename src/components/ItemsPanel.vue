@@ -12,11 +12,49 @@ const char = computed(() => characterStore.character)
 const SLOTS = 50
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
-// ── Collapse ──────────────────────────────────────────────────────────────
-const collapsed = ref(localStorage.getItem('collapsed_inventory') === 'true')
-function toggleCollapse() {
-  collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_inventory', String(collapsed.value))
+// ── Gear helpers ──────────────────────────────────────────────────────────
+const rarityClass: Record<string, string> = {
+  common:    'r-common',
+  uncommon:  'r-uncommon',
+  rare:      'r-rare',
+  epic:      'r-epic',
+  legendary: 'r-legendary',
+}
+
+function statLine(item: Item): string {
+  const s = item.stats
+  const parts: string[] = []
+  if (s.minDmg !== undefined) parts.push(`DMG ${s.minDmg}–${s.maxDmg}`)
+  if (s.defBonus !== undefined) parts.push(`DEF +${s.defBonus}`)
+  if (s.hpBonus !== undefined) parts.push(`HP +${s.hpBonus}`)
+  return parts.join('  ')
+}
+
+function specialLine(item: Item): string {
+  return (item.stats.special ?? []).map((fx) => {
+    switch (fx.type) {
+      case 'lifesteal':        return `Lifesteal ${Math.round(fx.value * 100)}%`
+      case 'poison':           return `Poison ${Math.round(fx.dpsMultiplier * 100)}%`
+      case 'dodge':            return `Dodge ${Math.round(fx.chance * 100)}%`
+      case 'block':            return `Block ${Math.round(fx.chance * 100)}%`
+      case 'defIgnore':        return `Armor ignore ${Math.round(fx.percent * 100)}%`
+      case 'spellAmp':         return `Spell amp ${Math.round(fx.percent * 100)}%`
+      case 'critThreshold':    return `Crit on ${fx.rollsAt}+`
+      case 'doublecast':       return `Doublecast ${Math.round(fx.chance * 100)}%`
+      case 'attackSpeedBonus': return `Atk speed +${Math.round(fx.percent * 100)}%`
+      case 'regenOnKill':      return `Regen on kill ${Math.round(fx.percent * 100)}%`
+      default: return ''
+    }
+  }).filter(Boolean).join(', ')
+}
+
+function isOffClass(item: Item): boolean {
+  if (!char.value) return false
+  return getOffClassPenalty(item, char.value.class) < 1.0
+}
+
+function unequip(slot: 'weapon' | 'armor') {
+  characterStore.unequipItem(slot)
 }
 
 // ── Item popover ───────────────────────────────────────────────────────────
@@ -91,11 +129,6 @@ function classTag(item: Item): string {
   return item.allowedClasses.map(c => c[0].toUpperCase()).join('/')
 }
 
-function isOffClass(item: Item): boolean {
-  if (!char.value) return false
-  return getOffClassPenalty(item, char.value.class) < 1.0
-}
-
 function cannotEquip(item: Item): boolean {
   if (!char.value) return false
   return getOffClassPenalty(item, char.value.class) === 0
@@ -106,7 +139,7 @@ function classLabel(item: Item): string {
   return item.allowedClasses.join(' / ')
 }
 
-// ── Scrap junk (manual button — always uses effective-stat comparison) ────
+// ── Scrap junk ────────────────────────────────────────────────────────────
 const junkIds = computed<string[]>(() => {
   const c = char.value
   if (!c) return []
@@ -215,16 +248,64 @@ function statSummary(item: Item): string {
 </script>
 
 <template>
-  <div class="pixel-panel">
-    <div class="panel-title" @click="toggleCollapse">
-      Inventory
-      <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
-    </div>
-    <div v-if="!collapsed" class="inner">
+  <div v-if="char" class="pixel-panel">
+    <div class="panel-title">Items</div>
+    <div class="inner">
 
-      <!-- Header -->
+      <!-- ── Equipped gear ─────────────────────────────────────────────── -->
+
+      <!-- Weapon slot -->
+      <div
+        class="gear-slot"
+        :class="char.gear.weapon ? ['slot-filled', rarityClass[char.gear.weapon.rarity]] : 'slot-empty'"
+      >
+        <template v-if="char.gear.weapon">
+          <div class="gear-sprite-wrap">
+            <div class="gear-sprite" :style="{ boxShadow: getItemSpriteStyle(char.gear.weapon.defId ?? char.gear.weapon.id, 4) }"></div>
+          </div>
+          <div class="slot-content">
+            <div class="slot-head">
+              <span :class="['slot-name', rarityClass[char.gear.weapon.rarity]]">{{ char.gear.weapon.name }}</span>
+              <span :class="['slot-badge', rarityClass[char.gear.weapon.rarity]]">{{ char.gear.weapon.rarity }}</span>
+            </div>
+            <div class="slot-stats">{{ statLine(char.gear.weapon) }}</div>
+            <div v-if="specialLine(char.gear.weapon)" class="slot-special">{{ specialLine(char.gear.weapon) }}</div>
+            <div v-if="isOffClass(char.gear.weapon)" class="slot-warn">⚠ Off-class: 70% effectiveness</div>
+          </div>
+          <button class="pixel-btn unequip-btn" @click="unequip('weapon')">Unequip</button>
+        </template>
+        <span v-else class="slot-placeholder">⚔ Weapon — empty</span>
+      </div>
+
+      <!-- Armor slot -->
+      <div
+        class="gear-slot"
+        :class="char.gear.armor ? ['slot-filled', rarityClass[char.gear.armor.rarity]] : 'slot-empty'"
+      >
+        <template v-if="char.gear.armor">
+          <div class="gear-sprite-wrap">
+            <div class="gear-sprite" :style="{ boxShadow: getItemSpriteStyle(char.gear.armor.defId ?? char.gear.armor.id, 4) }"></div>
+          </div>
+          <div class="slot-content">
+            <div class="slot-head">
+              <span :class="['slot-name', rarityClass[char.gear.armor.rarity]]">{{ char.gear.armor.name }}</span>
+              <span :class="['slot-badge', rarityClass[char.gear.armor.rarity]]">{{ char.gear.armor.rarity }}</span>
+            </div>
+            <div class="slot-stats">{{ statLine(char.gear.armor) }}</div>
+            <div v-if="specialLine(char.gear.armor)" class="slot-special">{{ specialLine(char.gear.armor) }}</div>
+            <div v-if="isOffClass(char.gear.armor)" class="slot-warn">⚠ Off-class: 70% effectiveness</div>
+          </div>
+          <button class="pixel-btn unequip-btn" @click="unequip('armor')">Unequip</button>
+        </template>
+        <span v-else class="slot-placeholder">🛡 Armor — empty</span>
+      </div>
+
+      <!-- ── Inventory separator ───────────────────────────────────────── -->
+      <div class="inv-separator"></div>
+
+      <!-- ── Inventory header ──────────────────────────────────────────── -->
       <div class="inv-header">
-        <span class="inv-count">{{ char?.inventory.length ?? 0 }} / {{ SLOTS }}</span>
+        <span class="inv-count">{{ char.inventory.length }} / {{ SLOTS }}</span>
         <div class="inv-actions">
           <div class="scrap-threshold">
             <span class="scrap-label">Scrap:</span>
@@ -254,7 +335,8 @@ function statSummary(item: Item): string {
           >{{ selectMode ? 'Cancel' : 'Multi-sell' }}</button>
         </div>
       </div>
-      <!-- Scrap junk row — separate line so it never causes header reflow -->
+
+      <!-- Scrap junk row -->
       <div v-if="junkIds.length > 0 && !selectMode" class="scrap-row">
         <button class="pixel-btn btn-scrap" @click="scrapJunk">Scrap {{ junkIds.length }} worse item{{ junkIds.length > 1 ? 's' : '' }} +{{ junkGold }}g</button>
       </div>
@@ -267,7 +349,7 @@ function statSummary(item: Item): string {
         <button class="sort-btn" :class="{ 'sort-active': sortMode === 'type' }"   @click="sortMode = 'type'">Type</button>
       </div>
 
-      <!-- Grid -->
+      <!-- Inventory grid -->
       <div class="inv-grid">
         <div
           v-for="(item, i) in slots"
@@ -356,15 +438,85 @@ function statSummary(item: Item): string {
 <style scoped>
 .inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
 
-.inv-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.inv-count  { font-size: 8px; color: var(--text-dim); }
+/* ── Gear slots ─────────────────────────────────────────────────────────── */
+.gear-slot {
+  border: 2px solid var(--border);
+  padding: 6px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #0e0c1c;
+  position: relative;
+}
+.slot-filled { cursor: default; }
+.slot-empty  { border-style: dashed; opacity: 0.4; cursor: default; }
+
+.slot-filled.r-uncommon  { border-color: #2d7a30; background: #0b140c; }
+.slot-filled.r-rare      { border-color: #2a5898; background: #08101e; }
+.slot-filled.r-epic      { border-color: #80306a; background: #160a14; }
+.slot-filled.r-legendary { border-color: #987820; background: #180e00; }
+
+.gear-sprite-wrap {
+  width: 32px;
+  height: 36px;
+  flex-shrink: 0;
+  overflow: visible;
+  position: relative;
+}
+.gear-sprite {
+  width: 4px;
+  height: 4px;
+  image-rendering: pixelated;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.slot-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.slot-head    { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.slot-name    { font-size: 9px; }
+.slot-badge   {
+  font-size: 6px;
+  padding: 1px 4px;
+  border: 1px solid currentColor;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.slot-stats   { font-size: 8px; color: var(--text); }
+.slot-special { font-size: 7px; color: #a080d0; line-height: 1.6; }
+.slot-warn    { font-size: 7px; color: #d8a060; }
+.slot-placeholder { font-size: 8px; color: var(--text-dim); }
+
+.unequip-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  font-size: 7px;
+  padding: 4px 8px;
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+
+/* Rarity text colors */
+.r-common    { color: #909090; }
+.r-uncommon  { color: #4caf50; }
+.r-rare      { color: #4488dd; }
+.r-epic      { color: #d060b8; }
+.r-legendary { color: #daa520; text-shadow: 0 0 6px rgba(218,165,32,0.4); }
+
+/* ── Separator ──────────────────────────────────────────────────────────── */
+.inv-separator {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 -10px;
+}
+
+/* ── Inventory ──────────────────────────────────────────────────────────── */
+.inv-header  { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.inv-count   { font-size: 8px; color: var(--text-dim); }
 .inv-actions { display: flex; gap: 5px; align-items: center; }
 
-.scrap-threshold {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
+.scrap-threshold { display: flex; align-items: center; gap: 2px; }
 .scrap-label { font-size: 7px; color: var(--text-dim); margin-right: 2px; white-space: nowrap; }
 .threshold-btn {
   font-size: 7px;
@@ -405,9 +557,9 @@ function statSummary(item: Item): string {
 .btn-scrap { font-size: 8px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; width: 100%; }
 .btn-scrap:hover:not(:disabled) { border-color: #d8a060; }
 
-.sort-bar { display: flex; align-items: center; gap: 4px; }
+.sort-bar   { display: flex; align-items: center; gap: 4px; }
 .sort-label { font-size: 7px; color: var(--text-dim); }
-.sort-btn { font-size: 7px; padding: 2px 6px; background: #0e0c1c; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-family: inherit; }
+.sort-btn   { font-size: 7px; padding: 2px 6px; background: #0e0c1c; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-family: inherit; }
 .sort-btn:hover { border-color: var(--border-hi); color: var(--text); }
 .sort-active { border-color: #8060c0 !important; color: #c090f0 !important; }
 
@@ -415,10 +567,11 @@ function statSummary(item: Item): string {
 .cmp-pos { color: #40d860; }
 .cmp-neg { color: #e05050; }
 
-.inv-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.inv-grid { display: flex; flex-wrap: wrap; gap: 3px; }
 
 .inv-slot {
-  aspect-ratio: 1;
+  width: 64px;
+  height: 64px;
   border: 2px solid var(--border);
   background: #0e0c1c;
   display: flex;
@@ -435,36 +588,19 @@ function statSummary(item: Item): string {
 .slot-selected { outline: 2px solid #f07020; outline-offset: -2px; }
 
 .slot-sprite-wrap {
-  width: 14px;
-  height: 16px;
+  width: 28px;
+  height: 32px;
   overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .slot-sprite {
-  width: 2px;
-  height: 2px;
+  width: 3px;
+  height: 3px;
   image-rendering: pixelated;
   flex-shrink: 0;
-  transform: translate(-8px, -10px);
-}
-
-.detail-sprite-wrap {
-  width: 36px;
-  height: 36px;
-  overflow: visible;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.detail-sprite {
-  width: 4px;
-  height: 4px;
-  image-rendering: pixelated;
-  flex-shrink: 0;
-  transform: translate(-16px, -20px);
+  transform: translate(-12px, -16px);
 }
 
 .class-tag {
@@ -490,8 +626,6 @@ function statSummary(item: Item): string {
 .rt-rare      { color: #4488dd; }
 .rt-epic      { color: #d060b8; }
 .rt-legendary { color: #daa520; }
-
-/* Popover backdrop + card (teleported to body, so not scoped — use :global) */
 
 /* sell bar */
 .sell-bar {
