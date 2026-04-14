@@ -13,7 +13,6 @@ import CombatLog from '../components/CombatLog.vue'
 import GearPanel from '../components/GearPanel.vue'
 import Inventory from '../components/Inventory.vue'
 import ZoneSelector from '../components/ZoneSelector.vue'
-import SpeedControl from '../components/SpeedControl.vue'
 import DeathModal from '../components/DeathModal.vue'
 import ShopPanel from '../components/ShopPanel.vue'
 import AchievementsPanel from '../components/AchievementsPanel.vue'
@@ -26,7 +25,7 @@ const authStore = useAuthStore()
 const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
 
-type PanelId = 'gear' | 'inventory' | 'zone' | 'speed' | 'shop' | 'challenges' | 'log'
+type PanelId = 'gear' | 'inventory' | 'zone' | 'shop' | 'challenges' | 'log'
 
 const activePanel = ref<PanelId>('gear')
 
@@ -34,11 +33,19 @@ const NAV_ITEMS: { id: PanelId; icon: string; label: string }[] = [
   { id: 'gear',       icon: '⚔',  label: 'Gear'       },
   { id: 'inventory',  icon: '🎒', label: 'Inventory'  },
   { id: 'zone',       icon: '🗺', label: 'Zone'       },
-  { id: 'speed',      icon: '⚡', label: 'Speed'      },
   { id: 'shop',       icon: '🛒', label: 'Shop'       },
   { id: 'challenges', icon: '🏆', label: 'Challenges' },
   { id: 'log',        icon: '📜', label: 'Log'        },
 ]
+
+// Controls popover
+const showControls = ref(false)
+const SPEEDS = [0.5, 1, 2, 4] as const
+
+function togglePause() {
+  if (combatStore.isPaused) combatStore.resumeCombat()
+  else combatStore.pauseCombat()
+}
 
 // Restart combat whenever the active zone changes
 watch(() => zoneStore.activeZone, () => {
@@ -85,6 +92,34 @@ onUnmounted(() => {
         </span>
         <span v-if="!authStore.isGuest" class="meta-user">{{ authStore.session?.user.email }}</span>
         <span v-else class="meta-user">Guest</span>
+
+        <!-- Controls popover trigger -->
+        <div class="controls-wrap">
+          <button
+            class="pixel-btn ctrl-btn"
+            :class="{ 'ctrl-active': showControls }"
+            @click="showControls = !showControls"
+            title="Speed controls"
+          >⚙</button>
+          <div v-if="showControls" class="ctrl-popover">
+            <button
+              class="pixel-btn pause-btn"
+              :class="combatStore.isPaused ? 'btn-purple' : ''"
+              :disabled="!combatStore.isRunning"
+              @click="togglePause"
+            >{{ combatStore.isPaused ? '▶ Resume' : '⏸ Pause' }}</button>
+            <div class="speed-row">
+              <button
+                v-for="s in SPEEDS"
+                :key="s"
+                class="pixel-btn speed-btn"
+                :class="combatStore.speed === s ? 'btn-gold' : ''"
+                @click="combatStore.setSpeed(s)"
+              >{{ s }}×</button>
+            </div>
+          </div>
+        </div>
+
         <button class="pixel-btn" @click="router.push('/')">← Menu</button>
       </div>
     </div>
@@ -117,7 +152,6 @@ onUnmounted(() => {
           <GearPanel         v-if="activePanel === 'gear'" />
           <Inventory         v-if="activePanel === 'inventory'" />
           <ZoneSelector      v-if="activePanel === 'zone'" />
-          <SpeedControl      v-if="activePanel === 'speed'" />
           <ShopPanel         v-if="activePanel === 'shop'" />
           <AchievementsPanel v-if="activePanel === 'challenges'" />
           <CombatLog         v-if="activePanel === 'log'" class="log-fill" />
@@ -219,6 +253,37 @@ onUnmounted(() => {
 }
 
 .log-fill { min-height: 320px; }
+
+/* Controls popover */
+.controls-wrap {
+  position: relative;
+}
+.ctrl-btn {
+  font-size: 12px;
+  padding: 3px 7px;
+  line-height: 1;
+}
+.ctrl-active {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.ctrl-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 200;
+  background: #0e0c1e;
+  border: 2px solid var(--border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+  box-shadow: 4px 4px 0 #000;
+}
+.pause-btn  { width: 100%; text-align: center; font-size: 7px; }
+.speed-row  { display: flex; gap: 4px; }
+.speed-btn  { flex: 1; text-align: center; font-size: 7px; padding: 4px 2px; }
 
 /* Mobile: side nav becomes horizontal tab bar */
 @media (max-width: 639px) {
