@@ -181,7 +181,7 @@ export const useCharacterStore = defineStore('character', () => {
     const item = char.gear[slot]
     if (!item) return
 
-    if (char.inventory.length < 20) {
+    if (char.inventory.length < 50) {
       char.inventory.push(item)
     } else {
       // Auto-sell if no inventory space
@@ -227,7 +227,7 @@ export const useCharacterStore = defineStore('character', () => {
           }
         }
         if (!scrapped) {
-          if (char.inventory.length >= 20) {
+          if (char.inventory.length >= 50) {
             char.gold += getSellPrice(displaced.rarity)
           } else {
             char.inventory.push(displaced)
@@ -259,7 +259,7 @@ export const useCharacterStore = defineStore('character', () => {
       }
     }
 
-    if (char.inventory.length >= 20) {
+    if (char.inventory.length >= 50) {
       const gold = getSellPrice(item.rarity)
       char.gold += gold
       return { sold: true, gold, reason: 'full' }
@@ -350,7 +350,7 @@ export const useCharacterStore = defineStore('character', () => {
 
     const price = getBuyPrice(template.rarity)
     if (char.gold < price) return 'no_gold'
-    if (char.inventory.length >= 20) return 'inv_full'
+    if (char.inventory.length >= 50) return 'inv_full'
 
     char.gold -= price
     char.inventory.push({ ...structuredClone(template), defId: template.id, id: crypto.randomUUID() })

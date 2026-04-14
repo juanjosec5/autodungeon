@@ -107,22 +107,10 @@ const combatStats = computed(() => {
   return { minDPS, maxDPS, critPct, critMultiplier, hitPct, effDef, effDodge, effBlock, vsEnemy }
 })
 
-const collapsedStats = ref(localStorage.getItem('collapsed_combatStats') === 'true')
-function toggleStats() {
-  collapsedStats.value = !collapsedStats.value
-  localStorage.setItem('collapsed_combatStats', String(collapsedStats.value))
-}
-
 const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
   localStorage.setItem('collapsed_character', String(collapsed.value))
-}
-
-const collapsedSkills = ref(localStorage.getItem('collapsed_skills') === 'true')
-function toggleSkills() {
-  collapsedSkills.value = !collapsedSkills.value
-  localStorage.setItem('collapsed_skills', String(collapsedSkills.value))
 }
 
 const skillFlash = ref<string | null>(null)
@@ -154,54 +142,55 @@ function skillLevel(skillId: SkillId): number {
       <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
     </div>
     <div v-if="!collapsed" class="inner">
-      <div class="char-header">
-        <div :class="['player-sprite-wrap', { attacking: isAttacking, hit: isHit }]">
-          <div class="pixel-sprite" :style="spriteStyle"></div>
-        </div>
-        <div class="char-info">
-          <div class="char-name-row">
-            <span class="char-name">{{ char.name }}</span>
-            <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+
+      <!-- Col 1: Identity + bars + base stats -->
+      <div class="char-col char-identity">
+        <div class="char-header">
+          <div :class="['player-sprite-wrap', { attacking: isAttacking, hit: isHit }]">
+            <div class="pixel-sprite" :style="spriteStyle"></div>
           </div>
-          <span class="char-level">LV.{{ char.level }}</span>
+          <div class="char-info">
+            <div class="char-name-row">
+              <span class="char-name">{{ char.name }}</span>
+              <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
+            </div>
+            <span class="char-level">LV.{{ char.level }}</span>
+          </div>
         </div>
-      </div>
-      <div class="bars">
-        <div class="bar-row">
-          <span class="bar-lbl">HP</span>
-          <div class="bar-track"><div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div></div>
-          <span class="bar-val">{{ fmtNum(char.currentHP) }}/{{ fmtNum(char.maxHP) }}</span>
+        <div class="bars">
+          <div class="bar-row">
+            <span class="bar-lbl">HP</span>
+            <div class="bar-track"><div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div></div>
+            <span class="bar-val">{{ fmtNum(char.currentHP) }}/{{ fmtNum(char.maxHP) }}</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lbl">XP</span>
+            <div class="bar-track"><div class="bar-fill bar-xp" :style="{ width: xpPercent + '%' }"></div></div>
+            <span class="bar-val">{{ fmtNum(char.xp) }}/{{ fmtNum(char.xpToNext) }}</span>
+          </div>
         </div>
-        <div class="bar-row">
-          <span class="bar-lbl">XP</span>
-          <div class="bar-track"><div class="bar-fill bar-xp" :style="{ width: xpPercent + '%' }"></div></div>
-          <span class="bar-val">{{ fmtNum(char.xp) }}/{{ fmtNum(char.xpToNext) }}</span>
+        <div class="stats-row">
+          <div class="stats">
+            <span class="stat">STR <b>{{ char.stats.str }}</b></span>
+            <span class="stat">DEX <b>{{ char.stats.dex }}</b></span>
+            <span class="stat">INT <b>{{ char.stats.int }}</b></span>
+          </div>
+          <span class="gold">{{ fmtNum(char.gold) }}g</span>
         </div>
-      </div>
-      <div class="stats-row">
-        <div class="stats">
-          <span class="stat">STR <b>{{ char.stats.str }}</b></span>
-          <span class="stat">DEX <b>{{ char.stats.dex }}</b></span>
-          <span class="stat">INT <b>{{ char.stats.int }}</b></span>
-        </div>
-        <span class="gold">{{ fmtNum(char.gold) }}g</span>
       </div>
 
-      <!-- Combat Stats subsection -->
-      <div v-if="combatStats" class="combat-stats-section">
-        <button class="cs-header" @click="toggleStats">
-          <span class="cs-title">
-            Combat Stats
-            <span v-if="combatStats.vsEnemy" class="cs-live-badge">live</span>
-          </span>
-          <span class="collapse-btn cs-chevron">{{ collapsedStats ? '►' : '▾' }}</span>
-        </button>
-        <div v-if="!collapsedStats" class="cs-grid">
+      <!-- Col 2: Combat Stats -->
+      <div v-if="combatStats" class="char-col char-combat-col">
+        <div class="col-title">
+          Combat Stats
+          <span v-if="combatStats.vsEnemy" class="cs-live-badge">live</span>
+        </div>
+        <div class="cs-grid">
           <span class="cs-label">DPS range</span>
           <span class="cs-value">{{ combatStats.minDPS }}–{{ combatStats.maxDPS }}</span>
           <span class="cs-label">Crit chance</span>
           <span class="cs-value">{{ combatStats.critPct }}%</span>
-          <span class="cs-label">Crit multiplier</span>
+          <span class="cs-label">Crit mult</span>
           <span class="cs-value">{{ combatStats.critMultiplier.toFixed(1) }}×</span>
           <span class="cs-label">Hit chance</span>
           <span class="cs-value">{{ combatStats.hitPct }}%</span>
@@ -218,16 +207,15 @@ function skillLevel(skillId: SkillId): number {
         </div>
       </div>
 
-      <!-- Skills subsection -->
-      <div class="skills-section">
-        <button class="cs-header" @click="toggleSkills">
-          <span class="cs-title">
-            Skills
-            <span v-if="(char.skillPoints ?? 0) > 0" class="skill-pts-badge">{{ char.skillPoints }} pt{{ (char.skillPoints ?? 0) !== 1 ? 's' : '' }}</span>
+      <!-- Col 3: Skills -->
+      <div class="char-col char-skills-col">
+        <div class="col-title">
+          Skills
+          <span v-if="(char.skillPoints ?? 0) > 0" class="skill-pts-badge">
+            {{ char.skillPoints }} pt{{ (char.skillPoints ?? 0) !== 1 ? 's' : '' }}
           </span>
-          <span class="collapse-btn cs-chevron">{{ collapsedSkills ? '►' : '▾' }}</span>
-        </button>
-        <div v-if="!collapsedSkills" class="skills-list">
+        </div>
+        <div class="skills-list">
           <span v-if="skillFlash" class="skill-flash">{{ skillFlash }}</span>
           <div v-for="skill in SKILL_DEFINITIONS" :key="skill.id" class="skill-row">
             <div class="skill-info">
@@ -245,12 +233,52 @@ function skillLevel(skillId: SkillId): number {
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
 
 <style scoped>
-.inner { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 10px; }
+/* ── Layout ──────────────────────────────────────────────────────────── */
+.inner {
+  padding: 10px 12px 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* Wide: 3-column side by side — identity gets more room */
+@media (min-width: 640px) {
+  .inner {
+    grid-template-columns: 2fr 1.5fr 1.5fr;
+    gap: 0;
+  }
+  .char-col {
+    padding: 0 14px;
+    min-width: 0;
+  }
+  .char-col:first-child { padding-left: 0; }
+  .char-col:last-child  { padding-right: 0; }
+  .char-combat-col,
+  .char-skills-col {
+    border-left: 1px solid var(--border);
+  }
+}
+
+.char-col { display: flex; flex-direction: column; gap: 10px; }
+
+/* Divider title for col 2 & 3 */
+.col-title {
+  font-size: 7px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
 .char-header { display: flex; align-items: flex-start; gap: 8px; }
 
 /* Class sprite portrait */
@@ -286,9 +314,9 @@ function skillLevel(skillId: SkillId): number {
   35%      { filter: brightness(8) saturate(0) sepia(1) hue-rotate(200deg); }
 }
 
-.char-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; justify-content: center; }
+.char-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; justify-content: center; overflow: hidden; }
 .char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; }
+.char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
 .class-badge {
   font-size: 7px;
@@ -305,65 +333,40 @@ function skillLevel(skillId: SkillId): number {
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
 .bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }
-.bar-val { font-size: 8px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
+.bar-val { font-size: 8px; color: var(--text); min-width: 48px; text-align: right; flex-shrink: 0; white-space: nowrap; }
 .stats-row { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); }
-.stats { display: flex; gap: 12px; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; }
 .stat { font-size: 8px; color: var(--text-dim); }
 .stat b { color: var(--text); font-weight: normal; }
 .gold { font-size: 8px; color: var(--gold); }
 
-.combat-stats-section {
-  border-top: 1px solid var(--border);
-  padding-top: 6px;
-}
-.cs-header {
-  width: 100%;
-  background: transparent;
-  border: none;
-  font-family: 'Press Start 2P', monospace;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  padding: 0 0 4px;
-}
-.cs-title { font-size: 7px; color: var(--text-dim); }
 .cs-live-badge {
   background: #30a060;
   color: #000;
   font-size: 5px;
   padding: 1px 3px;
-  margin-left: 5px;
   display: inline-block;
   vertical-align: middle;
 }
-.cs-chevron { font-size: 12px; transform: translateY(-2px); }
 .cs-grid {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 4px 10px;
-  padding-top: 4px;
+  gap: 5px 10px;
 }
 .cs-label { font-size: 7px; color: var(--text-dim); }
 .cs-value { font-size: 7px; color: var(--text); text-align: right; }
 
-.skills-section {
-  border-top: 1px solid var(--border);
-  padding-top: 6px;
-}
 .skill-pts-badge {
   background: var(--gold);
   color: #000;
   font-size: 6px;
   padding: 1px 4px;
-  margin-left: 6px;
   display: inline-block;
 }
 .skills-list {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding-top: 5px;
 }
 .skill-flash {
   font-size: 7px;

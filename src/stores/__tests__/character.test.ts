@@ -167,11 +167,11 @@ describe('addToInventory', () => {
     expect(store.character!.inventory).toContainEqual(item)
   })
 
-  it('auto-sells when inventory is full (20 items)', () => {
+  it('auto-sells when inventory is full (50 items)', () => {
     const store = getStore()
     createTestCharacter(store)
     // Fill inventory
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 50; i++) {
       store.character!.inventory.push(makeItem({ id: `fill-${i}` }))
     }
     const item = makeItem({ rarity: 'common' })
