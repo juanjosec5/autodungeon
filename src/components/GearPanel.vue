@@ -71,7 +71,6 @@ function toggleCollapse() {
       <div
         class="slot"
         :class="char.gear.weapon ? ['slot-filled', rarityClass[char.gear.weapon.rarity]] : 'slot-empty'"
-        @click="char.gear.weapon && unequip('weapon')"
       >
         <template v-if="char.gear.weapon">
           <div class="gear-sprite-wrap">
@@ -86,7 +85,7 @@ function toggleCollapse() {
             <div v-if="specialLine(char.gear.weapon)" class="slot-special">{{ specialLine(char.gear.weapon) }}</div>
             <div v-if="isOffClass(char.gear.weapon)" class="slot-warn">⚠ Off-class: 70% effectiveness</div>
           </div>
-          <span class="slot-unequip">✕</span>
+          <button class="pixel-btn unequip-btn" @click="unequip('weapon')">Unequip</button>
         </template>
         <span v-else class="slot-placeholder">⚔ Weapon — empty</span>
       </div>
@@ -95,7 +94,6 @@ function toggleCollapse() {
       <div
         class="slot"
         :class="char.gear.armor ? ['slot-filled', rarityClass[char.gear.armor.rarity]] : 'slot-empty'"
-        @click="char.gear.armor && unequip('armor')"
       >
         <template v-if="char.gear.armor">
           <div class="gear-sprite-wrap">
@@ -110,7 +108,7 @@ function toggleCollapse() {
             <div v-if="specialLine(char.gear.armor)" class="slot-special">{{ specialLine(char.gear.armor) }}</div>
             <div v-if="isOffClass(char.gear.armor)" class="slot-warn">⚠ Off-class: 70% effectiveness</div>
           </div>
-          <span class="slot-unequip">✕</span>
+          <button class="pixel-btn unequip-btn" @click="unequip('armor')">Unequip</button>
         </template>
         <span v-else class="slot-placeholder">🛡 Armor — empty</span>
       </div>
@@ -131,8 +129,7 @@ function toggleCollapse() {
   background: #0e0c1c;
   position: relative;
 }
-.slot-filled { cursor: pointer; }
-.slot-filled:hover { border-color: var(--border-hi); }
+.slot-filled { cursor: default; }
 .slot-empty { border-style: dashed; opacity: 0.4; cursor: default; }
 
 /* Rarity border tints */
@@ -175,16 +172,14 @@ function toggleCollapse() {
 .slot-warn    { font-size: 7px; color: #d8a060; }
 .slot-placeholder { font-size: 8px; color: var(--text-dim); }
 
-/* Unequip X button top-right */
-.slot-unequip {
-  font-size: 9px;
-  color: var(--text-dim);
+.unequip-btn {
   flex-shrink: 0;
   align-self: flex-start;
-  opacity: 0;
-  transition: opacity 0.1s;
+  font-size: 7px;
+  padding: 4px 8px;
+  color: var(--text-dim);
+  border-color: var(--border);
 }
-.slot-filled:hover .slot-unequip { opacity: 1; }
 
 /* Rarity text colors */
 .r-common    { color: #909090; }

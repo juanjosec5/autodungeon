@@ -19,18 +19,30 @@ function toggleCollapse() {
   localStorage.setItem('collapsed_inventory', String(collapsed.value))
 }
 
-// ── Hovered item (shows detail on hover) ──────────────────────────────────
-const hoveredItem = ref<Item | null>(null)
-
-// ── Active item (single-click → action buttons) ───────────────────────────
+// ── Item popover ───────────────────────────────────────────────────────────
 const activeItem = ref<Item | null>(null)
+const popoverStyle = ref<{ left: string; top: string }>({ left: '0px', top: '0px' })
 
-// What the detail panel displays — hover takes priority for quick comparison
-const displayedItem = computed(() => hoveredItem.value ?? activeItem.value)
-
-function selectItem(item: Item) {
-  activeItem.value = activeItem.value?.id === item.id ? null : item
+function selectItem(item: Item, event: MouseEvent) {
+  if (activeItem.value?.id === item.id) {
+    activeItem.value = null
+    return
+  }
+  activeItem.value = item
+  positionPopover(event)
 }
+
+function positionPopover(event: MouseEvent) {
+  const W = 220, H = 220
+  const x = event.clientX + 12
+  const y = event.clientY - 10
+  popoverStyle.value = {
+    left: (x + W > window.innerWidth  ? event.clientX - W - 12 : x) + 'px',
+    top:  (y + H > window.innerHeight ? window.innerHeight - H - 8 : y) + 'px',
+  }
+}
+
+function closePopover() { activeItem.value = null }
 
 function equipActive() {
   if (!activeItem.value || cannotEquip(activeItem.value)) return
@@ -153,7 +165,7 @@ const slots = computed(() => {
 interface StatDelta { label: string; value: number }
 
 const comparisonDeltas = computed<StatDelta[]>(() => {
-  const item = displayedItem.value
+  const item = activeItem.value
   const c = char.value
   if (!item || !c) return []
   const slot = item.type === 'weapon' ? 'weapon' : 'armor'
@@ -267,9 +279,7 @@ function statSummary(item: Item): string {
             !selectMode && activeItem?.id === item.id ? 'slot-active' : '',
             selectMode && selected.has(item.id) ? 'slot-selected' : '',
           ] : 'slot-empty'"
-          @click="item && (selectMode ? toggleSelect(item) : selectItem(item))"
-          @mouseenter="item && !selectMode && (hoveredItem = item)"
-          @mouseleave="hoveredItem = null"
+          @click="item && (selectMode ? toggleSelect(item) : selectItem(item, $event))"
         >
           <template v-if="item">
             <div class="slot-sprite-wrap">
@@ -282,48 +292,6 @@ function statSummary(item: Item): string {
         </div>
       </div>
 
-      <!-- Item detail panel (hover = info; click = + action buttons) -->
-      <div v-if="displayedItem && !selectMode" class="detail-panel" :class="rarityBorderClass[displayedItem.rarity]">
-        <div class="detail-header">
-          <div class="detail-sprite-wrap">
-            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(displayedItem.defId ?? displayedItem.id, 4) }"></div>
-          </div>
-          <div class="detail-name-block">
-            <span :class="['detail-name', rarityTextClass[displayedItem.rarity]]">{{ displayedItem.name }}</span>
-            <span :class="['detail-rarity', rarityTextClass[displayedItem.rarity]]">{{ displayedItem.rarity }}</span>
-          </div>
-          <span class="detail-price">{{ getSellPrice(displayedItem.rarity) }}g</span>
-        </div>
-        <div class="detail-stats">
-          {{ statSummary(displayedItem) }}
-          <span
-            v-for="d in comparisonDeltas"
-            :key="d.label"
-            class="cmp-delta"
-            :class="d.value > 0 ? 'cmp-pos' : 'cmp-neg'"
-          >{{ d.value > 0 ? '+' : '' }}{{ d.value }} {{ d.label }}</span>
-        </div>
-        <div v-if="displayedItem.stats.special?.length" class="detail-specials">
-          <span v-for="s in displayedItem.stats.special" :key="s.type" class="detail-special">✦ {{ s.type }}</span>
-        </div>
-        <div class="detail-class" :class="{ 'detail-class-warn': isOffClass(displayedItem), 'detail-class-locked': cannotEquip(displayedItem) }">
-          {{ classLabel(displayedItem) }}
-          <span v-if="cannotEquip(displayedItem)"> · cannot equip</span>
-          <span v-else-if="isOffClass(displayedItem)"> · 70% effectiveness</span>
-        </div>
-        <!-- Action buttons only appear when item is clicked -->
-        <div v-if="activeItem" class="detail-btns">
-          <button
-            class="pixel-btn"
-            :class="cannotEquip(activeItem) ? '' : 'btn-gold'"
-            :disabled="cannotEquip(activeItem)"
-            @click="equipActive"
-          >Equip</button>
-          <button class="pixel-btn" @click="sellActive">Sell</button>
-        </div>
-        <div v-else class="detail-hint">click to select</div>
-      </div>
-
       <!-- Multi-sell bar -->
       <div v-if="selectMode && selected.size > 0" class="sell-bar">
         <span class="sell-info">{{ selected.size }} item{{ selected.size > 1 ? 's' : '' }} · +{{ selectedGold }}g</span>
@@ -332,6 +300,57 @@ function statSummary(item: Item): string {
 
     </div>
   </div>
+
+  <!-- Item popover -->
+  <Teleport to="body">
+    <template v-if="activeItem && !selectMode">
+      <div class="popover-backdrop" @click="closePopover" />
+      <div class="item-popover" :class="rarityBorderClass[activeItem.rarity]" :style="popoverStyle">
+        <!-- Header -->
+        <div class="pop-header">
+          <div class="pop-sprite-wrap">
+            <div class="pop-sprite" :style="{ boxShadow: getItemSpriteStyle(activeItem.defId ?? activeItem.id, 4) }"></div>
+          </div>
+          <div class="pop-name-block">
+            <span :class="['pop-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
+            <span :class="['pop-rarity', rarityTextClass[activeItem.rarity]]">{{ activeItem.rarity }}</span>
+          </div>
+          <span class="pop-price">{{ getSellPrice(activeItem.rarity) }}g</span>
+        </div>
+        <!-- Stats + comparison -->
+        <div class="pop-stats">
+          {{ statSummary(activeItem) }}
+          <span
+            v-for="d in comparisonDeltas"
+            :key="d.label"
+            class="cmp-delta"
+            :class="d.value > 0 ? 'cmp-pos' : 'cmp-neg'"
+          > {{ d.value > 0 ? '+' : '' }}{{ d.value }} {{ d.label }}</span>
+        </div>
+        <!-- Specials -->
+        <div v-if="activeItem.stats.special?.length" class="pop-specials">
+          <span v-for="s in activeItem.stats.special" :key="s.type" class="pop-special">✦ {{ s.type }}</span>
+        </div>
+        <!-- Class -->
+        <div class="pop-class" :class="{ 'pop-class-warn': isOffClass(activeItem), 'pop-class-locked': cannotEquip(activeItem) }">
+          {{ classLabel(activeItem) }}
+          <span v-if="cannotEquip(activeItem)"> · cannot equip</span>
+          <span v-else-if="isOffClass(activeItem)"> · 70% effectiveness</span>
+        </div>
+        <!-- Actions -->
+        <div class="pop-btns">
+          <button
+            class="pixel-btn"
+            :class="cannotEquip(activeItem) ? '' : 'btn-gold'"
+            :disabled="cannotEquip(activeItem)"
+            @click="equipActive"
+          >Equip</button>
+          <button class="pixel-btn" @click="sellActive">Sell</button>
+          <button class="pixel-btn" @click="closePopover">✕</button>
+        </div>
+      </div>
+    </template>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -392,7 +411,7 @@ function statSummary(item: Item): string {
 .sort-btn:hover { border-color: var(--border-hi); color: var(--text); }
 .sort-active { border-color: #8060c0 !important; color: #c090f0 !important; }
 
-.cmp-delta { margin-left: 6px; font-size: 7px; font-weight: bold; }
+.cmp-delta { font-size: 7px; font-weight: bold; }
 .cmp-pos { color: #40d860; }
 .cmp-neg { color: #e05050; }
 
@@ -472,33 +491,7 @@ function statSummary(item: Item): string {
 .rt-epic      { color: #d060b8; }
 .rt-legendary { color: #daa520; }
 
-/* detail panel */
-.detail-panel {
-  border: 2px solid var(--border);
-  background: #0e0c1c;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.detail-header { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
-.detail-name-block { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.detail-name   { font-size: 9px; line-height: 1.4; }
-.detail-rarity { font-size: 7px; text-transform: capitalize; opacity: 0.85; }
-.detail-price  { font-size: 8px; color: var(--gold); white-space: nowrap; }
-.detail-stats  { font-size: 8px; color: var(--text); }
-.detail-specials { display: flex; flex-wrap: wrap; gap: 4px; }
-.detail-special  { font-size: 8px; color: var(--purple); }
-.detail-class {
-  font-size: 8px;
-  color: var(--text-dim);
-  text-transform: capitalize;
-}
-.detail-class-warn   { color: #d8a060; }
-.detail-class-locked { color: var(--red); }
-.detail-btns { display: flex; gap: 6px; }
-.detail-btns .pixel-btn { flex: 1; text-align: center; font-size: 8px; padding: 5px 4px; }
-.detail-hint { font-size: 7px; color: var(--text-dim); text-align: center; }
+/* Popover backdrop + card (teleported to body, so not scoped — use :global) */
 
 /* sell bar */
 .sell-bar {
@@ -510,4 +503,58 @@ function statSummary(item: Item): string {
   background: #0e0c1c;
 }
 .sell-info { font-size: 8px; color: var(--text); }
+
+/* Teleported popover — :global so scoped doesn't strip selectors */
+:global(.popover-backdrop) {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+}
+:global(.item-popover) {
+  position: fixed;
+  z-index: 300;
+  background: #0e0c1e;
+  border: 2px solid var(--border);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 220px;
+  box-shadow: 4px 4px 0 #000;
+  font-family: 'Press Start 2P', monospace;
+}
+:global(.item-popover.rb-uncommon) { border-color: #2d7a30; }
+:global(.item-popover.rb-rare)     { border-color: #2a5898; }
+:global(.item-popover.rb-epic)     { border-color: #80306a; }
+:global(.item-popover.rb-legendary){ border-color: #987820; }
+
+:global(.pop-header) { display: flex; align-items: center; gap: 8px; }
+:global(.pop-sprite-wrap) {
+  width: 32px; height: 32px;
+  flex-shrink: 0; overflow: visible; position: relative;
+}
+:global(.pop-sprite) {
+  width: 4px; height: 4px;
+  image-rendering: pixelated;
+  position: absolute; top: 0; left: 0;
+}
+:global(.pop-name-block) { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+:global(.pop-name)   { font-size: 8px; line-height: 1.5; }
+:global(.pop-rarity) { font-size: 6px; text-transform: capitalize; opacity: 0.8; }
+:global(.pop-price)  { font-size: 8px; color: var(--gold); white-space: nowrap; flex-shrink: 0; }
+
+:global(.rt-common)    { color: #909090; }
+:global(.rt-uncommon)  { color: #4caf50; }
+:global(.rt-rare)      { color: #4488dd; }
+:global(.rt-epic)      { color: #d060b8; }
+:global(.rt-legendary) { color: #daa520; }
+
+:global(.pop-stats)   { font-size: 7px; color: var(--text); line-height: 1.8; }
+:global(.pop-specials){ display: flex; flex-wrap: wrap; gap: 4px; }
+:global(.pop-special) { font-size: 7px; color: #a080d0; }
+:global(.pop-class)   { font-size: 7px; color: var(--text-dim); text-transform: capitalize; }
+:global(.pop-class-warn)   { color: #d8a060; }
+:global(.pop-class-locked) { color: #e05050; }
+:global(.pop-btns) { display: flex; gap: 6px; margin-top: 2px; }
+:global(.pop-btns .pixel-btn) { flex: 1; text-align: center; font-size: 7px; padding: 5px 4px; }
 </style>
