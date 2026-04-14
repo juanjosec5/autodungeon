@@ -239,16 +239,16 @@ export class CombatEngine {
     const { character, enemy } = this.state
     const sb = getSkillBonuses(character.skills ?? {})
 
-    // Dodge (armor + skill)
+    // Dodge (armor + skill) — capped at 75% to prevent near-immunity
     const armorDodge = getSpecial(character.gear.armor?.stats.special, 'dodge')?.chance ?? 0
-    if (Math.random() < armorDodge + sb.dodgeBonus) {
+    if (Math.random() < Math.min(0.75, armorDodge + sb.dodgeBonus)) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Block (armor + skill)
+    // Block (armor + skill) — capped at 75%
     const armorBlock = getSpecial(character.gear.armor?.stats.special, 'block')?.chance ?? 0
-    if (Math.random() < armorBlock + sb.blockBonus) {
+    if (Math.random() < Math.min(0.75, armorBlock + sb.blockBonus)) {
       this.scheduleEnemyTick()
       return
     }

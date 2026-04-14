@@ -6,6 +6,7 @@ import { useCombatStore } from '../stores/combat'
 import { CLASS_DEFINITIONS } from '../game/classes'
 import { SKILL_DEFINITIONS } from '../game/skills'
 import { buildClassSpriteStyle } from '../game/class-sprites'
+import { fmtNum } from '../utils/format'
 import type { ZoneId, SkillId } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -156,12 +157,12 @@ function skillLevel(skillId: SkillId): number {
         <div class="bar-row">
           <span class="bar-lbl">HP</span>
           <div class="bar-track"><div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div></div>
-          <span class="bar-val">{{ char.currentHP }}/{{ char.maxHP }}</span>
+          <span class="bar-val">{{ fmtNum(char.currentHP) }}/{{ fmtNum(char.maxHP) }}</span>
         </div>
         <div class="bar-row">
           <span class="bar-lbl">XP</span>
           <div class="bar-track"><div class="bar-fill bar-xp" :style="{ width: xpPercent + '%' }"></div></div>
-          <span class="bar-val">{{ char.xp }}/{{ char.xpToNext }}</span>
+          <span class="bar-val">{{ fmtNum(char.xp) }}/{{ fmtNum(char.xpToNext) }}</span>
         </div>
       </div>
       <div class="stats-row">
@@ -170,7 +171,7 @@ function skillLevel(skillId: SkillId): number {
           <span class="stat">DEX <b>{{ char.stats.dex }}</b></span>
           <span class="stat">INT <b>{{ char.stats.int }}</b></span>
         </div>
-        <span class="gold">{{ char.gold }}g</span>
+        <span class="gold">{{ fmtNum(char.gold) }}g</span>
       </div>
 
       <!-- Combat Stats subsection -->

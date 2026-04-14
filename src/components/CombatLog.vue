@@ -2,6 +2,7 @@
 import { computed, watch, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { useCombatStore } from '../stores/combat'
 import { useCharacterStore } from '../stores/character'
+import { fmtNum } from '../utils/format'
 import type { CombatLogEntry } from '../types/index'
 
 const combatStore = useCombatStore()
@@ -45,11 +46,7 @@ function fmtTime(ms: number): string {
   return `${sec}s`
 }
 
-function fmtNumber(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'k'
-  return String(n)
-}
+const fmtNumber = fmtNum
 
 const lifetimeStats = computed(() => {
   const lt = characterStore.character?.lifetime
