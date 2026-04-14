@@ -102,7 +102,7 @@ onUnmounted(() => {
             :class="{ 'ctrl-active': showControls }"
             @click="showControls = !showControls"
             title="Speed controls"
-          >⚙</button>
+          ><span class="ctrl-icon">⚙</span></button>
           <div v-if="showControls" class="ctrl-popover">
             <button
               class="pixel-btn pause-btn"
@@ -170,6 +170,7 @@ onUnmounted(() => {
 .game-root {
   min-height: 100vh;
   padding: 12px;
+  overflow-x: hidden;
 }
 
 .game-header {
@@ -265,6 +266,13 @@ onUnmounted(() => {
   font-size: 12px;
   padding: 3px 7px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ctrl-icon {
+  display: block;
+  transform: translateY(-2px);
 }
 .ctrl-active {
   border-color: var(--gold);
@@ -290,6 +298,22 @@ onUnmounted(() => {
 
 /* Mobile: side nav becomes horizontal tab bar */
 @media (max-width: 639px) {
+  /* Header: compact title, hide verbose meta, push controls right */
+  .game-title {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .game-meta {
+    margin-left: auto;
+    flex-wrap: nowrap;
+  }
+  .meta-saving,
+  .meta-saved,
+  .meta-user {
+    display: none;
+  }
+
+  /* Panel area: stack nav on top */
   .panel-area {
     flex-direction: column;
   }

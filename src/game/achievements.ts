@@ -105,7 +105,7 @@ export const ZONE_CHALLENGE_SETS: ZoneChallengeSet[] = [
     challenges: [
       typesC(['wolf', 'giant-spider', 'goblin', 'goblin-shaman', 'bandit']),
       killC(100, 'Forest Slaughter'),
-      bossC('Forest Troll', 3),
+      bossC('Forest Troll', 10),
       critC(25, 'Sharp Eyes'),
     ],
     reward: {
@@ -124,7 +124,7 @@ export const ZONE_CHALLENGE_SETS: ZoneChallengeSet[] = [
     zone: 'dungeon', zoneName: 'Dungeon',
     challenges: [
       killC(150, 'Dungeon Delver'),
-      bossC('Dark Knight', 3),
+      bossC('Dark Knight', 10),
       damageC(30_000, 'Brute Force'),
       critC(50, 'Deadly Precision'),
     ],
@@ -144,7 +144,7 @@ export const ZONE_CHALLENGE_SETS: ZoneChallengeSet[] = [
     zone: 'volcano', zoneName: 'Volcano',
     challenges: [
       killC(200, 'Pyromaniac'),
-      bossC('Dragon', 3),
+      bossC('Dragon', 25),
       damageC(200_000, 'Inferno'),
       critC(100, 'Fire Eyes'),
     ],
@@ -165,7 +165,7 @@ export const ZONE_CHALLENGE_SETS: ZoneChallengeSet[] = [
     zone: 'abyss', zoneName: 'Abyss',
     challenges: [
       killC(200, 'Abyss Walker'),
-      bossC('Abyssal Titan', 3),
+      bossC('Abyssal Titan', 25),
       damageC(1_000_000, 'Void Power'),
       critC(150, 'Abyss Sight'),
     ],
@@ -186,7 +186,7 @@ export const ZONE_CHALLENGE_SETS: ZoneChallengeSet[] = [
     zone: 'shadowrealm', zoneName: 'Shadowrealm',
     challenges: [
       killC(250, 'Shadow Reaper'),
-      bossC('Dread Sovereign', 3),
+      bossC('Dread Sovereign', 35),
       damageC(5_000_000, 'Shadow Force'),
       critC(200, 'Shadow Eyes'),
     ],
@@ -207,7 +207,7 @@ export const ZONE_CHALLENGE_SETS: ZoneChallengeSet[] = [
     zone: 'celestial', zoneName: 'Celestial',
     challenges: [
       killC(250, 'Celestial Slayer'),
-      bossC('Celestial Archon', 3),
+      bossC('Celestial Archon', 35),
       damageC(15_000_000, 'Divine Power'),
       critC(250, 'Celestial Sight'),
     ],
@@ -228,7 +228,7 @@ export const ZONE_CHALLENGE_SETS: ZoneChallengeSet[] = [
     zone: 'void', zoneName: 'Void',
     challenges: [
       killC(300, 'Void Strider'),
-      bossC('The Unmaker', 3),
+      bossC('The Unmaker', 100),
       damageC(50_000_000, 'Entropy'),
       critC(300, 'Void Eyes'),
     ],

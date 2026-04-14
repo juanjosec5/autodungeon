@@ -330,7 +330,7 @@ watch(() => combatStore.regenFlash, () => {
   gap: 8px;
 }
 .bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }
-.bar-val { font-size: 8px; color: var(--text); min-width: 64px; text-align: right; flex-shrink: 0; }
+.bar-val { font-size: 8px; color: var(--text); min-width: 50px; text-align: right; flex-shrink: 0; }
 
 .bar-hp {
   transition: width 0.15s ease-out;
