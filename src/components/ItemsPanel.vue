@@ -444,9 +444,10 @@ function statSummary(item: Item): string {
   padding: 6px 10px;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
   background: #0e0c1c;
   position: relative;
+  min-width: 0;
 }
 .slot-filled { cursor: default; }
 .slot-empty  { border-style: dashed; opacity: 0.4; cursor: default; }
@@ -472,9 +473,9 @@ function statSummary(item: Item): string {
   left: 0;
 }
 
-.slot-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.slot-head    { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.slot-name    { font-size: 9px; }
+.slot-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.slot-head    { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+.slot-name    { font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .slot-badge   {
   font-size: 6px;
   padding: 1px 4px;
@@ -626,6 +627,39 @@ function statSummary(item: Item): string {
 .rt-rare      { color: #4488dd; }
 .rt-epic      { color: #d060b8; }
 .rt-legendary { color: #daa520; }
+
+/* Mobile: tighten gear slots and scale inventory grid */
+@media (max-width: 639px) {
+  .gear-slot {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+  .gear-sprite-wrap {
+    width: 26px;
+    height: 30px;
+  }
+  .slot-name  { font-size: 8px; }
+  .slot-stats { font-size: 7px; }
+  .unequip-btn {
+    font-size: 6px;
+    padding: 3px 6px;
+  }
+  .inv-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .inv-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+  }
+  /* Inventory slots: 58px keeps 5 across on 360px+ screens */
+  .inv-slot {
+    width: 58px;
+    height: 58px;
+  }
+}
 
 /* sell bar */
 .sell-bar {
