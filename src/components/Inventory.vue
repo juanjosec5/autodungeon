@@ -236,16 +236,15 @@ function statSummary(item: Item): string {
             Auto-equip
           </label>
           <button
-            v-if="junkIds.length > 0 && !selectMode"
-            class="pixel-btn btn-scrap"
-            @click="scrapJunk"
-          >Scrap +{{ junkGold }}g</button>
-          <button
             class="pixel-btn"
             :class="selectMode ? 'btn-purple' : ''"
             @click="toggleSelectMode"
           >{{ selectMode ? 'Cancel' : 'Multi-sell' }}</button>
         </div>
+      </div>
+      <!-- Scrap junk row — separate line so it never causes header reflow -->
+      <div v-if="junkIds.length > 0 && !selectMode" class="scrap-row">
+        <button class="pixel-btn btn-scrap" @click="scrapJunk">Scrap {{ junkIds.length }} worse item{{ junkIds.length > 1 ? 's' : '' }} +{{ junkGold }}g</button>
       </div>
 
       <!-- Sort controls -->
@@ -383,7 +382,8 @@ function statSummary(item: Item): string {
 .autoscrap-toggle.active { color: #d8a060; }
 .autoscrap-toggle.active::before { background: #d8a060; border-color: #d8a060; }
 
-.btn-scrap { font-size: 8px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; }
+.scrap-row { display: flex; }
+.btn-scrap { font-size: 8px; padding: 4px 6px; color: #d8a060; border-color: #6a4010; background: #1e1008; width: 100%; }
 .btn-scrap:hover:not(:disabled) { border-color: #d8a060; }
 
 .sort-bar { display: flex; align-items: center; gap: 4px; }

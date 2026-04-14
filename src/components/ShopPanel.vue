@@ -7,6 +7,7 @@ import { ITEM_DEFINITIONS, SHOP_ITEMS } from '../game/item-data'
 import { getBuyPrice } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
 import { getItemSpriteStyle } from '../game/item-sprites'
+import { fmtNum } from '../utils/format'
 import type { Item, ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -234,7 +235,7 @@ function doEnchant(item: Item) {
       <!-- Gold + flash -->
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
-        <span class="gold-val">{{ char?.gold ?? 0 }}g</span>
+        <span class="gold-val">{{ fmtNum(char?.gold ?? 0) }}g</span>
         <span v-if="flashMsg" class="flash-msg">{{ flashMsg }}</span>
       </div>
 
@@ -415,7 +416,7 @@ function doEnchant(item: Item) {
     <div class="inner" v-if="!collapsed && activeTab === 'enchant'">
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
-        <span class="gold-val">{{ char?.gold ?? 0 }}g</span>
+        <span class="gold-val">{{ fmtNum(char?.gold ?? 0) }}g</span>
         <span v-if="enchantFlash" class="flash-msg">{{ enchantFlash }}</span>
       </div>
       <p class="enchant-hint">Add or reroll a special effect on any owned item. Cost doubles each enchant.</p>

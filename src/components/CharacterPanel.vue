@@ -4,8 +4,10 @@ import { useCharacterStore } from '../stores/character'
 import { useZoneStore } from '../stores/zone'
 import { useCombatStore } from '../stores/combat'
 import { CLASS_DEFINITIONS } from '../game/classes'
-import { SKILL_DEFINITIONS } from '../game/skills'
+import { SKILL_DEFINITIONS, getSkillBonuses } from '../game/skills'
+import { getSpecial } from '../game/formulas'
 import { buildClassSpriteStyle } from '../game/class-sprites'
+import { fmtNum } from '../utils/format'
 import type { ZoneId, SkillId } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -61,6 +63,7 @@ const combatStats = computed(() => {
   const passives = CLASS_DEFINITIONS[classId].passives
   const zone = zoneStore.activeZone
   const avgDef = ZONE_AVG_DEF[zone]
+  const sb = getSkillBonuses(char.value.skills ?? {})
 
   // Use current enemy's actual DEF when in combat, zone average otherwise
   const activeDef = combatStore.currentEnemy?.def ?? avgDef
@@ -78,19 +81,30 @@ const combatStats = computed(() => {
   const minDPS = Math.max(1, weaponMin + statBonus - effEnemyDef)
   const maxDPS = Math.max(1, weaponMax + statBonus - effEnemyDef)
 
-  // Crit chance (data-driven from class passives)
-  const critThreshold = passives.critThreshold ?? 20
-  const critPct = Math.round((21 - critThreshold) / 20 * 100)
+  // Crit chance — class base threshold, reduced by killing-blow skill
+  const baseCritThreshold = passives.critThreshold ?? 20
+  const effectiveCritThreshold = Math.max(2, baseCritThreshold - sb.critThresholdReduction)
+  const critPct = Math.round((21 - effectiveCritThreshold) / 20 * 100)
+
+  // Crit multiplier — base 1.5× plus lucky-strike bonus
+  const critMultiplier = 1.5 + sb.critDamageBonus
 
   // Hit chance: nat-20 always hits → 5% floor. nat-1 misses → 95% cap.
   const hitPct = Math.min(95, Math.max(5, Math.round((21 - activeDef + stats.dex) / 20 * 100)))
 
-  // Effective player DEF
+  // Effective player DEF — armor base × class armorEffectiveness + iron-skin flat bonus
   const baseArmorDef = characterStore.effectiveArmorStats?.defBonus ?? 0
   const armorEff = passives.armorEffectiveness ?? 1.0
-  const effDef = Math.floor(baseArmorDef * armorEff)
+  const effDef = Math.floor(baseArmorDef * armorEff) + sb.flatDef
 
-  return { minDPS, maxDPS, critPct, hitPct, effDef, vsEnemy }
+  // Effective dodge & block (armor + skills, capped at 75%)
+  const armor = char.value.gear.armor
+  const armorDodge = getSpecial(armor?.stats.special, 'dodge')?.chance ?? 0
+  const armorBlock = getSpecial(armor?.stats.special, 'block')?.chance ?? 0
+  const effDodge = Math.round(Math.min(0.75, armorDodge + sb.dodgeBonus) * 100)
+  const effBlock = Math.round(Math.min(0.75, armorBlock + sb.blockBonus) * 100)
+
+  return { minDPS, maxDPS, critPct, critMultiplier, hitPct, effDef, effDodge, effBlock, vsEnemy }
 })
 
 const collapsedStats = ref(localStorage.getItem('collapsed_combatStats') === 'true')
@@ -156,12 +170,12 @@ function skillLevel(skillId: SkillId): number {
         <div class="bar-row">
           <span class="bar-lbl">HP</span>
           <div class="bar-track"><div class="bar-fill bar-hp" :style="{ width: hpPercent + '%' }"></div></div>
-          <span class="bar-val">{{ char.currentHP }}/{{ char.maxHP }}</span>
+          <span class="bar-val">{{ fmtNum(char.currentHP) }}/{{ fmtNum(char.maxHP) }}</span>
         </div>
         <div class="bar-row">
           <span class="bar-lbl">XP</span>
           <div class="bar-track"><div class="bar-fill bar-xp" :style="{ width: xpPercent + '%' }"></div></div>
-          <span class="bar-val">{{ char.xp }}/{{ char.xpToNext }}</span>
+          <span class="bar-val">{{ fmtNum(char.xp) }}/{{ fmtNum(char.xpToNext) }}</span>
         </div>
       </div>
       <div class="stats-row">
@@ -170,7 +184,7 @@ function skillLevel(skillId: SkillId): number {
           <span class="stat">DEX <b>{{ char.stats.dex }}</b></span>
           <span class="stat">INT <b>{{ char.stats.int }}</b></span>
         </div>
-        <span class="gold">{{ char.gold }}g</span>
+        <span class="gold">{{ fmtNum(char.gold) }}g</span>
       </div>
 
       <!-- Combat Stats subsection -->
@@ -187,10 +201,20 @@ function skillLevel(skillId: SkillId): number {
           <span class="cs-value">{{ combatStats.minDPS }}–{{ combatStats.maxDPS }}</span>
           <span class="cs-label">Crit chance</span>
           <span class="cs-value">{{ combatStats.critPct }}%</span>
+          <span class="cs-label">Crit multiplier</span>
+          <span class="cs-value">{{ combatStats.critMultiplier.toFixed(1) }}×</span>
           <span class="cs-label">Hit chance</span>
           <span class="cs-value">{{ combatStats.hitPct }}%</span>
           <span class="cs-label">Eff. DEF</span>
           <span class="cs-value">{{ combatStats.effDef }}</span>
+          <template v-if="combatStats.effDodge > 0">
+            <span class="cs-label">Dodge</span>
+            <span class="cs-value">{{ combatStats.effDodge }}%</span>
+          </template>
+          <template v-if="combatStats.effBlock > 0">
+            <span class="cs-label">Block</span>
+            <span class="cs-value">{{ combatStats.effBlock }}%</span>
+          </template>
         </div>
       </div>
 
