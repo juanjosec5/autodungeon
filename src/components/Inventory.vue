@@ -9,7 +9,7 @@ import type { Item } from '../types/index'
 const characterStore = useCharacterStore()
 const char = computed(() => characterStore.character)
 
-const SLOTS = 20
+const SLOTS = 50
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
 // ── Collapse ──────────────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ function statSummary(item: Item): string {
         >
           <template v-if="item">
             <div class="slot-sprite-wrap">
-              <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.defId ?? item.id) }"></div>
+              <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.defId ?? item.id, 2) }"></div>
             </div>
             <span v-if="classTag(item)" class="class-tag" :class="{ 'class-warn': isOffClass(item) }">
               {{ classTag(item) }}
@@ -396,7 +396,7 @@ function statSummary(item: Item): string {
 .cmp-pos { color: #40d860; }
 .cmp-neg { color: #e05050; }
 
-.inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.inv-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
 
 .inv-slot {
   aspect-ratio: 1;
@@ -406,6 +406,7 @@ function statSummary(item: Item): string {
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: visible;
 }
 .slot-equippable { cursor: pointer; }
 .slot-equippable:hover { border-color: var(--border-hi); }
@@ -415,19 +416,19 @@ function statSummary(item: Item): string {
 .slot-selected { outline: 2px solid #f07020; outline-offset: -2px; }
 
 .slot-sprite-wrap {
-  width: 26px;
-  height: 28px;
+  width: 14px;
+  height: 16px;
   overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .slot-sprite {
-  width: 3px;
-  height: 3px;
+  width: 2px;
+  height: 2px;
   image-rendering: pixelated;
   flex-shrink: 0;
-  transform: translate(-12px, -15px);
+  transform: translate(-8px, -10px);
 }
 
 .detail-sprite-wrap {

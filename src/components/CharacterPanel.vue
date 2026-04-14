@@ -247,14 +247,15 @@ function skillLevel(skillId: SkillId): number {
   gap: 12px;
 }
 
-/* Wide: 3-column side by side */
+/* Wide: 3-column side by side — identity gets more room */
 @media (min-width: 640px) {
   .inner {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1.5fr 1.5fr;
     gap: 0;
   }
   .char-col {
     padding: 0 14px;
+    min-width: 0;
   }
   .char-col:first-child { padding-left: 0; }
   .char-col:last-child  { padding-right: 0; }
@@ -313,9 +314,9 @@ function skillLevel(skillId: SkillId): number {
   35%      { filter: brightness(8) saturate(0) sepia(1) hue-rotate(200deg); }
 }
 
-.char-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; justify-content: center; }
+.char-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; justify-content: center; overflow: hidden; }
 .char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; }
+.char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
 .class-badge {
   font-size: 7px;
@@ -332,7 +333,7 @@ function skillLevel(skillId: SkillId): number {
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
 .bar-lbl { font-size: 8px; color: var(--text); width: 18px; flex-shrink: 0; }
-.bar-val { font-size: 8px; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; }
+.bar-val { font-size: 8px; color: var(--text); min-width: 48px; text-align: right; flex-shrink: 0; white-space: nowrap; }
 .stats-row { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); }
 .stats { display: flex; gap: 12px; flex-wrap: wrap; }
 .stat { font-size: 8px; color: var(--text-dim); }

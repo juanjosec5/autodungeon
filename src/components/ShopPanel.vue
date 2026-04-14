@@ -63,7 +63,7 @@ function canAfford(item: Item) {
   return (char.value?.gold ?? 0) >= getBuyPrice(item.rarity)
 }
 function invFull() {
-  return (char.value?.inventory.length ?? 0) >= 20
+  return (char.value?.inventory.length ?? 0) >= 50
 }
 
 const flashMsg = ref<string | null>(null)
