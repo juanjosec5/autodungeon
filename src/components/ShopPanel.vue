@@ -26,7 +26,6 @@ const availableItems = computed(() => {
     .filter(Boolean)
 })
 
-// Group by type then rarity
 type ItemGroup = { rarity: string; items: Item[] }
 
 const weaponGroups = computed<ItemGroup[]>(() =>
@@ -47,7 +46,6 @@ const armorGroups = computed<ItemGroup[]>(() =>
     .filter(g => g.items.length > 0),
 )
 
-// Accordion state
 const weaponsOpen = ref(true)
 const armorOpen = ref(true)
 
@@ -131,107 +129,10 @@ const RARITY_LABEL: Record<string, string> = {
   common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary',
 }
 
-// ── Zone preview (codex tab) ──────────────────────────────────────────────────
-
-const activeTab = ref<'shop' | 'codex' | 'enchant'>('shop')
-
-const ZONE_META = [
-  { name: 'Forest',      minZoneIdx: 0, maxZoneIdx: 0, unlockLevel: 1  },
-  { name: 'Dungeon',     minZoneIdx: 1, maxZoneIdx: 1, unlockLevel: 5  },
-  { name: 'Volcano',     minZoneIdx: 2, maxZoneIdx: 2, unlockLevel: 12 },
-  { name: 'Abyss',       minZoneIdx: 3, maxZoneIdx: 3, unlockLevel: 20 },
-  { name: 'Shadowrealm', minZoneIdx: 4, maxZoneIdx: 4, unlockLevel: 30 },
-  { name: 'Celestial',   minZoneIdx: 5, maxZoneIdx: 5, unlockLevel: 45 },
-  { name: 'Void',        minZoneIdx: 6, maxZoneIdx: 6, unlockLevel: 60 },
-  { name: 'Nightmare',   minZoneIdx: 7, maxZoneIdx: 7, unlockLevel: 80 },
-] as const
-
-type ZoneSection = {
-  name: string
-  unlockLevel: number
-  unlocked: boolean
-  weapons: Item[]
-  armor: Item[]
-}
-
-const codexZones = computed<ZoneSection[]>(() => {
-  const currentZoneIdx = ZONE_ORDER.indexOf(zoneStore.activeZone)
-  const charLevel = characterStore.character?.level ?? 1
-
-  return ZONE_META.map(({ name, minZoneIdx, maxZoneIdx, unlockLevel }) => {
-    const items = SHOP_ITEMS
-      .filter(({ minZone }) => minZone >= minZoneIdx && minZone <= maxZoneIdx)
-      .map(({ id }) => ITEM_DEFINITIONS.find((i) => i.id === id)!)
-      .filter(Boolean)
-    return {
-      name,
-      unlockLevel,
-      unlocked: charLevel >= unlockLevel && currentZoneIdx >= minZoneIdx,
-      weapons: items.filter((i) => i.type === 'weapon'),
-      armor:   items.filter((i) => i.type === 'armor'),
-    }
-  })
-})
-
 const collapsed = ref(localStorage.getItem('collapsed_shop') === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
   localStorage.setItem('collapsed_shop', String(collapsed.value))
-}
-
-// selectPreview kept for potential future use but codex now uses hover tooltips
-
-// ── Codex discovery ───────────────────────────────────────────────────────────
-
-const discoveredItems = computed<Set<string>>(() => {
-  const list = characterStore.character?.discoveredItems ?? []
-  return new Set(list)
-})
-
-function isDiscovered(item: Item): boolean {
-  return discoveredItems.value.has(item.id)
-}
-
-// Hover tooltip
-const tooltipItem = ref<Item | null>(null)
-const tooltipX = ref(0)
-const tooltipY = ref(0)
-
-function showTooltip(event: MouseEvent, item: Item) {
-  tooltipItem.value = item
-  updateTooltipPos(event)
-}
-function updateTooltipPos(event: MouseEvent) {
-  tooltipX.value = event.clientX
-  tooltipY.value = event.clientY
-}
-function hideTooltip() {
-  tooltipItem.value = null
-}
-
-// ── Enchant tab ───────────────────────────────────────────────────────────────
-
-const enchantableItems = computed<Item[]>(() => {
-  const c = char.value
-  if (!c) return []
-  const gear = [c.gear.weapon, c.gear.armor].filter(Boolean) as Item[]
-  return [...gear, ...c.inventory]
-})
-
-const enchantFlash = ref<string | null>(null)
-let enchantFlashTimer: ReturnType<typeof setTimeout> | null = null
-function doEnchant(item: Item) {
-  const result = characterStore.enchantItem(item.id)
-  if (result === 'enchanted') {
-    enchantFlash.value = `${item.name} enchanted!`
-    saveStore.saveCharacter()
-  } else if (result === 'no_gold') {
-    enchantFlash.value = 'Not enough gold!'
-  } else {
-    enchantFlash.value = 'Item not found!'
-  }
-  if (enchantFlashTimer) clearTimeout(enchantFlashTimer)
-  enchantFlashTimer = setTimeout(() => { enchantFlash.value = null }, 2000)
 }
 </script>
 
@@ -242,14 +143,7 @@ function doEnchant(item: Item) {
       <button class="collapse-btn">{{ collapsed ? '►' : '▾' }}</button>
     </div>
 
-    <!-- Tabs -->
-    <div v-if="!collapsed" class="shop-tabs">
-      <button class="shop-tab" :class="{ active: activeTab === 'shop' }" @click="activeTab = 'shop'">Buy</button>
-      <button class="shop-tab" :class="{ active: activeTab === 'codex' }" @click="activeTab = 'codex'">Codex</button>
-      <button class="shop-tab" :class="{ active: activeTab === 'enchant' }" @click="activeTab = 'enchant'">Enchant</button>
-    </div>
-
-    <div class="inner" v-if="!collapsed && activeTab === 'shop'">
+    <div class="inner" v-if="!collapsed">
       <!-- Gold + flash -->
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
@@ -368,106 +262,6 @@ function doEnchant(item: Item) {
         </div>
       </div>
     </div>
-
-    <!-- Codex tab -->
-    <div class="inner" v-if="!collapsed && activeTab === 'codex'">
-      <div
-        v-for="zone in codexZones"
-        :key="zone.name"
-        class="codex-zone"
-        :class="{ 'zone-locked': !zone.unlocked }"
-      >
-        <div class="codex-zone-header">
-          <span class="codex-zone-name">{{ zone.name }}</span>
-          <span v-if="!zone.unlocked" class="codex-zone-lock">Lv {{ zone.unlockLevel }}</span>
-        </div>
-
-        <template v-for="[label, items] in [['Weapons', zone.weapons], ['Armor', zone.armor]] as const" :key="label">
-          <div v-if="(items as Item[]).length" class="codex-type-label">{{ label }}</div>
-          <div class="codex-grid">
-            <div
-              v-for="item in (items as Item[])"
-              :key="item.id"
-              class="codex-slot"
-              :class="[
-                isDiscovered(item) ? rarityClass(item.rarity) : 'undiscovered',
-              ]"
-              @mouseenter="isDiscovered(item) ? showTooltip($event, item) : null"
-              @mousemove="isDiscovered(item) ? updateTooltipPos($event) : null"
-              @mouseleave="hideTooltip"
-            >
-              <template v-if="isDiscovered(item)">
-                <div class="slot-sprite-wrap">
-                  <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
-                </div>
-                <span class="slot-name">{{ item.name }}</span>
-                <span v-if="classTag(item)" class="class-tag" :class="{ 'tag-offclass': isOffClass(item) }">{{ classTag(item) }}</span>
-              </template>
-              <template v-else>
-                <div class="slot-sprite-wrap">
-                  <div class="mystery-icon">?</div>
-                </div>
-                <span class="slot-name undiscovered-name">???</span>
-              </template>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- Codex hover tooltip (rendered outside inner, fixed position) -->
-    <Teleport to="body">
-      <div
-        v-if="tooltipItem && activeTab === 'codex'"
-        class="codex-tooltip"
-        :class="rarityClass(tooltipItem.rarity)"
-        :style="{ left: tooltipX + 14 + 'px', top: tooltipY - 10 + 'px' }"
-      >
-        <div class="tt-header">
-          <div class="tt-sprite-wrap">
-            <div class="tt-sprite" :style="{ boxShadow: getItemSpriteStyle(tooltipItem.id, 4) }"></div>
-          </div>
-          <div class="tt-info">
-            <div class="tt-name" :class="rarityClass(tooltipItem.rarity)">{{ tooltipItem.name }}</div>
-            <div class="tt-rarity">{{ tooltipItem.rarity.toUpperCase() }} {{ tooltipItem.type.toUpperCase() }}</div>
-          </div>
-        </div>
-        <div class="tt-stats">{{ statLine(tooltipItem) }}</div>
-        <div v-if="specialLine(tooltipItem)" class="tt-special">{{ specialLine(tooltipItem) }}</div>
-        <div v-if="isOffClass(tooltipItem)" class="tt-warn">⚠ Off-class: 70%</div>
-      </div>
-    </Teleport>
-
-    <!-- Enchant tab -->
-    <div class="inner" v-if="!collapsed && activeTab === 'enchant'">
-      <div class="gold-row">
-        <span class="gold-label">Gold:</span>
-        <span class="gold-val">{{ fmtNum(char?.gold ?? 0) }}g</span>
-        <span v-if="enchantFlash" class="flash-msg">{{ enchantFlash }}</span>
-      </div>
-      <p class="enchant-hint">Add or reroll a special effect on any owned item. Cost doubles each enchant.</p>
-      <div v-if="enchantableItems.length === 0" class="enchant-empty">No items to enchant.</div>
-      <div
-        v-for="item in enchantableItems"
-        :key="item.id"
-        class="enchant-row"
-        :class="rarityClass(item.rarity)"
-      >
-        <div class="enchant-item-info">
-          <span class="enchant-item-name">{{ item.name }}</span>
-          <span class="enchant-item-specials">{{ specialLine(item) || 'No specials' }}</span>
-          <span v-if="(item.enchantCount ?? 0) > 0" class="enchant-count">Enchanted ×{{ item.enchantCount }}</span>
-        </div>
-        <div class="enchant-item-right">
-          <span class="enchant-cost">{{ characterStore.getEnchantCost(item) }}g</span>
-          <button
-            class="pixel-btn btn-gold enchant-btn"
-            :disabled="(char?.gold ?? 0) < characterStore.getEnchantCost(item)"
-            @click="doEnchant(item)"
-          >✦</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -486,9 +280,7 @@ function doEnchant(item: Item) {
 .flash-msg  { color: var(--gold); font-size: 7px; margin-left: auto; }
 
 /* Accordion */
-.accordion-section {
-  border: 2px solid var(--border);
-}
+.accordion-section { border: 2px solid var(--border); }
 
 .accordion-header {
   width: 100%;
@@ -525,7 +317,6 @@ function doEnchant(item: Item) {
   overflow: hidden;
 }
 
-/* Accordion open/close animation */
 .acc-enter-active, .acc-leave-active {
   transition: opacity 0.15s, max-height 0.2s ease;
   max-height: 1000px;
@@ -576,7 +367,6 @@ function doEnchant(item: Item) {
 .shop-slot:hover { border-color: var(--border-hi); }
 .shop-slot:active { top: 2px; left: 2px; box-shadow: none; }
 
-/* Item sprite in slot */
 .slot-sprite-wrap {
   width: 26px;
   height: 28px;
@@ -599,7 +389,6 @@ function doEnchant(item: Item) {
 .slot-selected     { outline: 2px solid #f07020; outline-offset: -2px; }
 .slot-cant-afford  { opacity: 0.55; }
 
-/* Rarity borders on slots */
 .r-common    .shop-slot, .shop-slot.r-common    { border-color: #555560; }
 .r-uncommon  .shop-slot, .shop-slot.r-uncommon  { border-color: #2d7a30; }
 .r-rare      .shop-slot, .shop-slot.r-rare      { border-color: #2a5898; }
@@ -660,175 +449,4 @@ function doEnchant(item: Item) {
 .r-rare .detail-name      { color: #4488dd; }
 .r-epic .detail-name      { color: #d060b8; }
 .r-legendary .detail-name { color: #daa520; }
-
-/* Tabs */
-.shop-tabs {
-  display: flex;
-  border-bottom: 2px solid var(--border);
-}
-.shop-tab {
-  flex: 1;
-  background: #0e0c1c;
-  border: none;
-  border-right: 2px solid var(--border);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  color: var(--text-dim);
-  padding: 6px 4px;
-  cursor: pointer;
-}
-.shop-tab:last-child { border-right: none; }
-.shop-tab:hover { background: #16142a; color: var(--text); }
-.shop-tab.active { background: #16142a; color: var(--text-hi); border-bottom: 2px solid var(--text-hi); margin-bottom: -2px; }
-
-/* Codex */
-.codex-zone {
-  border: 2px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-}
-.codex-zone.zone-locked { opacity: 0.45; }
-
-.codex-zone-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2px;
-}
-.codex-zone-name { font-size: 8px; color: var(--text-hi); }
-.codex-zone-lock { font-size: 7px; color: var(--text-dim); }
-
-.codex-type-label { font-size: 6px; color: var(--text-dim); margin-top: 2px; }
-
-.codex-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.codex-slot {
-  width: 100%;
-  background: #0e0c1c;
-  border: 2px solid var(--border);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  color: var(--text);
-  padding: 4px 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  text-align: left;
-  position: relative;
-}
-.codex-slot:hover { border-color: var(--border-hi); }
-
-.codex-locked-label { font-size: 7px; color: var(--text-dim); }
-
-/* Undiscovered codex slots */
-.codex-slot.undiscovered {
-  border-color: #2a2840;
-  cursor: default;
-  opacity: 0.6;
-}
-.mystery-icon {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
-  color: #444460;
-  width: 26px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.undiscovered-name { color: #3a3858; }
-
-/* Codex hover tooltip */
-.codex-tooltip {
-  position: fixed;
-  z-index: 9999;
-  background: #0e0c1e;
-  border: 2px solid var(--border);
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  pointer-events: none;
-  max-width: 200px;
-  box-shadow: 4px 4px 0 #000;
-}
-.codex-tooltip.r-uncommon  { border-color: #2d7a30; }
-.codex-tooltip.r-rare      { border-color: #2a5898; }
-.codex-tooltip.r-epic      { border-color: #80306a; }
-.codex-tooltip.r-legendary { border-color: #987820; }
-
-.tt-header { display: flex; align-items: flex-start; gap: 8px; }
-.tt-sprite-wrap {
-  width: 30px; height: 30px;
-  flex-shrink: 0;
-  position: relative;
-  overflow: visible;
-}
-.tt-sprite {
-  width: 4px; height: 4px;
-  image-rendering: pixelated;
-  position: absolute;
-  top: 0; left: 0;
-}
-.tt-info { display: flex; flex-direction: column; gap: 2px; }
-.tt-name { font-size: 7px; }
-.tt-name.r-common    { color: #909090; }
-.tt-name.r-uncommon  { color: #4caf50; }
-.tt-name.r-rare      { color: #4488dd; }
-.tt-name.r-epic      { color: #d060b8; }
-.tt-name.r-legendary { color: #daa520; }
-.tt-rarity  { font-size: 6px; color: var(--text-dim); }
-.tt-stats   { font-size: 7px; color: var(--text); }
-.tt-special { font-size: 6px; color: #a080d0; }
-.tt-warn    { font-size: 6px; color: #f07020; }
-
-/* Enchant tab */
-.enchant-hint {
-  font-size: 7px;
-  color: var(--text-dim);
-  margin: 0;
-  line-height: 1.8;
-}
-.enchant-empty { font-size: 7px; color: var(--text-dim); text-align: center; padding: 8px; }
-.enchant-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  background: #100e20;
-  border: 2px solid var(--border);
-  padding: 6px 8px;
-}
-.enchant-row.r-uncommon  { border-color: #2d7a30; }
-.enchant-row.r-rare      { border-color: #2a5898; }
-.enchant-row.r-epic      { border-color: #80306a; }
-.enchant-row.r-legendary { border-color: #987820; }
-.enchant-item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-.enchant-item-name    { font-size: 7px; color: var(--text-hi); }
-.enchant-item-specials { font-size: 6px; color: #a080d0; }
-.enchant-count { font-size: 6px; color: var(--gold-dim, #c09030); }
-.enchant-item-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.enchant-cost { font-size: 7px; color: var(--gold); white-space: nowrap; }
-.enchant-btn {
-  font-size: 10px;
-  padding: 4px 7px;
-}
 </style>

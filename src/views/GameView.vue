@@ -10,11 +10,12 @@ import { useAchievementStore } from '../stores/achievement'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
-import GearPanel from '../components/GearPanel.vue'
-import Inventory from '../components/Inventory.vue'
+import ItemsPanel from '../components/ItemsPanel.vue'
 import ZoneSelector from '../components/ZoneSelector.vue'
 import DeathModal from '../components/DeathModal.vue'
 import ShopPanel from '../components/ShopPanel.vue'
+import CodexPanel from '../components/CodexPanel.vue'
+import EnchantPanel from '../components/EnchantPanel.vue'
 import AchievementsPanel from '../components/AchievementsPanel.vue'
 
 const router = useRouter()
@@ -25,15 +26,16 @@ const authStore = useAuthStore()
 const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
 
-type PanelId = 'gear' | 'inventory' | 'zone' | 'shop' | 'challenges' | 'log'
+type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'log'
 
-const activePanel = ref<PanelId>('gear')
+const activePanel = ref<PanelId>('items')
 
 const NAV_ITEMS: { id: PanelId; icon: string; label: string }[] = [
-  { id: 'gear',       icon: '⚔',  label: 'Gear'       },
-  { id: 'inventory',  icon: '🎒', label: 'Inventory'  },
+  { id: 'items',      icon: '⚔',  label: 'Items'      },
   { id: 'zone',       icon: '🗺', label: 'Zone'       },
   { id: 'shop',       icon: '🛒', label: 'Shop'       },
+  { id: 'codex',      icon: '📖', label: 'Codex'      },
+  { id: 'enchant',    icon: '✦',  label: 'Enchant'    },
   { id: 'challenges', icon: '🏆', label: 'Challenges' },
   { id: 'log',        icon: '📜', label: 'Log'        },
 ]
@@ -149,10 +151,11 @@ onUnmounted(() => {
 
         <!-- Selected panel -->
         <div class="main-panel">
-          <GearPanel         v-if="activePanel === 'gear'" />
-          <Inventory         v-if="activePanel === 'inventory'" />
+          <ItemsPanel        v-if="activePanel === 'items'" />
           <ZoneSelector      v-if="activePanel === 'zone'" />
           <ShopPanel         v-if="activePanel === 'shop'" />
+          <CodexPanel        v-if="activePanel === 'codex'" />
+          <EnchantPanel      v-if="activePanel === 'enchant'" />
           <AchievementsPanel v-if="activePanel === 'challenges'" />
           <CombatLog         v-if="activePanel === 'log'" class="log-fill" />
         </div>
