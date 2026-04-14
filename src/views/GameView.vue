@@ -14,10 +14,12 @@ import ItemsPanel from '../components/ItemsPanel.vue'
 import ZoneSelector from '../components/ZoneSelector.vue'
 import DeathModal from '../components/DeathModal.vue'
 import LevelUpModal from '../components/LevelUpModal.vue'
+import OfflineRewardModal from '../components/OfflineRewardModal.vue'
 import ShopPanel from '../components/ShopPanel.vue'
 import CodexPanel from '../components/CodexPanel.vue'
 import EnchantPanel from '../components/EnchantPanel.vue'
 import AchievementsPanel from '../components/AchievementsPanel.vue'
+import PrestigePanel from '../components/PrestigePanel.vue'
 
 const router = useRouter()
 const saveStore = useSaveStore()
@@ -27,7 +29,7 @@ const authStore = useAuthStore()
 const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
 
-type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'log'
+type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'log' | 'prestige'
 
 const activePanel = ref<PanelId>('items')
 
@@ -39,6 +41,7 @@ const NAV_ITEMS: { id: PanelId; icon: string; label: string }[] = [
   { id: 'enchant',    icon: '✦',  label: 'Enchant'    },
   { id: 'challenges', icon: '🏆', label: 'Challenges' },
   { id: 'log',        icon: '📜', label: 'Log'        },
+  { id: 'prestige',   icon: '⚡',  label: 'Ascend'     },
 ]
 
 // Controls popover
@@ -75,7 +78,11 @@ onMounted(async () => {
       return
     }
   }
-  combatStore.startCombat()
+  // If there are offline rewards pending, OfflineRewardModal will start combat
+  // once the player dismisses it. Otherwise start immediately.
+  if (!characterStore.pendingOfflineResult) {
+    combatStore.startCombat()
+  }
 })
 
 onUnmounted(() => {
@@ -159,12 +166,14 @@ onUnmounted(() => {
           <EnchantPanel      v-if="activePanel === 'enchant'" />
           <AchievementsPanel v-if="activePanel === 'challenges'" />
           <CombatLog         v-if="activePanel === 'log'" class="log-fill" />
+          <PrestigePanel     v-if="activePanel === 'prestige'" />
         </div>
       </div>
     </div>
 
     <DeathModal />
     <LevelUpModal />
+    <OfflineRewardModal />
   </div>
 </template>
 
