@@ -78,6 +78,7 @@ export interface Character {
   lastSaved: string
   lifetime: LifetimeStats
   zoneAchievements?: Partial<Record<ZoneId, ZoneAchievementProgress>>
+  discoveredItems?: string[]
 }
 
 export interface Enemy {

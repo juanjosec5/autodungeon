@@ -173,22 +173,40 @@ const codexZones = computed<ZoneSection[]>(() => {
   })
 })
 
-const previewItem = ref<Item | null>(null)
-const previewLocked = ref(false)
-
 const collapsed = ref(localStorage.getItem('collapsed_shop') === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
   localStorage.setItem('collapsed_shop', String(collapsed.value))
 }
 
-function selectPreview(item: Item, locked: boolean) {
-  if (previewItem.value?.id === item.id) {
-    previewItem.value = null
-  } else {
-    previewItem.value = item
-    previewLocked.value = locked
-  }
+// selectPreview kept for potential future use but codex now uses hover tooltips
+
+// ── Codex discovery ───────────────────────────────────────────────────────────
+
+const discoveredItems = computed<Set<string>>(() => {
+  const list = characterStore.character?.discoveredItems ?? []
+  return new Set(list)
+})
+
+function isDiscovered(item: Item): boolean {
+  return discoveredItems.value.has(item.id)
+}
+
+// Hover tooltip
+const tooltipItem = ref<Item | null>(null)
+const tooltipX = ref(0)
+const tooltipY = ref(0)
+
+function showTooltip(event: MouseEvent, item: Item) {
+  tooltipItem.value = item
+  updateTooltipPos(event)
+}
+function updateTooltipPos(event: MouseEvent) {
+  tooltipX.value = event.clientX
+  tooltipY.value = event.clientY
+}
+function hideTooltip() {
+  tooltipItem.value = null
 }
 
 // ── Enchant tab ───────────────────────────────────────────────────────────────
@@ -367,50 +385,58 @@ function doEnchant(item: Item) {
         <template v-for="[label, items] in [['Weapons', zone.weapons], ['Armor', zone.armor]] as const" :key="label">
           <div v-if="(items as Item[]).length" class="codex-type-label">{{ label }}</div>
           <div class="codex-grid">
-            <button
+            <div
               v-for="item in (items as Item[])"
               :key="item.id"
               class="codex-slot"
-              :class="[rarityClass(item.rarity), { 'slot-selected': previewItem?.id === item.id }]"
-              @click="selectPreview(item, !zone.unlocked)"
+              :class="[
+                isDiscovered(item) ? rarityClass(item.rarity) : 'undiscovered',
+              ]"
+              @mouseenter="isDiscovered(item) ? showTooltip($event, item) : null"
+              @mousemove="isDiscovered(item) ? updateTooltipPos($event) : null"
+              @mouseleave="hideTooltip"
             >
-              <div class="slot-sprite-wrap">
-                <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
-              </div>
-              <span class="slot-name">{{ item.name }}</span>
-            </button>
+              <template v-if="isDiscovered(item)">
+                <div class="slot-sprite-wrap">
+                  <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+                </div>
+                <span class="slot-name">{{ item.name }}</span>
+                <span v-if="classTag(item)" class="class-tag" :class="{ 'tag-offclass': isOffClass(item) }">{{ classTag(item) }}</span>
+              </template>
+              <template v-else>
+                <div class="slot-sprite-wrap">
+                  <div class="mystery-icon">?</div>
+                </div>
+                <span class="slot-name undiscovered-name">???</span>
+              </template>
+            </div>
           </div>
         </template>
       </div>
-
-      <!-- Preview detail panel -->
-      <div v-if="previewItem" class="detail-panel" :class="rarityClass(previewItem.rarity)">
-        <div class="detail-header">
-          <div class="detail-sprite-wrap">
-            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(previewItem.id, 4) }"></div>
-          </div>
-          <div class="detail-text">
-            <div class="detail-name" :class="rarityClass(previewItem.rarity)">{{ previewItem.name }}</div>
-            <div class="detail-rarity">{{ previewItem.rarity.toUpperCase() }} {{ previewItem.type.toUpperCase() }}</div>
-          </div>
-        </div>
-        <div class="detail-stats">{{ statLine(previewItem) }}</div>
-        <div v-if="specialLine(previewItem)" class="detail-special">{{ specialLine(previewItem) }}</div>
-        <div v-if="isOffClass(previewItem)" class="detail-warn">⚠ Off-class: 70% effectiveness</div>
-        <div class="detail-actions">
-          <button
-            v-if="!previewLocked"
-            class="pixel-btn btn-gold"
-            :disabled="!canAfford(previewItem) || invFull()"
-            @click="buy(previewItem); previewItem = null"
-          >
-            {{ invFull() ? 'Inv Full' : !canAfford(previewItem) ? 'No Gold' : 'Buy' }}
-          </button>
-          <span v-else class="codex-locked-label">🔒 Zone locked</span>
-          <button class="pixel-btn" @click="previewItem = null">✕</button>
-        </div>
-      </div>
     </div>
+
+    <!-- Codex hover tooltip (rendered outside inner, fixed position) -->
+    <Teleport to="body">
+      <div
+        v-if="tooltipItem && activeTab === 'codex'"
+        class="codex-tooltip"
+        :class="rarityClass(tooltipItem.rarity)"
+        :style="{ left: tooltipX + 14 + 'px', top: tooltipY - 10 + 'px' }"
+      >
+        <div class="tt-header">
+          <div class="tt-sprite-wrap">
+            <div class="tt-sprite" :style="{ boxShadow: getItemSpriteStyle(tooltipItem.id, 4) }"></div>
+          </div>
+          <div class="tt-info">
+            <div class="tt-name" :class="rarityClass(tooltipItem.rarity)">{{ tooltipItem.name }}</div>
+            <div class="tt-rarity">{{ tooltipItem.rarity.toUpperCase() }} {{ tooltipItem.type.toUpperCase() }}</div>
+          </div>
+        </div>
+        <div class="tt-stats">{{ statLine(tooltipItem) }}</div>
+        <div v-if="specialLine(tooltipItem)" class="tt-special">{{ specialLine(tooltipItem) }}</div>
+        <div v-if="isOffClass(tooltipItem)" class="tt-warn">⚠ Off-class: 70%</div>
+      </div>
+    </Teleport>
 
     <!-- Enchant tab -->
     <div class="inner" v-if="!collapsed && activeTab === 'enchant'">
@@ -699,6 +725,69 @@ function doEnchant(item: Item) {
 .codex-slot:hover { border-color: var(--border-hi); }
 
 .codex-locked-label { font-size: 7px; color: var(--text-dim); }
+
+/* Undiscovered codex slots */
+.codex-slot.undiscovered {
+  border-color: #2a2840;
+  cursor: default;
+  opacity: 0.6;
+}
+.mystery-icon {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #444460;
+  width: 26px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.undiscovered-name { color: #3a3858; }
+
+/* Codex hover tooltip */
+.codex-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: #0e0c1e;
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  max-width: 200px;
+  box-shadow: 4px 4px 0 #000;
+}
+.codex-tooltip.r-uncommon  { border-color: #2d7a30; }
+.codex-tooltip.r-rare      { border-color: #2a5898; }
+.codex-tooltip.r-epic      { border-color: #80306a; }
+.codex-tooltip.r-legendary { border-color: #987820; }
+
+.tt-header { display: flex; align-items: flex-start; gap: 8px; }
+.tt-sprite-wrap {
+  width: 30px; height: 30px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: visible;
+}
+.tt-sprite {
+  width: 4px; height: 4px;
+  image-rendering: pixelated;
+  position: absolute;
+  top: 0; left: 0;
+}
+.tt-info { display: flex; flex-direction: column; gap: 2px; }
+.tt-name { font-size: 7px; }
+.tt-name.r-common    { color: #909090; }
+.tt-name.r-uncommon  { color: #4caf50; }
+.tt-name.r-rare      { color: #4488dd; }
+.tt-name.r-epic      { color: #d060b8; }
+.tt-name.r-legendary { color: #daa520; }
+.tt-rarity  { font-size: 6px; color: var(--text-dim); }
+.tt-stats   { font-size: 7px; color: var(--text); }
+.tt-special { font-size: 6px; color: #a080d0; }
+.tt-warn    { font-size: 6px; color: #f07020; }
 
 /* Enchant tab */
 .enchant-hint {
