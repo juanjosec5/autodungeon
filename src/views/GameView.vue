@@ -8,6 +8,7 @@ import { useCharacterStore } from '../stores/character'
 import { useAchievementStore } from '../stores/achievement'
 import { useTaskStore } from '../stores/tasks'
 import { useProgressionStore } from '../stores/progression'
+import { usePrestigeStore } from '../stores/prestige'
 import { useAutoPickSetting } from '../composables/useAutoPickSetting'
 import { ZONE_META } from '../game/zones'
 import CharacterPanel from '../components/CharacterPanel.vue'
@@ -35,6 +36,7 @@ const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
 const taskStore = useTaskStore()
 const progressionStore = useProgressionStore()
+const prestigeStore = usePrestigeStore()
 const { alwaysAuto, toggleAlwaysAuto } = useAutoPickSetting()
 
 const activePanel = ref<PanelId>('items')
@@ -107,6 +109,10 @@ watch(() => progressionStore.unlockedPanels, (panels) => {
 })
 
 onMounted(async () => {
+  // Always load prestige data first — covers new-character creation path where
+  // loadCharacter() is skipped and prestige multipliers must apply from the start.
+  prestigeStore.loadPrestige()
+
   // Character already set means we just came from character creation — skip load
   if (!characterStore.character) {
     const found = await saveStore.loadCharacter()

@@ -77,7 +77,13 @@ export const useProgressionStore = defineStore('progression', () => {
     const fromUnlocks = PANEL_UNLOCKS
       .filter((u) => level >= u.requiredLevel)
       .map((u) => u.panelId)
-    return [...ALWAYS_ON, ...fromUnlocks]
+    // Keep prestige tab accessible permanently once the player has reached it —
+    // after a prestige the character resets to level 1 but the tab must remain
+    // visible so the player can access it without grinding back to level 50.
+    const alwaysOn: PanelId[] = seenUnlocks.value.includes('prestige')
+      ? [...ALWAYS_ON, 'prestige']
+      : ALWAYS_ON
+    return [...new Set([...alwaysOn, ...fromUnlocks])]
   })
 
   // First unlock that is newly available but the player hasn't seen the modal for yet
