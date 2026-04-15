@@ -94,23 +94,15 @@ watch(() => progressionStore.pendingUnlockModal, (unlock) => {
   if (unlock) combatStore.pauseCombat()
 })
 
-// Called by UnlockModal "Got it" — resume combat (if no more unlock modals queued)
-// and switch to the newly unlocked panel.
-function handleUnlockConfirm(panelId: PanelId): void {
-  activePanel.value = panelId
+// Called by UnlockModal "Got it" — resume combat (if no more unlock modals queued).
+// Does NOT switch the active panel so the player's current view is preserved.
+function handleUnlockConfirm(_panelId: PanelId): void {
   // pendingUnlockModal was already marked seen inside UnlockModal before this call.
   // If another unlock is still queued, stay paused so it can show next.
   if (!progressionStore.pendingUnlockModal) {
     combatStore.resumeCombat()
   }
 }
-
-// Ensure activePanel is always in unlockedPanels (fallback on load)
-watch(() => progressionStore.unlockedPanels, (panels) => {
-  if (!panels.includes(activePanel.value)) {
-    activePanel.value = 'items'
-  }
-})
 
 onMounted(async () => {
   // Always load prestige data first — covers new-character creation path where

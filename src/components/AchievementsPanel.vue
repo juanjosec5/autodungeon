@@ -29,7 +29,10 @@ function toggleCollapse() {
   localStorage.setItem('collapsed_achievements', String(collapsed.value))
 }
 
-const activeZone = ref<ZoneId>('forest')
+const activeZone = computed({
+  get: () => achievementStore.selectedChallengeZone,
+  set: (z: ZoneId) => { achievementStore.selectedChallengeZone = z },
+})
 const activeSet = computed(() => ZONE_CHALLENGE_SETS.find((s) => s.zone === activeZone.value)!)
 
 const ZONE_ABBR: Record<ZoneId, string> = {
