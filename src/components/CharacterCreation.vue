@@ -218,12 +218,20 @@ async function begin() {
 
         <!-- New Character button / creation form -->
         <template v-if="!creatingNew">
-          <button
-            @click="openCreationForm"
-            class="w-full border-2 border-dashed border-gray-700 hover:border-amber-600 text-gray-500 hover:text-amber-400 rounded-xl py-4 text-sm font-semibold transition-colors"
-          >
-            ＋ New Character
-          </button>
+          <div class="flex flex-col items-center gap-2">
+            <button
+              @click="openCreationForm"
+              class="w-full border-2 border-dashed border-gray-700 hover:border-amber-600 text-gray-500 hover:text-amber-400 rounded-xl py-4 text-sm font-semibold transition-colors"
+            >
+              ＋ New Character
+            </button>
+            <button
+              @click="router.push('/wiki')"
+              class="text-amber-500/60 hover:text-amber-400 transition-colors text-xs"
+            >
+              📖 Wiki &amp; Changelog
+            </button>
+          </div>
         </template>
 
         <!-- Creation form (inline) -->
