@@ -122,6 +122,12 @@ onMounted(async () => {
     }
   }
 
+  // Restore zone from saved character state (CharacterCreation resets to forest
+  // on mount, so we must re-sync here whenever entering the game view).
+  if (characterStore.character) {
+    zoneStore.activeZone = characterStore.character.currentZone
+  }
+
   // Always ensure tasks are loaded/reset-checked. loadCharacter() calls
   // loadTasks() for returning saves, but new characters skip that path.
   taskStore.loadTasks()
