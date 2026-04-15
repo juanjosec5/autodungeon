@@ -21,8 +21,14 @@ const BUY_PRICES: Record<RarityId, number> = {
   common: 20, uncommon: 60, rare: 150, epic: 450, legendary: 2000,
 }
 
-export function getSellPrice(rarity: RarityId): number {
-  return SELL_PRICES[rarity]
+export function getSellPrice(item: Item | RarityId): number {
+  if (typeof item === 'string') return SELL_PRICES[item]
+  const base = SELL_PRICES[item.rarity]
+  const n = item.enchantCount ?? 0
+  if (n === 0) return base
+  // Total enchant investment = getBuyPrice(rarity) * 3 * (2^n - 1)
+  const enchantTotal = getBuyPrice(item.rarity) * 3 * (Math.pow(2, n) - 1)
+  return Math.floor((base + enchantTotal) * 0.3)
 }
 
 export function getBuyPrice(rarity: RarityId): number {
