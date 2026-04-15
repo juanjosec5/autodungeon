@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { PanelId } from '../types/index'
 import { useCharacterStore } from './character'
+import { usePrestigeStore } from './prestige'
 
 export interface PanelUnlock {
   panelId: PanelId
@@ -79,14 +80,17 @@ export const useProgressionStore = defineStore('progression', () => {
 
   // Panels accessible at current level
   const unlockedPanels = computed<PanelId[]>(() => {
+    const prestigeStore = usePrestigeStore()
     const level = characterStore.character?.level ?? 1
     const fromUnlocks = PANEL_UNLOCKS
       .filter((u) => level >= u.requiredLevel)
       .map((u) => u.panelId)
-    // Keep prestige tab accessible permanently once the player has reached it —
-    // after a prestige the character resets to level 1 but the tab must remain
-    // visible so the player can access it without grinding back to level 50.
-    const alwaysOn: PanelId[] = seenUnlocks.value.includes('prestige')
+    // Keep prestige tab accessible permanently after the player has actually
+    // prestiged — after a prestige the character resets to level 1 but the tab
+    // must remain visible so the player can ascend again without grinding back
+    // to 50.  We use prestigeCount (not seenUnlocks) so a brand-new character
+    // on a shared browser doesn't inherit the old run's prestige tab.
+    const alwaysOn: PanelId[] = prestigeStore.prestigeCount > 0
       ? [...ALWAYS_ON, 'prestige']
       : ALWAYS_ON
     return [...new Set([...alwaysOn, ...fromUnlocks])]
@@ -108,6 +112,12 @@ export const useProgressionStore = defineStore('progression', () => {
       seenUnlocks.value.push(panelId)
       localStorage.setItem(LS_PROGRESSION, JSON.stringify(seenUnlocks.value))
     }
+  }
+
+  /** Called when starting a brand-new character so unlock modals fire fresh. */
+  function resetSeenUnlocks(): void {
+    seenUnlocks.value = []
+    localStorage.removeItem(LS_PROGRESSION)
   }
 
   // Silently mark all currently-unlocked panels as seen — called once on game
@@ -141,6 +151,7 @@ export const useProgressionStore = defineStore('progression', () => {
     unlockedPanels,
     pendingUnlockModal,
     markUnlockSeen,
+    resetSeenUnlocks,
     bulkMarkCurrentUnlocksSeen,
     markTutorialSeen,
     hasSeen,

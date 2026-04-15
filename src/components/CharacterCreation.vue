@@ -6,6 +6,7 @@ import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
+import { useProgressionStore } from '../stores/progression'
 import { getStatsAtLevel } from '../game/classes'
 import { buildClassSpriteStyle } from '../game/class-sprites'
 
@@ -14,6 +15,7 @@ const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
 const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
+const progressionStore = useProgressionStore()
 
 onMounted(() => {
   combatStore.stopCombat()
@@ -144,6 +146,8 @@ function getBaseStats(id: ClassId) {
 
 async function begin() {
   if (!canBegin.value || !selectedClass.value) return
+  // Reset progression so unlock modals fire fresh for this new character.
+  progressionStore.resetSeenUnlocks()
   characterStore.createCharacter(name.value.trim(), selectedClass.value)
   await saveStore.saveCharacter()
   router.push('/game')
