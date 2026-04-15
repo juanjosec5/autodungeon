@@ -3,11 +3,15 @@ import { ref, computed } from 'vue'
 import { usePrestigeStore } from '../stores/prestige'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
+import { useCombatStore } from '../stores/combat'
+import { useZoneStore } from '../stores/zone'
 import type { PrestigeBonusId } from '../types/index'
 
 const prestigeStore = usePrestigeStore()
 const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
+const combatStore = useCombatStore()
+const zoneStore = useZoneStore()
 
 const confirming = ref(false)
 
@@ -37,9 +41,13 @@ function buyBonus(id: PrestigeBonusId): void {
 }
 
 function doPrestige(): void {
+  combatStore.stopCombat()
+  combatStore.setSpeed(1)
+  zoneStore.resetToForest()
   prestigeStore.prestige()
   saveStore.saveCharacter()
   confirming.value = false
+  combatStore.startCombat()
 }
 </script>
 
