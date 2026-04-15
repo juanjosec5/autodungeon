@@ -84,15 +84,19 @@ watch(() => progressionStore.pendingUnlockModal, (unlock) => {
   if (unlock) combatStore.pauseCombat()
 })
 
-// Called by UnlockModal "Got it" — resume combat and switch to the new panel.
-// Use resumeAfterLevelUp if the pause came from a level-up, otherwise plain resume.
+// Called by UnlockModal "Got it" — resume combat (if no more unlock modals queued)
+// and switch to the newly unlocked panel.
 function handleUnlockConfirm(panelId: PanelId): void {
-  if (combatStore.pausedForLevelUp) {
-    combatStore.resumeAfterLevelUp()
-  } else {
-    combatStore.resumeCombat()
-  }
   activePanel.value = panelId
+  // pendingUnlockModal was already marked seen inside UnlockModal before this call.
+  // If another unlock is still queued, stay paused so it can show next.
+  if (!progressionStore.pendingUnlockModal) {
+    if (combatStore.pausedForLevelUp) {
+      combatStore.resumeAfterLevelUp()
+    } else {
+      combatStore.resumeCombat()
+    }
+  }
 }
 
 // Ensure activePanel is always in unlockedPanels (fallback on load)
@@ -246,7 +250,12 @@ onUnmounted(() => {
     <DeathModal />
     <LevelUpModal />
     <OfflineRewardModal />
-    <UnlockModal :on-confirm="handleUnlockConfirm" />
+    <!-- Only show after all pending level-up picks are done; prevents both modals
+         rendering simultaneously and combat resuming before upgrades are chosen. -->
+    <UnlockModal
+      v-if="(characterStore.character?.pendingLevelUps ?? 0) === 0"
+      :on-confirm="handleUnlockConfirm"
+    />
   </div>
 </template>
 
