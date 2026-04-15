@@ -101,6 +101,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
     const discoveredItems = [...(char.discoveredItems ?? [])]
     const charName = char.name
     const charClass = char.class
+    const savedUpgrades = { ...(char.upgrades ?? {}) }
 
     // Full character reset (zone challenges reset so set items can be re-earned)
     characterStore.createCharacter(charName, charClass)
@@ -112,13 +113,27 @@ export const usePrestigeStore = defineStore('prestige', () => {
       newChar.lifetime = lifetime
       newChar.discoveredItems = discoveredItems
 
+      // Restore all spent skill-point upgrades
+      newChar.upgrades = savedUpgrades
+
+      // Re-apply the four upgrades that bake mutations directly into char.stats
+      // (all others are read at combat time via getUpgradeBonuses so need no re-application)
+      newChar.stats.str += (savedUpgrades['str-up'] ?? 0) * 2
+      newChar.stats.dex += (savedUpgrades['dex-up'] ?? 0) * 2
+      newChar.stats.int += (savedUpgrades['int-up'] ?? 0) * 2
+      const hpFromUpgrades = (savedUpgrades['hp-up'] ?? 0) * 15
+      newChar.maxHP += hpFromUpgrades
+      newChar.currentHP = newChar.maxHP
+
       // Apply startingLevel bonus — grant skill points for skipped levels
       const sl = startingLevel.value
       if (sl > 1) {
         newChar.level = sl
         const stats = getStatsAtLevel(newChar.class, sl)
-        newChar.stats = { str: stats.str, dex: stats.dex, int: stats.int }
-        newChar.maxHP = Math.floor(stats.maxHP * hpMultiplier.value)
+        newChar.stats.str = stats.str + (savedUpgrades['str-up'] ?? 0) * 2
+        newChar.stats.dex = stats.dex + (savedUpgrades['dex-up'] ?? 0) * 2
+        newChar.stats.int = stats.int + (savedUpgrades['int-up'] ?? 0) * 2
+        newChar.maxHP = Math.floor(stats.maxHP * hpMultiplier.value) + hpFromUpgrades
         newChar.currentHP = newChar.maxHP
         newChar.xpToNext = getXPToNextLevel(sl)
         newChar.skillPoints = (newChar.skillPoints ?? 0) + (sl - 1)
