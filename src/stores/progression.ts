@@ -82,18 +82,15 @@ export const useProgressionStore = defineStore('progression', () => {
   const unlockedPanels = computed<PanelId[]>(() => {
     const prestigeStore = usePrestigeStore()
     const level = characterStore.character?.level ?? 1
+    // After the first prestige all panels stay unlocked permanently — the
+    // player has already experienced the progressive reveal on their first run.
+    if (prestigeStore.prestigeCount > 0) {
+      return [...new Set([...ALWAYS_ON, ...PANEL_UNLOCKS.map((u) => u.panelId)])]
+    }
     const fromUnlocks = PANEL_UNLOCKS
       .filter((u) => level >= u.requiredLevel)
       .map((u) => u.panelId)
-    // Keep prestige tab accessible permanently after the player has actually
-    // prestiged — after a prestige the character resets to level 1 but the tab
-    // must remain visible so the player can ascend again without grinding back
-    // to 50.  We use prestigeCount (not seenUnlocks) so a brand-new character
-    // on a shared browser doesn't inherit the old run's prestige tab.
-    const alwaysOn: PanelId[] = prestigeStore.prestigeCount > 0
-      ? [...ALWAYS_ON, 'prestige']
-      : ALWAYS_ON
-    return [...new Set([...alwaysOn, ...fromUnlocks])]
+    return [...new Set([...ALWAYS_ON, ...fromUnlocks])]
   })
 
   // First unlock that is newly available but the player hasn't seen the modal for yet
