@@ -68,11 +68,10 @@ export const usePrestigeStore = defineStore('prestige', () => {
     // Preserve persistent data before reset
     const lifetime = { ...char.lifetime }
     const discoveredItems = [...(char.discoveredItems ?? [])]
-    const zoneAchievements = char.zoneAchievements ? { ...char.zoneAchievements } : {}
     const charName = char.name
     const charClass = char.class
 
-    // Full character reset
+    // Full character reset (zone challenges reset so set items can be re-earned)
     characterStore.createCharacter(charName, charClass)
 
     // Restore persistent data
@@ -80,7 +79,6 @@ export const usePrestigeStore = defineStore('prestige', () => {
     if (newChar) {
       newChar.lifetime = lifetime
       newChar.discoveredItems = discoveredItems
-      newChar.zoneAchievements = zoneAchievements
 
       // Apply startingLevel bonus
       const sl = startingLevel.value
