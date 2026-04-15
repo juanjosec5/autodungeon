@@ -326,9 +326,9 @@ export const useCharacterStore = defineStore('character', () => {
       const hpDiff = newMaxHP - char.maxHP
       char.maxHP = newMaxHP
       char.currentHP = Math.min(char.maxHP, char.currentHP + hpDiff)
-      char.stats.str = newStats.str
-      char.stats.dex = newStats.dex
-      char.stats.int = newStats.int
+      char.stats.str = newStats.str + (char.upgrades?.['str-up'] ?? 0) * 2
+      char.stats.dex = newStats.dex + (char.upgrades?.['dex-up'] ?? 0) * 2
+      char.stats.int = newStats.int + (char.upgrades?.['int-up'] ?? 0) * 2
       char.xpToNext = getXPToNextLevel(char.level)
     }
 
@@ -529,9 +529,9 @@ export const useCharacterStore = defineStore('character', () => {
       const hpDiff = newMaxHP - char.maxHP
       char.maxHP = newMaxHP
       char.currentHP = Math.min(char.maxHP, char.currentHP + Math.max(0, hpDiff))
-      char.stats.str = newStats.str
-      char.stats.dex = newStats.dex
-      char.stats.int = newStats.int
+      char.stats.str = newStats.str + (char.upgrades?.['str-up'] ?? 0) * 2
+      char.stats.dex = newStats.dex + (char.upgrades?.['dex-up'] ?? 0) * 2
+      char.stats.int = newStats.int + (char.upgrades?.['int-up'] ?? 0) * 2
       char.xpToNext = getXPToNextLevel(char.level)
     }
 
