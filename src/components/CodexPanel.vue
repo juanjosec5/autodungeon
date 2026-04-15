@@ -15,13 +15,13 @@ const ZONE_ORDER: ZoneId[] = ['forest', 'dungeon', 'volcano', 'abyss', 'shadowre
 
 const ZONE_META = [
   { name: 'Forest',      minZoneIdx: 0, maxZoneIdx: 0, unlockLevel: 1  },
-  { name: 'Dungeon',     minZoneIdx: 1, maxZoneIdx: 1, unlockLevel: 5  },
-  { name: 'Volcano',     minZoneIdx: 2, maxZoneIdx: 2, unlockLevel: 12 },
-  { name: 'Abyss',       minZoneIdx: 3, maxZoneIdx: 3, unlockLevel: 20 },
-  { name: 'Shadowrealm', minZoneIdx: 4, maxZoneIdx: 4, unlockLevel: 30 },
-  { name: 'Celestial',   minZoneIdx: 5, maxZoneIdx: 5, unlockLevel: 45 },
-  { name: 'Void',        minZoneIdx: 6, maxZoneIdx: 6, unlockLevel: 60 },
-  { name: 'Nightmare',   minZoneIdx: 7, maxZoneIdx: 7, unlockLevel: 80 },
+  { name: 'Dungeon',     minZoneIdx: 1, maxZoneIdx: 1, unlockLevel: 8  },
+  { name: 'Volcano',     minZoneIdx: 2, maxZoneIdx: 2, unlockLevel: 20 },
+  { name: 'Abyss',       minZoneIdx: 3, maxZoneIdx: 3, unlockLevel: 35 },
+  { name: 'Shadowrealm', minZoneIdx: 4, maxZoneIdx: 4, unlockLevel: 50 },
+  { name: 'Celestial',   minZoneIdx: 5, maxZoneIdx: 5, unlockLevel: 65 },
+  { name: 'Void',        minZoneIdx: 6, maxZoneIdx: 6, unlockLevel: 80 },
+  { name: 'Nightmare',   minZoneIdx: 7, maxZoneIdx: 7, unlockLevel: 95 },
 ] as const
 
 type ZoneSection = {

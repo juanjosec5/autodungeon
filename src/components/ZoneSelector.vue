@@ -9,13 +9,13 @@ const characterStore = useCharacterStore()
 
 const ZONES: { id: ZoneId; label: string; unlockLevel: number; icon: string }[] = [
   { id: 'forest',      label: 'Forest',      unlockLevel: 1,  icon: '🌲' },
-  { id: 'dungeon',     label: 'Dungeon',     unlockLevel: 5,  icon: '💀' },
-  { id: 'volcano',     label: 'Volcano',     unlockLevel: 12, icon: '🌋' },
-  { id: 'abyss',       label: 'Abyss',       unlockLevel: 20, icon: '🕳️' },
-  { id: 'shadowrealm', label: 'Shadowrealm', unlockLevel: 30, icon: '🌑' },
-  { id: 'celestial',   label: 'Celestial',   unlockLevel: 45, icon: '✨' },
-  { id: 'void',        label: 'Void',        unlockLevel: 60, icon: '🌀' },
-  { id: 'nightmare',   label: 'Nightmare',   unlockLevel: 80, icon: '👁️' },
+  { id: 'dungeon',     label: 'Dungeon',     unlockLevel: 8,  icon: '💀' },
+  { id: 'volcano',     label: 'Volcano',     unlockLevel: 20, icon: '🌋' },
+  { id: 'abyss',       label: 'Abyss',       unlockLevel: 35, icon: '🕳️' },
+  { id: 'shadowrealm', label: 'Shadowrealm', unlockLevel: 50, icon: '🌑' },
+  { id: 'celestial',   label: 'Celestial',   unlockLevel: 65, icon: '✨' },
+  { id: 'void',        label: 'Void',        unlockLevel: 80, icon: '🌀' },
+  { id: 'nightmare',   label: 'Nightmare',   unlockLevel: 95, icon: '👁️' },
 ]
 
 const unlocked = computed(() => characterStore.unlockedZones)
