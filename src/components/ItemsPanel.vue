@@ -120,7 +120,7 @@ function toggleSelect(item: Item) {
 const selectedGold = computed(() =>
   [...selected.value].reduce((sum, id) => {
     const item = char.value?.inventory.find(i => i.id === id)
-    return sum + (item ? getSellPrice(item.rarity) : 0)
+    return sum + (item ? getSellPrice(item) : 0)
   }, 0)
 )
 
@@ -172,7 +172,7 @@ const junkIds = computed<string[]>(() => {
 const junkGold = computed(() =>
   junkIds.value.reduce((sum, id) => {
     const item = char.value?.inventory.find(i => i.id === id)
-    return sum + (item ? getSellPrice(item.rarity) : 0)
+    return sum + (item ? getSellPrice(item) : 0)
   }, 0)
 )
 
@@ -405,7 +405,7 @@ function statSummary(item: Item): string {
             <span :class="['pop-name', rarityTextClass[activeItem.rarity]]">{{ activeItem.name }}</span>
             <span :class="['pop-rarity', rarityTextClass[activeItem.rarity]]">{{ activeItem.rarity }}</span>
           </div>
-          <span class="pop-price">{{ getSellPrice(activeItem.rarity) }}g</span>
+          <span class="pop-price">{{ getSellPrice(activeItem) }}g</span>
         </div>
         <!-- Stats + comparison -->
         <div class="pop-stats">
