@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from './auth'
 import { useCharacterStore } from './character'
+import { usePrestigeStore } from './prestige'
 import type { Character } from '../types/index'
 
 const LS_SAVES_KEY  = 'autodungeon_saves'       // Record<id, Character>
@@ -82,6 +83,10 @@ export const useSaveStore = defineStore('save', () => {
       }
 
       lastSaved.value = char.lastSaved
+
+      // Belt-and-suspenders: keep prestige in sync even if the store's own
+      // per-action saves were somehow missed (e.g. tab crash).
+      usePrestigeStore().savePrestige()
     } finally {
       isSaving.value = false
     }
@@ -96,7 +101,7 @@ export const useSaveStore = defineStore('save', () => {
     )
   }
 
-  /** Loads a specific character slot by id. */
+  /** Loads a specific character slot by id and runs offline progress calc. */
   async function loadCharacterById(id: string): Promise<boolean> {
     _migrate()
     const saves = _getAllSaves()
@@ -104,8 +109,10 @@ export const useSaveStore = defineStore('save', () => {
     if (!char) return false
 
     const characterStore = useCharacterStore()
+    const prestigeStore = usePrestigeStore()
     characterStore.restoreCharacter(char)
     localStorage.setItem(LS_ACTIVE_KEY, id)
+    await _applyOfflineProgress(characterStore, prestigeStore)
     return true
   }
 
@@ -132,6 +139,10 @@ export const useSaveStore = defineStore('save', () => {
     _migrate()
     const characterStore = useCharacterStore()
     const authStore = useAuthStore()
+    const prestigeStore = usePrestigeStore()
+
+    // Always load prestige first — offline calc needs offlineEfficiencyBonus
+    prestigeStore.loadPrestige()
 
     if (supabase && !authStore.isGuest && authStore.session) {
       const { data, error } = await supabase
@@ -142,6 +153,7 @@ export const useSaveStore = defineStore('save', () => {
 
       if (!error && data?.data) {
         characterStore.restoreCharacter(data.data)
+        await _applyOfflineProgress(characterStore, prestigeStore)
         return true
       }
     }
@@ -152,6 +164,7 @@ export const useSaveStore = defineStore('save', () => {
       const char = saves[activeId]
       if (char) {
         characterStore.restoreCharacter(char)
+        await _applyOfflineProgress(characterStore, prestigeStore)
         return true
       }
     }
@@ -161,10 +174,34 @@ export const useSaveStore = defineStore('save', () => {
     if (all.length > 0) {
       characterStore.restoreCharacter(all[0])
       localStorage.setItem(LS_ACTIVE_KEY, all[0].id)
+      await _applyOfflineProgress(characterStore, prestigeStore)
       return true
     }
 
     return false
+  }
+
+  async function _applyOfflineProgress(
+    characterStore: ReturnType<typeof useCharacterStore>,
+    prestigeStore: ReturnType<typeof usePrestigeStore>,
+  ): Promise<void> {
+    const char = characterStore.character
+    if (!char) return
+
+    const now = Date.now()
+    const lastSavedMs = new Date(char.lastSaved ?? char.createdAt).getTime()
+    const elapsedMs = now - lastSavedMs
+    if (elapsedMs <= 60_000) return
+
+    const { calcOfflineProgress } = await import('../game/offline')
+    const result = calcOfflineProgress(
+      char,
+      char.currentZone,
+      elapsedMs,
+      prestigeStore.offlineEfficiencyBonus,
+    )
+    characterStore.applyOfflineRewards(result)
+    characterStore.pendingOfflineResult = result
   }
 
   return { lastSaved, isSaving, saveCharacter, loadCharacter, loadAllSaves, loadCharacterById, deleteCharacter }

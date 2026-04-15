@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useZoneStore } from '../stores/zone'
 import { useCombatStore } from '../stores/combat'
+import { usePrestigeStore } from '../stores/prestige'
 import { CLASS_DEFINITIONS } from '../game/classes'
 import { getUpgradeBonuses } from '../game/upgrades'
 import { getActiveSet } from '../game/sets'
@@ -14,6 +15,7 @@ import type { ZoneId } from '../types/index'
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
 const combatStore = useCombatStore()
+const prestigeStore = usePrestigeStore()
 const char = computed(() => characterStore.character)
 
 // ── Class sprite + animations ─────────────────────────────────────────────────
@@ -181,6 +183,7 @@ function toggleCollapse() {
               <span :class="['class-badge', `class-${char.class}`]">{{ char.class.toUpperCase() }}</span>
             </div>
             <span class="char-level">LV.{{ char.level }}</span>
+            <span v-if="prestigeStore.prestigeCount > 0" class="prestige-badge">⚡×{{ prestigeStore.prestigeCount }}</span>
           </div>
         </div>
         <div class="bars">
@@ -330,6 +333,7 @@ function toggleCollapse() {
 .char-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
+.prestige-badge { font-size: 7px; color: #b080ff; white-space: nowrap; }
 .class-badge {
   font-size: 7px;
   padding: 2px 4px;

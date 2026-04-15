@@ -143,3 +143,26 @@ export interface ZoneAchievementProgress {
  *   'smart-r' — scrap if worse than equipped AND rarity ≤ rare
  */
 export type ScrapMode = 'off' | 'smart' | 'smart-c' | 'smart-u' | 'smart-r'
+
+export type PrestigeBonusId =
+  | 'xpBoost'
+  | 'goldBoost'
+  | 'offlineEfficiency'
+  | 'startingLevel'
+  | 'hpBonus'
+  | 'dropRateBonus'
+
+export interface OfflineResult {
+  durationMs: number
+  kills: number
+  goldEarned: number
+  xpEarned: number
+  itemsFound: Item[]
+}
+
+export interface PrestigeState {
+  prestigeCount: number
+  ascensionTokens: number
+  totalTokensEarned: number
+  bonuses: Partial<Record<PrestigeBonusId, number>>
+}

@@ -71,10 +71,21 @@ function rollRarity(isBoss: boolean): RarityId {
   return 'common'
 }
 
-export function rollLoot(zone: ZoneId, enemyId: string): Item {
+/**
+ * @param bonusChance - optional prestige drop rate bonus (0–0.5). When > 0,
+ *   each roll has this probability of bumping rarity up one tier.
+ */
+export function rollLoot(zone: ZoneId, enemyId: string, bonusChance = 0): Item {
   const isBoss = BOSS_IDS.has(enemyId)
   const zoneIdx = ZONE_INDEX[zone]
   let rarity = rollRarity(isBoss)
+
+  // Apply prestige drop rate bonus: chance to upgrade rarity by one tier
+  if (bonusChance > 0 && Math.random() < bonusChance) {
+    const RARITIES: RarityId[] = ['common', 'uncommon', 'rare', 'epic', 'legendary']
+    const idx = RARITIES.indexOf(rarity)
+    if (idx < RARITIES.length - 1) rarity = RARITIES[idx + 1]
+  }
 
   // Clamp rarity to zone pool
   if (zone === 'forest') {

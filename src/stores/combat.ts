@@ -8,6 +8,7 @@ import { useCharacterStore } from './character'
 import { useZoneStore } from './zone'
 import { useSaveStore } from './save'
 import { useAchievementStore } from './achievement'
+import { usePrestigeStore } from './prestige'
 
 const MAX_LOG = 100
 
@@ -165,8 +166,10 @@ export const useCombatStore = defineStore('combat', () => {
       }
 
       case 'xp_gained': {
-        addLogEntry({ type: 'hit', message: `✨ +${p.amount} XP` })
-        const levelsGained = characterStore.applyXP(p.amount as number)
+        const prestigeStore = usePrestigeStore()
+        const xpAmount = Math.floor((p.amount as number) * prestigeStore.xpMultiplier)
+        addLogEntry({ type: 'hit', message: `✨ +${xpAmount} XP` })
+        const levelsGained = characterStore.applyXP(xpAmount)
         if (levelsGained > 0) {
           addLogEntry({
             type: 'levelup',
@@ -198,7 +201,14 @@ export const useCombatStore = defineStore('combat', () => {
         const isBossLoot = p.isBossLoot as boolean | undefined
         const result = characterStore.addToInventory(item)
         if (result.sold) {
-          const gold = result.gold
+          const prestigeStore = usePrestigeStore()
+          const baseGold = result.gold
+          const gold = Math.floor(baseGold * prestigeStore.goldMultiplier)
+          // addToInventory already added baseGold to char.gold — add the bonus on top
+          const goldBonus = gold - baseGold
+          if (goldBonus > 0 && characterStore.character) {
+            characterStore.character.gold += goldBonus
+          }
           session.goldEarned += gold
           characterStore.updateLifetime({ goldEarned: gold })
           if (result.reason === 'scrap') {
@@ -276,12 +286,14 @@ export const useCombatStore = defineStore('combat', () => {
     const enemy = spawnEnemy(zoneStore.activeZone)
     currentEnemy.value = enemy
 
+    const prestigeStore = usePrestigeStore()
     engine.start({
       character: char,
       enemy,
       zone: zoneStore.activeZone,
       speed: speed.value,
       isPaused: false,
+      dropRateBonus: prestigeStore.dropRateBonus,
     })
 
     isRunning.value = true
