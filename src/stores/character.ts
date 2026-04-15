@@ -204,7 +204,7 @@ export const useCharacterStore = defineStore('character', () => {
       char.inventory.push(item)
     } else {
       // Auto-sell if no inventory space
-      char.gold += getSellPrice(item.rarity)
+      char.gold += getSellPrice(item)
     }
 
     char.gear[slot] = null
@@ -241,13 +241,13 @@ export const useCharacterStore = defineStore('character', () => {
             eligible = RARITY_ORDER.indexOf(displaced.rarity) <= RARITY_ORDER.indexOf(cap)
           }
           if (eligible) {
-            char.gold += getSellPrice(displaced.rarity)
+            char.gold += getSellPrice(displaced)
             scrapped = true
           }
         }
         if (!scrapped) {
           if (char.inventory.length >= 50) {
-            char.gold += getSellPrice(displaced.rarity)
+            char.gold += getSellPrice(displaced)
           } else {
             char.inventory.push(displaced)
           }
@@ -271,7 +271,7 @@ export const useCharacterStore = defineStore('character', () => {
           eligible = RARITY_ORDER.indexOf(item.rarity) <= RARITY_ORDER.indexOf(cap)
         }
         if (eligible) {
-          const gold = getSellPrice(item.rarity)
+          const gold = getSellPrice(item)
           char.gold += gold
           return { sold: true, gold, reason: 'scrap' }
         }
@@ -279,7 +279,7 @@ export const useCharacterStore = defineStore('character', () => {
     }
 
     if (char.inventory.length >= 50) {
-      const gold = getSellPrice(item.rarity)
+      const gold = getSellPrice(item)
       char.gold += gold
       return { sold: true, gold, reason: 'full' }
     }
@@ -343,7 +343,7 @@ export const useCharacterStore = defineStore('character', () => {
     let totalGold = 0
     char.inventory = char.inventory.filter((item) => {
       if (idSet.has(item.id)) {
-        totalGold += getSellPrice(item.rarity)
+        totalGold += getSellPrice(item)
         return false
       }
       return true
