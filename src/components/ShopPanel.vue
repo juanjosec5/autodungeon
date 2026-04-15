@@ -3,16 +3,19 @@ import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useZoneStore } from '../stores/zone'
 import { useSaveStore } from '../stores/save'
+import { useProgressionStore } from '../stores/progression'
 import { ITEM_DEFINITIONS, SHOP_ITEMS } from '../game/item-data'
 import { getBuyPrice } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
 import { getItemSpriteStyle } from '../game/item-sprites'
 import { fmtNum } from '../utils/format'
+import TutorialToast from './TutorialToast.vue'
 import type { Item, ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
 const saveStore = useSaveStore()
+const progressionStore = useProgressionStore()
 
 const ZONE_ORDER: ZoneId[] = ['forest', 'dungeon', 'volcano', 'abyss', 'shadowrealm', 'celestial', 'void', 'nightmare']
 const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
@@ -144,6 +147,17 @@ function toggleCollapse() {
     </div>
 
     <div class="inner" v-if="!collapsed">
+      <TutorialToast
+        v-if="!progressionStore.hasSeen('shop')"
+        panel-id="shop"
+        title="The Shop"
+        @dismiss="progressionStore.markTutorialSeen('shop')"
+      >
+        Buy weapons and armor directly with gold. Shop inventory expands as you reach new zones.<br>
+        Items are class-tagged — buying off-class gear applies a <b>30% stat penalty</b>.<br>
+        You can't sell shop items back, so only buy what you plan to use or enchant.
+      </TutorialToast>
+
       <!-- Gold + flash -->
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
@@ -183,9 +197,8 @@ function toggleCollapse() {
                   </div>
                   <span class="slot-name">{{ item.name }}</span>
                   <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
-                  <span v-if="classTag(item)" class="class-tag" :class="{ 'tag-offclass': isOffClass(item) }">
-                    {{ classTag(item) }}
-                  </span>
+                  <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
+                  <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
                 </button>
               </div>
             </template>
@@ -225,9 +238,8 @@ function toggleCollapse() {
                   </div>
                   <span class="slot-name">{{ item.name }}</span>
                   <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
-                  <span v-if="classTag(item)" class="class-tag" :class="{ 'tag-offclass': isOffClass(item) }">
-                    {{ classTag(item) }}
-                  </span>
+                  <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
+                  <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
                 </button>
               </div>
             </template>
@@ -404,7 +416,15 @@ function toggleCollapse() {
   color: var(--text-dim);
   background: rgba(0,0,0,0.5);
 }
-.tag-offclass { color: #f07020; border-color: #a05010; }
+
+.off-class-warning {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 5px;
+  color: var(--orange, #f08830);
+  line-height: 1;
+}
 
 /* Detail panel */
 .detail-panel {

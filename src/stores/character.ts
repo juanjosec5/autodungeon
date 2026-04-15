@@ -18,13 +18,13 @@ const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
 
 const ZONE_UNLOCK_LEVELS: Record<ZoneId, number> = {
   forest:      1,
-  dungeon:     5,
-  volcano:     12,
-  abyss:       20,
-  shadowrealm: 30,
-  celestial:   45,
-  void:        60,
-  nightmare:   80,
+  dungeon:     8,
+  volcano:     20,
+  abyss:       35,
+  shadowrealm: 50,
+  celestial:   65,
+  void:        80,
+  nightmare:   95,
 }
 
 const MAX_LEVEL = 100
@@ -155,6 +155,12 @@ export const useCharacterStore = defineStore('character', () => {
       if (s['battle-focus'])    data.upgrades['spell-amp']   = (s['battle-focus']    ?? 0)
     }
     if (data.pendingLevelUps === undefined) data.pendingLevelUps = 0
+    // Ensure rewardReady is present on existing zone achievement saves
+    if (data.zoneAchievements) {
+      for (const p of Object.values(data.zoneAchievements)) {
+        if (p && p.rewardReady === undefined) p.rewardReady = false
+      }
+    }
     // Recalculate xpToNext in case the XP formula changed since the save was written
     data.xpToNext = getXPToNextLevel(data.level)
     character.value = data

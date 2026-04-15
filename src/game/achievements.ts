@@ -1,7 +1,7 @@
 import type { ZoneId, Item, ZoneAchievementProgress } from '../types/index'
 
 export function blankZoneProgress(): ZoneAchievementProgress {
-  return { kills: 0, bossKills: 0, crits: 0, damageDealt: 0, enemyTypesSeen: [], setRewarded: false }
+  return { kills: 0, bossKills: 0, crits: 0, damageDealt: 0, enemyTypesSeen: [], setRewarded: false, rewardReady: false }
 }
 
 export interface Challenge {

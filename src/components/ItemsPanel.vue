@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
+import { useProgressionStore } from '../stores/progression'
 import { getOffClassPenalty } from '../game/formulas'
 import { getSellPrice } from '../game/items'
 import { getItemSpriteStyle } from '../game/item-sprites'
 import { getActiveSet } from '../game/sets'
+import TutorialToast from './TutorialToast.vue'
 import type { Item } from '../types/index'
 
 const characterStore = useCharacterStore()
+const progressionStore = useProgressionStore()
 const char = computed(() => characterStore.character)
 
 const activeSet = computed(() => {
@@ -257,6 +260,16 @@ function statSummary(item: Item): string {
   <div v-if="char" class="pixel-panel">
     <div class="panel-title">Items</div>
     <div class="inner">
+      <TutorialToast
+        v-if="!progressionStore.hasSeen('items')"
+        panel-id="items"
+        title="Your Gear"
+        @dismiss="progressionStore.markTutorialSeen('items')"
+      >
+        Items in your inventory can be <b>equipped</b> by clicking them — or automatically if Auto-Equip is on.<br>
+        Items worse than your current gear can be <b>scrapped</b> for gold. Use the scrap mode dropdown to automate this.<br>
+        Your inventory holds 50 items. When it's full, new drops are lost — scrap often.
+      </TutorialToast>
 
       <!-- ── Equipped gear ─────────────────────────────────────────────── -->
 
@@ -375,9 +388,8 @@ function statSummary(item: Item): string {
             <div class="slot-sprite-wrap">
               <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.defId ?? item.id, 2) }"></div>
             </div>
-            <span v-if="classTag(item)" class="class-tag" :class="{ 'class-warn': isOffClass(item) }">
-              {{ classTag(item) }}
-            </span>
+            <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
+            <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
           </template>
         </div>
       </div>
@@ -626,7 +638,15 @@ function statSummary(item: Item): string {
   color: var(--text-dim);
   line-height: 1;
 }
-.class-warn { color: #d8a060; }
+
+.off-class-warning {
+  position: absolute;
+  bottom: 1px;
+  left: 2px;
+  font-size: 5px;
+  color: var(--orange, #f08830);
+  line-height: 1;
+}
 
 /* rarity borders */
 .rb-common    { border-color: #555560; }

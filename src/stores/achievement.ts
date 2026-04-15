@@ -66,16 +66,28 @@ export const useAchievementStore = defineStore('achievement', () => {
     const char = characterStore.character
     if (!char?.zoneAchievements) return
     const p = char.zoneAchievements[zone]
-    if (!p || p.setRewarded) return
+    if (!p || p.setRewarded || p.rewardReady) return
 
     const set = ZONE_CHALLENGE_SETS.find((s) => s.zone === zone)
     if (!set) return
     if (!set.challenges.every((c) => c.isDone(p))) return
 
-    // Mark rewarded first to prevent double-triggering
-    p.setRewarded = true
+    // Flag for manual claiming instead of auto-granting
+    p.rewardReady = true
+  }
 
-    // Build item instances from templates
+  function claimReward(zone: ZoneId): 'claimed' | 'inventory_full' | 'not_ready' {
+    const char = characterStore.character
+    if (!char?.zoneAchievements?.[zone]) return 'not_ready'
+    const p = char.zoneAchievements[zone]!
+    if (!p.rewardReady || p.setRewarded) return 'not_ready'
+
+    const slotsAvailable = 50 - char.inventory.length
+    if (slotsAvailable < 2) return 'inventory_full'
+
+    const set = ZONE_CHALLENGE_SETS.find((s) => s.zone === zone)
+    if (!set) return 'not_ready'
+
     const weaponInstance: Item = {
       id: crypto.randomUUID(),
       defId: set.reward.weapon.defId,
@@ -100,12 +112,17 @@ export const useAchievementStore = defineStore('achievement', () => {
     characterStore.addToInventory(weaponInstance)
     characterStore.addToInventory(armorInstance)
 
+    p.rewardReady = false
+    p.setRewarded = true
+
     rewardNotifications.value.push({
       zone,
       zoneName: set.zoneName,
       weaponName: weaponInstance.name,
       armorName: armorInstance.name,
     })
+
+    return 'claimed'
   }
 
   function clearNotification(zone: ZoneId): void {
@@ -122,12 +139,20 @@ export const useAchievementStore = defineStore('achievement', () => {
       .map(([zone]) => zone)
   })
 
+  const hasClaimableReward = computed<boolean>(() => {
+    const za = characterStore.character?.zoneAchievements
+    if (!za) return false
+    return Object.values(za).some((p) => p?.rewardReady && !p.setRewarded)
+  })
+
   return {
     getProgress,
     trackKill,
     trackCrit,
     trackDamage,
     completedZones,
+    hasClaimableReward,
+    claimReward,
     rewardNotifications,
     clearNotification,
   }
