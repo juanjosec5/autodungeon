@@ -66,6 +66,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
     useTaskStore().updateTracker({ prestigesDone: 1 })
 
     // Preserve persistent data before reset
+    const charId = char.id
     const lifetime = { ...char.lifetime }
     const discoveredItems = [...(char.discoveredItems ?? [])]
     const charName = char.name
@@ -74,9 +75,10 @@ export const usePrestigeStore = defineStore('prestige', () => {
     // Full character reset (zone challenges reset so set items can be re-earned)
     characterStore.createCharacter(charName, charClass)
 
-    // Restore persistent data
+    // Restore persistent data — keep the same ID so the save slot is overwritten
     const newChar = characterStore.character
     if (newChar) {
+      newChar.id = charId
       newChar.lifetime = lifetime
       newChar.discoveredItems = discoveredItems
 
