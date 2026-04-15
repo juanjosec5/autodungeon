@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch, ref } from 'vue'
+import { onMounted, onUnmounted, watch, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
@@ -7,6 +7,9 @@ import { useZoneStore } from '../stores/zone'
 import { useCharacterStore } from '../stores/character'
 import { useAchievementStore } from '../stores/achievement'
 import { useTaskStore } from '../stores/tasks'
+import { useProgressionStore } from '../stores/progression'
+import { useAutoPickSetting } from '../composables/useAutoPickSetting'
+import { ZONE_META } from '../game/zones'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
@@ -15,12 +18,14 @@ import ZoneSelector from '../components/ZoneSelector.vue'
 import DeathModal from '../components/DeathModal.vue'
 import LevelUpModal from '../components/LevelUpModal.vue'
 import OfflineRewardModal from '../components/OfflineRewardModal.vue'
+import UnlockModal from '../components/UnlockModal.vue'
 import ShopPanel from '../components/ShopPanel.vue'
 import CodexPanel from '../components/CodexPanel.vue'
 import EnchantPanel from '../components/EnchantPanel.vue'
 import AchievementsPanel from '../components/AchievementsPanel.vue'
 import PrestigePanel from '../components/PrestigePanel.vue'
 import TasksPanel from '../components/TasksPanel.vue'
+import type { PanelId } from '../types/index'
 
 const router = useRouter()
 const saveStore = useSaveStore()
@@ -29,8 +34,8 @@ const zoneStore = useZoneStore()
 const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
 const taskStore = useTaskStore()
-
-type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'tasks' | 'log' | 'prestige'
+const progressionStore = useProgressionStore()
+const { alwaysAuto, toggleAlwaysAuto } = useAutoPickSetting()
 
 const activePanel = ref<PanelId>('items')
 
@@ -55,6 +60,9 @@ function togglePause() {
   else combatStore.pauseCombat()
 }
 
+// Zone indicator
+const zoneMeta = computed(() => ZONE_META[zoneStore.activeZone])
+
 // Restart combat whenever the active zone changes
 watch(() => zoneStore.activeZone, () => {
   if (combatStore.isRunning) combatStore.restartCombat()
@@ -71,6 +79,29 @@ watch(() => achievementStore.rewardNotifications, (notifications) => {
   }
 }, { deep: true })
 
+// Pause combat when an unlock modal is pending
+watch(() => progressionStore.pendingUnlockModal, (unlock) => {
+  if (unlock) combatStore.pauseCombat()
+})
+
+// Called by UnlockModal "Got it" — resume combat and switch to the new panel.
+// Use resumeAfterLevelUp if the pause came from a level-up, otherwise plain resume.
+function handleUnlockConfirm(panelId: PanelId): void {
+  if (combatStore.pausedForLevelUp) {
+    combatStore.resumeAfterLevelUp()
+  } else {
+    combatStore.resumeCombat()
+  }
+  activePanel.value = panelId
+}
+
+// Ensure activePanel is always in unlockedPanels (fallback on load)
+watch(() => progressionStore.unlockedPanels, (panels) => {
+  if (!panels.includes(activePanel.value)) {
+    activePanel.value = 'items'
+  }
+})
+
 onMounted(async () => {
   // Character already set means we just came from character creation — skip load
   if (!characterStore.character) {
@@ -80,6 +111,15 @@ onMounted(async () => {
       return
     }
   }
+
+  // Always ensure tasks are loaded/reset-checked. loadCharacter() calls
+  // loadTasks() for returning saves, but new characters skip that path.
+  taskStore.loadTasks()
+
+  // Silently mark already-unlocked panels as seen so existing chars don't get
+  // a cascade of unlock modals.
+  progressionStore.bulkMarkCurrentUnlocksSeen()
+
   // If there are offline rewards pending, OfflineRewardModal will start combat
   // once the player dismisses it. Otherwise start immediately.
   if (!characterStore.pendingOfflineResult) {
@@ -97,6 +137,13 @@ onUnmounted(() => {
     <!-- Header -->
     <div class="game-header">
       <h1 class="game-title">Autodungeon</h1>
+
+      <!-- Zone indicator -->
+      <div class="zone-indicator-header">
+        <span class="zone-icon" :style="{ color: zoneMeta.color }">{{ zoneMeta.icon }}</span>
+        <span class="zone-name">{{ zoneMeta.label }}</span>
+      </div>
+
       <div class="game-meta">
         <span v-if="saveStore.isSaving" class="meta-saving">Saving...</span>
         <span v-else-if="saveStore.lastSaved" class="meta-saved">
@@ -127,6 +174,20 @@ onUnmounted(() => {
                 @click="combatStore.setSpeed(s)"
               >{{ s }}×</button>
             </div>
+            <!-- Auto-pick toggle -->
+            <div class="auto-pick-row">
+              <button
+                class="pill-toggle"
+                :class="{ active: alwaysAuto }"
+                :aria-label="alwaysAuto ? 'Auto-pick on' : 'Auto-pick off'"
+                @click="toggleAlwaysAuto"
+              >
+                <span class="pill-knob" />
+              </button>
+              <span class="auto-pick-label" :class="{ 'auto-pick-on': alwaysAuto }">
+                {{ alwaysAuto ? 'Auto-pick: ON' : 'Auto-pick: off' }}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -143,10 +204,10 @@ onUnmounted(() => {
 
       <!-- Panel area: side nav + main content -->
       <div class="panel-area">
-        <!-- Side navigation -->
+        <!-- Side navigation — only unlocked panels are rendered -->
         <nav class="side-nav">
           <button
-            v-for="item in NAV_ITEMS"
+            v-for="item in NAV_ITEMS.filter(i => progressionStore.unlockedPanels.includes(i.id))"
             :key="item.id"
             class="nav-btn"
             :class="{ 'nav-active': activePanel === item.id }"
@@ -158,6 +219,10 @@ onUnmounted(() => {
                 v-if="item.id === 'tasks' && taskStore.unclaimedCompletedCount > 0"
                 class="nav-badge"
               >{{ taskStore.unclaimedCompletedCount }}</span>
+              <span
+                v-if="item.id === 'challenges' && achievementStore.hasClaimableReward"
+                class="nav-badge nav-badge-green"
+              >!</span>
             </span>
             <span class="nav-label">{{ item.label }}</span>
           </button>
@@ -181,6 +246,7 @@ onUnmounted(() => {
     <DeathModal />
     <LevelUpModal />
     <OfflineRewardModal />
+    <UnlockModal :on-confirm="handleUnlockConfirm" />
   </div>
 </template>
 
@@ -207,6 +273,24 @@ onUnmounted(() => {
   text-transform: uppercase;
   text-shadow: 2px 2px 0 #000, 0 0 20px rgba(200,160,40,0.4);
 }
+
+/* Zone indicator */
+.zone-indicator-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.zone-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+.zone-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
 .game-meta {
   display: flex;
   align-items: center;
@@ -283,6 +367,9 @@ onUnmounted(() => {
   padding: 0 2px;
   line-height: 1;
 }
+.nav-badge-green {
+  background: #2a7a48;
+}
 .nav-btn.nav-active .nav-label { color: var(--gold); }
 
 /* Main panel — fills remaining space */
@@ -324,12 +411,64 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 140px;
+  min-width: 160px;
   box-shadow: 4px 4px 0 #000;
 }
 .pause-btn  { width: 100%; text-align: center; font-size: 7px; }
 .speed-row  { display: flex; gap: 4px; }
 .speed-btn  { flex: 1; text-align: center; font-size: 7px; padding: 4px 2px; }
+
+/* Auto-pick row in popover */
+.auto-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.auto-pick-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.auto-pick-on { color: var(--gold); }
+
+/* Pill toggle (shared style for popover + modal) */
+.pill-toggle {
+  position: relative;
+  width: 28px;
+  height: 14px;
+  background: #2a2840;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.pill-toggle.active {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.pill-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: left 0.15s, background 0.15s;
+}
+
+.pill-toggle.active .pill-knob {
+  left: 16px;
+  background: #000;
+}
 
 /* Mobile: side nav becomes horizontal tab bar */
 @media (max-width: 639px) {
@@ -337,6 +476,9 @@ onUnmounted(() => {
   .game-title {
     font-size: 10px;
     letter-spacing: 1px;
+  }
+  .zone-indicator-header {
+    display: none;
   }
   .game-meta {
     margin-left: auto;

@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useCombatStore } from '../stores/combat'
+import { useZoneStore } from '../stores/zone'
 import { getSpriteForEnemy, buildSpriteStyle } from '../game/sprites'
+import { ZONE_META } from '../game/zones'
 
 const combatStore = useCombatStore()
+const zoneStore = useZoneStore()
+const zoneMeta = computed(() => ZONE_META[zoneStore.activeZone])
 const enemy = computed(() => combatStore.currentEnemy)
 const isBossActive = computed(() => combatStore.isBossActive)
 const killCount = computed(() => combatStore.killCount)
@@ -122,6 +126,10 @@ watch(() => combatStore.regenFlash, () => {
 
         <!-- Info -->
         <div class="info">
+          <div
+            class="zone-badge"
+            :style="{ borderColor: zoneMeta.color, color: zoneMeta.color }"
+          >{{ zoneMeta.icon }} {{ zoneMeta.label }}</div>
           <div class="enemy-name">{{ enemy.name }}</div>
 
           <!-- Floating numbers — positioned relative to info, float above HP bar -->
@@ -312,6 +320,17 @@ watch(() => combatStore.regenFlash, () => {
   justify-content: center;
   gap: 10px;
   position: relative;
+}
+
+.zone-badge {
+  display: inline-block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  padding: 3px 6px;
+  border: 1px solid;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  background: transparent;
 }
 
 .enemy-name {

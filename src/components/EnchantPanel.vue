@@ -2,11 +2,14 @@
 import { computed, ref } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
+import { useProgressionStore } from '../stores/progression'
 import { fmtNum } from '../utils/format'
+import TutorialToast from './TutorialToast.vue'
 import type { Item } from '../types/index'
 
 const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
+const progressionStore = useProgressionStore()
 const char = computed(() => characterStore.character)
 
 function rarityClass(rarity: string) { return `r-${rarity}` }
@@ -68,6 +71,17 @@ function toggleCollapse() {
     </div>
 
     <div class="inner" v-if="!collapsed">
+      <TutorialToast
+        v-if="!progressionStore.hasSeen('enchant')"
+        panel-id="enchant"
+        title="Enchanting"
+        @dismiss="progressionStore.markTutorialSeen('enchant')"
+      >
+        Spend gold to add a random special effect to any item. Enchanting again <b>rerolls</b> the effect — you can't stack multiple enchants.<br>
+        Higher rarity items cost more to enchant but can roll more powerful effects.<br>
+        Enchanting your equipped gear is fine — the item stays equipped.
+      </TutorialToast>
+
       <div class="gold-row">
         <span class="gold-label">Gold:</span>
         <span class="gold-val">{{ fmtNum(char?.gold ?? 0) }}g</span>

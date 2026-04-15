@@ -1,5 +1,8 @@
 import type { Enemy, ZoneId } from '../types/index'
 
+const ENEMY_HP_MULTIPLIER = 2.2
+const BOSS_HP_MULTIPLIER = 3.0
+
 export const ENEMY_DEFINITIONS: Enemy[] = [
   // ── Forest ───────────────────────────────────────────────────────────────────
   { id: 'wolf',         name: 'Wolf',         zone: 'forest',  hp: 18,  maxHp: 18,  atk: [3,  6],  def: 3,  xpReward: 20,   attackSpeed: 1400 },
@@ -86,6 +89,7 @@ export function getBossForZone(zone: ZoneId): Enemy {
   const boss = ENEMY_DEFINITIONS.find((e) => e.zone === zone && e.isBoss)
   if (!boss) throw new Error(`No boss defined for zone: ${zone}`)
   const clone = structuredClone(boss)
+  clone.maxHp = Math.floor(clone.maxHp * BOSS_HP_MULTIPLIER)
   clone.hp = clone.maxHp
   return clone
 }
@@ -93,6 +97,7 @@ export function getBossForZone(zone: ZoneId): Enemy {
 export function spawnEnemy(zone: ZoneId): Enemy {
   const pool = getEnemiesForZone(zone)
   const enemy = pool[Math.floor(Math.random() * pool.length)]
+  enemy.maxHp = Math.floor(enemy.maxHp * ENEMY_HP_MULTIPLIER)
   enemy.hp = enemy.maxHp
   return enemy
 }

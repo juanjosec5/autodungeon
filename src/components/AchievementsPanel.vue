@@ -1,12 +1,27 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAchievementStore } from '../stores/achievement'
+import { useSaveStore } from '../stores/save'
 import { ZONE_CHALLENGE_SETS } from '../game/achievements'
 import { getItemSpriteStyle } from '../game/item-sprites'
 import { fmtNum } from '../utils/format'
 import type { ZoneId } from '../types/index'
 
 const achievementStore = useAchievementStore()
+const saveStore = useSaveStore()
+
+const claimError = ref<string | null>(null)
+
+function handleClaim(zone: ZoneId): void {
+  const result = achievementStore.claimReward(zone)
+  if (result === 'inventory_full') {
+    claimError.value = 'Inventory full! Free up 2 slots first.'
+    setTimeout(() => { claimError.value = null }, 3000)
+  } else if (result === 'claimed') {
+    claimError.value = null
+    saveStore.saveCharacter()
+  }
+}
 
 const collapsed = ref(localStorage.getItem('collapsed_achievements') === 'true')
 function toggleCollapse() {
@@ -116,10 +131,20 @@ function formatProgress(current: number, target: number): string {
         </div>
 
         <!-- Reward section -->
-        <div class="reward-section" :class="{ 'reward-unlocked': isZoneDone(activeZone) }">
-          <div class="reward-title">
-            {{ isZoneDone(activeZone) ? '🏆 Reward Unlocked' : '⚔ Completion Reward' }}
-          </div>
+        <div class="reward-section" :class="{ 'reward-unlocked': isZoneDone(activeZone), 'reward-ready': achievementStore.getProgress(activeZone).rewardReady && !achievementStore.getProgress(activeZone).setRewarded }">
+          <template v-if="achievementStore.getProgress(activeZone).rewardReady && !achievementStore.getProgress(activeZone).setRewarded">
+            <div class="claim-row">
+              <div class="reward-title claim-ready">🎁 Reward ready!</div>
+              <button class="pixel-btn claim-btn" @click="handleClaim(activeZone)">Claim Reward</button>
+            </div>
+            <div v-if="claimError" class="claim-error">{{ claimError }}</div>
+          </template>
+          <template v-else-if="achievementStore.getProgress(activeZone).setRewarded">
+            <div class="reward-title">✓ Reward claimed</div>
+          </template>
+          <template v-else>
+            <div class="reward-title">⚔ Completion Reward</div>
+          </template>
           <div class="reward-items">
             <!-- Weapon -->
             <div class="reward-item">
@@ -268,12 +293,48 @@ function formatProgress(current: number, target: number): string {
   border-color: var(--gold);
 }
 
+.reward-ready {
+  border-color: #40c878;
+}
+
 .reward-title {
   font-size: 7px;
   color: var(--text-dim);
   margin-bottom: 6px;
 }
 .reward-unlocked .reward-title { color: var(--gold); }
+
+.claim-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.claim-ready {
+  color: #40c878;
+  margin-bottom: 0;
+}
+
+.claim-btn {
+  font-size: 7px;
+  padding: 4px 8px;
+  border-color: #40c878;
+  color: #40c878;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.claim-btn:hover {
+  background: rgba(64, 200, 120, 0.12);
+}
+
+.claim-error {
+  font-size: 6px;
+  color: #e05050;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
 
 .reward-items {
   display: flex;

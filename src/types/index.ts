@@ -132,7 +132,10 @@ export interface ZoneAchievementProgress {
   damageDealt: number
   enemyTypesSeen: string[]
   setRewarded: boolean
+  rewardReady: boolean
 }
+
+export type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'tasks' | 'log' | 'prestige'
 
 /**
  * Auto-scrap mode:

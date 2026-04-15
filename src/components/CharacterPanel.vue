@@ -10,6 +10,7 @@ import { getActiveSet } from '../game/sets'
 import { getSpecial } from '../game/formulas'
 import { buildClassSpriteStyle } from '../game/class-sprites'
 import { fmtNum } from '../utils/format'
+import { useAutoPickSetting } from '../composables/useAutoPickSetting'
 import type { ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -109,32 +110,53 @@ const combatStats = computed(() => {
   const setFlatDef = setBonus?.type === 'flat_def' ? setBonus.value : 0
   const effDef = Math.floor(baseArmorDef * armorEff) + ub.flatDef + setFlatDef
 
-  // Dodge & block
+  // Dodge & block (weapon + armor specials + upgrade bonuses)
+  const weapon = char.value.gear.weapon
   const armor = char.value.gear.armor
+  const weaponDodge = getSpecial(weapon?.stats.special, 'dodge')?.chance ?? 0
+  const weaponBlock = getSpecial(weapon?.stats.special, 'block')?.chance ?? 0
   const armorDodge = getSpecial(armor?.stats.special, 'dodge')?.chance ?? 0
   const armorBlock = getSpecial(armor?.stats.special, 'block')?.chance ?? 0
   const setDodge = setBonus?.type === 'dodge' ? setBonus.value : 0
-  const effDodge = Math.round(Math.min(0.75, armorDodge + ub.dodgeBonus + setDodge) * 100)
-  const effBlock = Math.round(Math.min(0.75, armorBlock + ub.blockBonus) * 100)
+  const effDodge = Math.round(Math.min(0.75, weaponDodge + armorDodge + ub.dodgeBonus + setDodge) * 100)
+  const effBlock = Math.round(Math.min(0.75, weaponBlock + armorBlock + ub.blockBonus) * 100)
 
-  return { minDPS, maxDPS, critPct, critMultiplier, hitPct, effDef, effDodge, effBlock, vsEnemy }
+  // Lifesteal (weapon + armor specials + upgrades)
+  const weaponLifesteal = getSpecial(weapon?.stats.special, 'lifesteal')?.value ?? 0
+  const armorLifesteal  = getSpecial(armor?.stats.special,  'lifesteal')?.value ?? 0
+  const setLifesteal = setBonus?.type === 'lifesteal' ? setBonus.value : 0
+  const effLifesteal = Math.round((weaponLifesteal + armorLifesteal + ub.lifestealBonus + setLifesteal) * 100)
+
+  // DEF ignore %
+  const defIgnorePct = Math.round(defIgnore * 100)
+
+  // Spell amp (mage/priest only)
+  const isSpellClass = CLASS_DEFINITIONS[classId].damageStat === 'int'
+  const setSpellAmp = setBonus?.type === 'spell_amp' ? setBonus.value : 0
+  const weaponSpellAmp = getSpecial(weapon?.stats.special, 'spellAmp')?.percent ?? 0
+  const armorSpellAmp  = getSpecial(armor?.stats.special,  'spellAmp')?.percent ?? 0
+  const effSpellAmp = isSpellClass
+    ? Math.round((weaponSpellAmp + armorSpellAmp + ub.spellAmpBonus + setSpellAmp) * 100)
+    : 0
+
+  return { minDPS, maxDPS, critPct, critMultiplier, hitPct, effDef, effDodge, effBlock, effLifesteal, defIgnorePct, effSpellAmp, vsEnemy }
 })
 
 // ── Upgrades summary pills ────────────────────────────────────────────────────
 
 const upgradesSummary = computed(() => {
-  if (!char.value) return []
+  if (!char.value) return [] as { label: string; tip: string }[]
   const ub = getUpgradeBonuses(char.value.upgrades ?? {})
-  const pills: string[] = []
-  if (ub.flatDef > 0)               pills.push(`+${ub.flatDef} DEF`)
-  if (ub.critDamageBonus > 0)       pills.push(`+${Math.round(ub.critDamageBonus * 100)}% crit`)
-  if (ub.lifestealBonus > 0)        pills.push(`+${Math.round(ub.lifestealBonus * 100)}% lifesteal`)
-  if (ub.spellAmpBonus > 0)         pills.push(`+${Math.round(ub.spellAmpBonus * 100)}% spell`)
-  if (ub.dodgeBonus > 0)            pills.push(`+${Math.round(ub.dodgeBonus * 100)}% dodge`)
-  if (ub.blockBonus > 0)            pills.push(`+${Math.round(ub.blockBonus * 100)}% block`)
-  if (ub.defIgnoreBonus > 0)        pills.push(`+${Math.round(ub.defIgnoreBonus * 100)}% pierce`)
-  if (ub.regenOnKillBonus > 0)      pills.push(`+${Math.round(ub.regenOnKillBonus * 100)}% regen`)
-  if (ub.attackSpeedReduction > 0)  pills.push(`−${ub.attackSpeedReduction}ms atk`)
+  const pills: { label: string; tip: string }[] = []
+  if (ub.flatDef > 0)               pills.push({ label: `+${ub.flatDef} DEF`,                               tip: 'Iron Skin: bonus flat DEF that reduces all incoming damage' })
+  if (ub.critDamageBonus > 0)       pills.push({ label: `+${Math.round(ub.critDamageBonus * 100)}% crit`,   tip: 'Lucky Strike: crit damage multiplier bonus (base 1.5×)' })
+  if (ub.lifestealBonus > 0)        pills.push({ label: `+${Math.round(ub.lifestealBonus * 100)}% lifesteal`, tip: 'Blood Drinker: % of damage dealt restored as HP' })
+  if (ub.spellAmpBonus > 0)         pills.push({ label: `+${Math.round(ub.spellAmpBonus * 100)}% spell`,    tip: 'Spell Surge: bonus spell damage multiplier (Mage/Priest only)' })
+  if (ub.dodgeBonus > 0)            pills.push({ label: `+${Math.round(ub.dodgeBonus * 100)}% dodge`,       tip: 'Shadow Step: chance to completely avoid an incoming attack' })
+  if (ub.blockBonus > 0)            pills.push({ label: `+${Math.round(ub.blockBonus * 100)}% block`,       tip: 'Shield Wall: chance to reduce an incoming attack to 1 damage' })
+  if (ub.defIgnoreBonus > 0)        pills.push({ label: `+${Math.round(ub.defIgnoreBonus * 100)}% pierce`,  tip: 'Armor Pierce: % of enemy DEF bypassed when dealing damage' })
+  if (ub.regenOnKillBonus > 0)      pills.push({ label: `+${Math.round(ub.regenOnKillBonus * 100)}% regen`, tip: 'Predator: % chance to regenerate HP on each kill' })
+  if (ub.attackSpeedReduction > 0)  pills.push({ label: `−${ub.attackSpeedReduction}ms atk`,                tip: 'Swift Strikes: attack speed reduction (lower is faster)' })
   return pills
 })
 
@@ -155,6 +177,12 @@ const setBonusLabel = computed(() => {
     case 'hp_regen_pct': return `+${Math.round(b.value * 100)}% regen chance`
   }
 })
+
+const damageStat = computed(() =>
+  char.value ? CLASS_DEFINITIONS[char.value.class].damageStat.toUpperCase() : '',
+)
+
+const { alwaysAuto, toggleAlwaysAuto } = useAutoPickSetting()
 
 const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
 function toggleCollapse() {
@@ -184,6 +212,7 @@ function toggleCollapse() {
             </div>
             <span class="char-level">LV.{{ char.level }}</span>
             <span v-if="prestigeStore.prestigeCount > 0" class="prestige-badge">⚡×{{ prestigeStore.prestigeCount }}</span>
+            <div class="dmg-stat-label">Dmg stat: <span class="dmg-stat-hi">{{ damageStat }}</span></div>
           </div>
         </div>
         <div class="bars">
@@ -200,16 +229,32 @@ function toggleCollapse() {
         </div>
         <div class="stats-row">
           <div class="stats">
-            <span class="stat">STR <b>{{ char.stats.str }}</b></span>
-            <span class="stat">DEX <b>{{ char.stats.dex }}</b></span>
-            <span class="stat">INT <b>{{ char.stats.int }}</b></span>
+            <span class="stat" data-tip="Physical damage bonus for Warrior, Rogue, Undead, Dragonkin">STR <b>{{ char.stats.str }}</b></span>
+            <span class="stat" data-tip="Hit chance. Roll + DEX must meet enemy DEF to land an attack">DEX <b>{{ char.stats.dex }}</b></span>
+            <span class="stat" data-tip="Spell damage bonus for Mage and Priest only">INT <b>{{ char.stats.int }}</b></span>
           </div>
           <span class="gold">{{ fmtNum(char.gold) }}g</span>
         </div>
 
         <!-- Upgrades summary -->
         <div v-if="upgradesSummary.length > 0" class="upgrades-summary">
-          <span v-for="pill in upgradesSummary" :key="pill" class="upg-pill">{{ pill }}</span>
+          <span v-for="pill in upgradesSummary" :key="pill.label" class="upg-pill" :data-tip="pill.tip">{{ pill.label }}</span>
+        </div>
+
+        <!-- Auto-pick level-up toggle -->
+        <div class="autopick-row">
+          <button
+            class="ap-pill-toggle"
+            :class="{ active: alwaysAuto }"
+            :aria-label="alwaysAuto ? 'Auto-pick on — click to turn off' : 'Auto-pick off — click to turn on'"
+            @click="toggleAlwaysAuto"
+          >
+            <span class="ap-pill-knob" />
+          </button>
+          <span class="ap-label">Level-up picks:</span>
+          <span class="ap-state" :class="{ 'ap-state-on': alwaysAuto }">
+            {{ alwaysAuto ? 'AUTO' : 'MANUAL' }}
+          </span>
         </div>
       </div>
 
@@ -220,23 +265,35 @@ function toggleCollapse() {
           <span v-if="combatStats.vsEnemy" class="cs-live-badge">live</span>
         </div>
         <div class="cs-grid">
-          <span class="cs-label">DPS range</span>
+          <span class="cs-label" data-tip="Weapon damage range after stat bonuses and off-class penalty">DMG</span>
           <span class="cs-value">{{ combatStats.minDPS }}–{{ combatStats.maxDPS }}</span>
-          <span class="cs-label">Crit chance</span>
+          <span class="cs-label" data-tip="You crit when your d20 roll meets or exceeds this number">CRIT</span>
           <span class="cs-value">{{ combatStats.critPct }}%</span>
-          <span class="cs-label">Crit mult</span>
+          <span class="cs-label" data-tip="Crit damage multiplier (base 1.5×, stacks with upgrades)">CRIT MULT</span>
           <span class="cs-value">{{ combatStats.critMultiplier.toFixed(1) }}×</span>
-          <span class="cs-label">Hit chance</span>
+          <span class="cs-label" data-tip="Hit chance. Roll + DEX must meet enemy DEF to land an attack">HIT</span>
           <span class="cs-value">{{ combatStats.hitPct }}%</span>
-          <span class="cs-label">Eff. DEF</span>
+          <span class="cs-label" data-tip="Reduces incoming damage. Enemy raw damage − DEF, minimum 1">DEF</span>
           <span class="cs-value">{{ combatStats.effDef }}</span>
           <template v-if="combatStats.effDodge > 0">
-            <span class="cs-label">Dodge</span>
+            <span class="cs-label" data-tip="Chance to completely avoid an incoming attack">DODGE</span>
             <span class="cs-value">{{ combatStats.effDodge }}%</span>
           </template>
           <template v-if="combatStats.effBlock > 0">
-            <span class="cs-label">Block</span>
+            <span class="cs-label" data-tip="Chance to reduce an incoming attack to 1 damage">BLOCK</span>
             <span class="cs-value">{{ combatStats.effBlock }}%</span>
+          </template>
+          <template v-if="combatStats.effLifesteal > 0">
+            <span class="cs-label" data-tip="% of damage dealt restored as HP on each hit">LIFESTEAL</span>
+            <span class="cs-value">{{ combatStats.effLifesteal }}%</span>
+          </template>
+          <template v-if="combatStats.defIgnorePct > 0">
+            <span class="cs-label" data-tip="% of enemy DEF bypassed when calculating your damage">DEF IGNORE</span>
+            <span class="cs-value">{{ combatStats.defIgnorePct }}%</span>
+          </template>
+          <template v-if="combatStats.effSpellAmp > 0">
+            <span class="cs-label" data-tip="Bonus damage multiplier on spells (Mage/Priest only)">SPELL AMP</span>
+            <span class="cs-value">{{ combatStats.effSpellAmp }}%</span>
           </template>
         </div>
 
@@ -334,6 +391,8 @@ function toggleCollapse() {
 .char-name { font-size: 11px; color: var(--text-hi); line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .char-level { font-size: 9px; color: var(--gold); white-space: nowrap; }
 .prestige-badge { font-size: 7px; color: #b080ff; white-space: nowrap; }
+.dmg-stat-label { font-size: 6px; color: var(--text-dim); white-space: nowrap; }
+.dmg-stat-hi { color: var(--text); }
 .class-badge {
   font-size: 7px;
   padding: 2px 4px;
@@ -352,7 +411,7 @@ function toggleCollapse() {
 .bar-val { font-size: 8px; color: var(--text); min-width: 48px; text-align: right; flex-shrink: 0; white-space: nowrap; }
 .stats-row { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); }
 .stats { display: flex; gap: 12px; flex-wrap: wrap; }
-.stat { font-size: 8px; color: var(--text-dim); }
+.stat { font-size: 8px; color: var(--text-dim); position: relative; }
 .stat b { color: var(--text); font-weight: normal; }
 .gold { font-size: 8px; color: var(--gold); }
 
@@ -387,8 +446,46 @@ function toggleCollapse() {
   grid-template-columns: 1fr auto;
   gap: 5px 10px;
 }
-.cs-label { font-size: 7px; color: var(--text-dim); }
+.cs-label {
+  font-size: 7px;
+  color: var(--text-dim);
+  position: relative;
+  cursor: default;
+}
 .cs-value { font-size: 7px; color: var(--text); text-align: right; }
+
+/* ── data-tip tooltip (shared by cs-label, .stat, .upg-pill) ─────────────── */
+[data-tip] {
+  position: relative;
+  cursor: help;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 5px);
+  z-index: 300;
+  width: max-content;
+  max-width: 200px;
+  padding: 5px 8px;
+  background: #1a1830;
+  border: 1px solid var(--border-hi, #4a4060);
+  color: var(--text, #d0c8e8);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  box-shadow: 2px 2px 0 #000;
+}
+
+[data-tip]:hover::after {
+  opacity: 1;
+}
 
 /* Set bonus */
 .set-bonus-row {
@@ -403,4 +500,58 @@ function toggleCollapse() {
 .set-icon { font-size: 8px; color: var(--gold); flex-shrink: 0; }
 .set-name { font-size: 6px; color: var(--gold); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .set-val  { font-size: 6px; color: #80d0a0; flex-shrink: 0; white-space: nowrap; }
+
+/* Auto-pick toggle row */
+.autopick-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.ap-label {
+  font-size: 6px;
+  color: var(--text-dim);
+  flex: 1;
+}
+
+.ap-state {
+  font-size: 6px;
+  color: var(--text-dim);
+}
+.ap-state-on {
+  color: var(--gold);
+}
+
+.ap-pill-toggle {
+  position: relative;
+  width: 26px;
+  height: 13px;
+  background: #2a2840;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ap-pill-toggle.active {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.ap-pill-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 7px;
+  height: 7px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: left 0.15s, background 0.15s;
+}
+.ap-pill-toggle.active .ap-pill-knob {
+  left: 15px;
+  background: #000;
+}
 </style>
