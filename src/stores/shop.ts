@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ConsumableId } from '../types/index'
 import { CONSUMABLE_DEFS, getStockForSlot, ROTATION_INTERVAL_MS } from '../game/shop'
+import { useZoneStore } from './zone'
 
 interface ActiveConsumable {
   id: ConsumableId
@@ -21,7 +22,7 @@ export const useShopStore = defineStore('shop', () => {
 
   const currentSlotIndex = computed(() => Math.floor(Date.now() / ROTATION_INTERVAL_MS))
 
-  const currentStock = computed(() => getStockForSlot(currentSlotIndex.value))
+  const currentStock = computed(() => getStockForSlot(currentSlotIndex.value, useZoneStore().activeZone))
 
   const timeToNextRotation = computed(() => {
     const nextRotation = (currentSlotIndex.value + 1) * ROTATION_INTERVAL_MS

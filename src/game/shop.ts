@@ -1,6 +1,6 @@
 import type { ConsumableId } from '../types/index'
-import { ITEM_DEFINITIONS, SHOP_ITEMS } from './item-data'
-import type { Item } from '../types/index'
+import { ITEM_DEFINITIONS, SHOP_ITEMS, ZONE_INDEX } from './item-data'
+import type { Item, ZoneId } from '../types/index'
 
 export interface ConsumableDef {
   id: ConsumableId
@@ -68,17 +68,25 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return result
 }
 
-/** Returns 3 weapons + 3 armor from the current rotation slot. */
-export function getStockForSlot(slotIndex: number): Item[] {
+/** Returns up to 3 weapons + 3 armor from the current rotation slot,
+ *  filtered to items whose minZone ≤ the player's active zone. */
+export function getStockForSlot(slotIndex: number, zone: ZoneId): Item[] {
+  const maxZoneIndex = ZONE_INDEX[zone] ?? 0
+
   const allItems = SHOP_ITEMS
+    .filter(({ minZone }) => minZone <= maxZoneIndex)
     .map(({ id }) => ITEM_DEFINITIONS.find((i) => i.id === id))
     .filter((i): i is Item => !!i)
 
   const weapons = allItems.filter((i) => i.type === 'weapon')
   const armors  = allItems.filter((i) => i.type === 'armor')
 
-  const shuffledWeapons = seededShuffle(weapons, slotIndex * 2 + 1)
-  const shuffledArmors  = seededShuffle(armors,  slotIndex * 2 + 2)
+  // Incorporate zone into seed so each zone sees distinct stock at the same time slot
+  const wSeed = slotIndex * 16 + maxZoneIndex * 2 + 1
+  const aSeed = slotIndex * 16 + maxZoneIndex * 2 + 2
+
+  const shuffledWeapons = seededShuffle(weapons, wSeed)
+  const shuffledArmors  = seededShuffle(armors,  aSeed)
 
   return [...shuffledWeapons.slice(0, 3), ...shuffledArmors.slice(0, 3)]
 }
