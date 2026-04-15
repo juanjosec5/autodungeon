@@ -9,6 +9,7 @@ import { useZoneStore } from './zone'
 import { useSaveStore } from './save'
 import { useAchievementStore } from './achievement'
 import { usePrestigeStore } from './prestige'
+import { useTaskStore } from './tasks'
 
 const MAX_LOG = 100
 
@@ -82,6 +83,7 @@ export const useCombatStore = defineStore('combat', () => {
         enemyHitFlash.value++
         characterStore.updateLifetime({ damageDealt: dmg, highestHit: dmg })
         useAchievementStore().trackDamage(useZoneStore().activeZone, dmg)
+        useTaskStore().updateTracker({ damageDealt: dmg })
         if (p.lifestealHeal) {
           lastLifestealAmount.value = p.lifestealHeal as number
           lifestealFlash.value++
@@ -104,6 +106,7 @@ export const useCombatStore = defineStore('combat', () => {
         characterStore.updateLifetime({ damageDealt: dmg, highestHit: dmg })
         useAchievementStore().trackDamage(useZoneStore().activeZone, dmg)
         useAchievementStore().trackCrit(useZoneStore().activeZone)
+        useTaskStore().updateTracker({ damageDealt: dmg, crits: 1 })
         if (p.lifestealHeal) {
           lastLifestealAmount.value = p.lifestealHeal as number
           lifestealFlash.value++
@@ -136,11 +139,13 @@ export const useCombatStore = defineStore('combat', () => {
         if (bossKill) {
           session.bossKills++
           characterStore.updateLifetime({ bossKills: 1 })
+          useTaskStore().updateTracker({ bossKills: 1 })
         } else {
           session.kills++
           killCount.value = engine.getKillCount()
           killsToNextBoss.value = engine.getKillsToNextBoss()
           characterStore.updateLifetime({ kills: 1 })
+          useTaskStore().updateTracker({ kills: 1 })
         }
         break
       }
@@ -211,6 +216,7 @@ export const useCombatStore = defineStore('combat', () => {
           }
           session.goldEarned += gold
           characterStore.updateLifetime({ goldEarned: gold })
+          useTaskStore().updateTracker({ goldEarned: gold })
           if (result.reason === 'scrap') {
             characterStore.updateLifetime({ itemsScrapped: 1 })
             addLogEntry({ type: 'sell', message: `🗑 Auto-scrapped ${item.name} for ${gold}g` })

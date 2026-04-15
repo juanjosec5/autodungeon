@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from './auth'
 import { useCharacterStore } from './character'
 import { usePrestigeStore } from './prestige'
+import { useTaskStore } from './tasks'
 import type { Character } from '../types/index'
 
 const LS_SAVES_KEY  = 'autodungeon_saves'       // Record<id, Character>
@@ -187,6 +188,9 @@ export const useSaveStore = defineStore('save', () => {
   ): Promise<void> {
     const char = characterStore.character
     if (!char) return
+
+    // Load tasks (and run reset checks) whenever a character is restored
+    useTaskStore().loadTasks()
 
     const now = Date.now()
     const lastSavedMs = new Date(char.lastSaved ?? char.createdAt).getTime()

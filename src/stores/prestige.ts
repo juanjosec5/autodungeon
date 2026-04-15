@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { PrestigeBonusId, PrestigeState } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { useCharacterStore } from './character'
+import { useTaskStore } from './tasks'
 
 const LS_PRESTIGE_KEY = 'autodungeon_prestige'
 
@@ -62,6 +63,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
     ascensionTokens.value += tokensEarned
     totalTokensEarned.value += tokensEarned
     prestigeCount.value++
+    useTaskStore().updateTracker({ prestigesDone: 1 })
 
     // Preserve persistent data before reset
     const lifetime = { ...char.lifetime }
@@ -92,6 +94,12 @@ export const usePrestigeStore = defineStore('prestige', () => {
       }
     }
 
+    savePrestige()
+  }
+
+  function addTokens(amount: number): void {
+    ascensionTokens.value += amount
+    totalTokensEarned.value += amount
     savePrestige()
   }
 
@@ -130,6 +138,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
     hpMultiplier,
     dropRateBonus,
     BONUS_DEFS,
+    addTokens,
     buyBonus,
     prestige,
     savePrestige,

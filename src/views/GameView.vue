@@ -7,6 +7,7 @@ import { useZoneStore } from '../stores/zone'
 import { useAuthStore } from '../stores/auth'
 import { useCharacterStore } from '../stores/character'
 import { useAchievementStore } from '../stores/achievement'
+import { useTaskStore } from '../stores/tasks'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
 import CombatLog from '../components/CombatLog.vue'
@@ -20,6 +21,7 @@ import CodexPanel from '../components/CodexPanel.vue'
 import EnchantPanel from '../components/EnchantPanel.vue'
 import AchievementsPanel from '../components/AchievementsPanel.vue'
 import PrestigePanel from '../components/PrestigePanel.vue'
+import TasksPanel from '../components/TasksPanel.vue'
 
 const router = useRouter()
 const saveStore = useSaveStore()
@@ -28,8 +30,9 @@ const zoneStore = useZoneStore()
 const authStore = useAuthStore()
 const characterStore = useCharacterStore()
 const achievementStore = useAchievementStore()
+const taskStore = useTaskStore()
 
-type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'log' | 'prestige'
+type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'tasks' | 'log' | 'prestige'
 
 const activePanel = ref<PanelId>('items')
 
@@ -40,6 +43,7 @@ const NAV_ITEMS: { id: PanelId; icon: string; label: string }[] = [
   { id: 'codex',      icon: '📖', label: 'Codex'      },
   { id: 'enchant',    icon: '✦',  label: 'Enchant'    },
   { id: 'challenges', icon: '🏆', label: 'Challenges' },
+  { id: 'tasks',      icon: '📋', label: 'Tasks'      },
   { id: 'log',        icon: '📜', label: 'Log'        },
   { id: 'prestige',   icon: '⚡',  label: 'Ascend'     },
 ]
@@ -152,7 +156,13 @@ onUnmounted(() => {
             :class="{ 'nav-active': activePanel === item.id }"
             @click="activePanel = item.id"
           >
-            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-icon-wrap">
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span
+                v-if="item.id === 'tasks' && taskStore.unclaimedCompletedCount > 0"
+                class="nav-badge"
+              >{{ taskStore.unclaimedCompletedCount }}</span>
+            </span>
             <span class="nav-label">{{ item.label }}</span>
           </button>
         </nav>
@@ -165,6 +175,7 @@ onUnmounted(() => {
           <CodexPanel        v-if="activePanel === 'codex'" />
           <EnchantPanel      v-if="activePanel === 'enchant'" />
           <AchievementsPanel v-if="activePanel === 'challenges'" />
+          <TasksPanel        v-if="activePanel === 'tasks'" />
           <CombatLog         v-if="activePanel === 'log'" class="log-fill" />
           <PrestigePanel     v-if="activePanel === 'prestige'" />
         </div>
@@ -257,8 +268,25 @@ onUnmounted(() => {
   border-color: var(--gold);
 }
 
+.nav-icon-wrap { position: relative; display: inline-flex; }
 .nav-icon  { font-size: 14px; line-height: 1; }
 .nav-label { font-size: 5px; color: var(--text-dim); letter-spacing: 0.5px; }
+.nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 5px;
+  min-width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  line-height: 1;
+}
 .nav-btn.nav-active .nav-label { color: var(--gold); }
 
 /* Main panel — fills remaining space */
