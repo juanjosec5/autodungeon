@@ -26,7 +26,10 @@ export const usePrestigeStore = defineStore('prestige', () => {
   const xpMultiplier = computed(() => 1 + (bonuses.value.xpBoost ?? 0) * 0.2)
   const goldMultiplier = computed(() => 1 + (bonuses.value.goldBoost ?? 0) * 0.2)
   const offlineEfficiencyBonus = computed(() => (bonuses.value.offlineEfficiency ?? 0) * 0.1)
-  const startingLevel = computed(() => (bonuses.value.startingLevel ?? 0) * 5 + 1)
+  const startingLevel = computed(() => {
+    const stacks = bonuses.value.startingLevel ?? 0
+    return stacks > 0 ? stacks * 5 : 1
+  })
   const hpMultiplier = computed(() => 1 + (bonuses.value.hpBonus ?? 0) * 0.1)
   const dropRateBonus = computed(() => (bonuses.value.dropRateBonus ?? 0) * 0.1)
 
@@ -36,7 +39,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
     xpBoost:           { cost: 2,  maxStacks: 5,  label: 'XP Boost',          effect: '+20% XP per stack',            icon: '✨' },
     goldBoost:         { cost: 2,  maxStacks: 5,  label: 'Gold Boost',         effect: '+20% gold per stack',          icon: '💰' },
     offlineEfficiency: { cost: 3,  maxStacks: 10, label: 'Offline Efficiency', effect: '+10% offline kill rate/stack', icon: '⏳' },
-    startingLevel:     { cost: 5,  maxStacks: 5,  label: 'Head Start',         effect: 'Start 5 levels higher/stack',  icon: '🚀' },
+    startingLevel:     { cost: 5,  maxStacks: 5,  label: 'Head Start',         effect: 'Start at level 5, 10, 15...',  icon: '🚀' },
     hpBonus:           { cost: 2,  maxStacks: 10, label: 'Vitality',           effect: '+10% max HP per stack',        icon: '❤' },
     dropRateBonus:     { cost: 4,  maxStacks: 5,  label: 'Fortune',            effect: '+10% drop chance/stack',       icon: '🎁' },
   }
@@ -91,6 +94,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
         newChar.maxHP = Math.floor(stats.maxHP * hpMultiplier.value)
         newChar.currentHP = newChar.maxHP
         newChar.xpToNext = getXPToNextLevel(sl)
+        newChar.pendingLevelUps = sl - 1  // upgrade picks for each skipped level
       }
     }
 

@@ -304,6 +304,7 @@ export const useCharacterStore = defineStore('character', () => {
 
     char.xp += amount
     let levelsGained = 0
+    const prestigeStore = usePrestigeStore()
 
     while (char.xp >= char.xpToNext && char.level < MAX_LEVEL) {
       char.xp -= char.xpToNext
@@ -312,8 +313,11 @@ export const useCharacterStore = defineStore('character', () => {
       char.pendingLevelUps = (char.pendingLevelUps ?? 0) + 1
 
       const newStats = getStatsAtLevel(char.class, char.level)
-      const hpDiff = newStats.maxHP - char.maxHP
-      char.maxHP = newStats.maxHP
+      const newMaxHP = prestigeStore.hpMultiplier > 1
+        ? Math.floor(newStats.maxHP * prestigeStore.hpMultiplier)
+        : newStats.maxHP
+      const hpDiff = newMaxHP - char.maxHP
+      char.maxHP = newMaxHP
       char.currentHP = Math.min(char.maxHP, char.currentHP + hpDiff)
       char.stats.str = newStats.str
       char.stats.dex = newStats.dex
@@ -481,13 +485,17 @@ export const useCharacterStore = defineStore('character', () => {
     }
 
     // Silent level-ups — apply stat gains but no upgrade choices yet
+    const offlinePrestigeStore = usePrestigeStore()
     while (char.xp >= char.xpToNext && char.level < MAX_LEVEL) {
       char.xp -= char.xpToNext
       char.level++
       char.pendingLevelUps = (char.pendingLevelUps ?? 0) + 1
       const newStats = getStatsAtLevel(char.class, char.level)
-      const hpDiff = newStats.maxHP - char.maxHP
-      char.maxHP = newStats.maxHP
+      const newMaxHP = offlinePrestigeStore.hpMultiplier > 1
+        ? Math.floor(newStats.maxHP * offlinePrestigeStore.hpMultiplier)
+        : newStats.maxHP
+      const hpDiff = newMaxHP - char.maxHP
+      char.maxHP = newMaxHP
       char.currentHP = Math.min(char.maxHP, char.currentHP + Math.max(0, hpDiff))
       char.stats.str = newStats.str
       char.stats.dex = newStats.dex
@@ -511,11 +519,15 @@ export const useCharacterStore = defineStore('character', () => {
   function _recalcMaxHP(): void {
     const char = character.value
     if (!char) return
+    const prestigeStore = usePrestigeStore()
     const baseStats = getStatsAtLevel(char.class, char.level)
+    const baseHP = prestigeStore.hpMultiplier > 1
+      ? Math.floor(baseStats.maxHP * prestigeStore.hpMultiplier)
+      : baseStats.maxHP
     const armorHpBonus = char.gear.armor?.stats.hpBonus ?? 0
     const penalty = char.gear.armor ? getOffClassPenalty(char.gear.armor, char.class) : 1
     const effectiveHpBonus = Math.floor(armorHpBonus * penalty)
-    const newMax = baseStats.maxHP + effectiveHpBonus
+    const newMax = baseHP + effectiveHpBonus
     const diff = newMax - char.maxHP
     char.maxHP = newMax
     char.currentHP = Math.min(newMax, char.currentHP + Math.max(0, diff))
