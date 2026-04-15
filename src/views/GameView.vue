@@ -201,6 +201,7 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <button class="pixel-btn" @click="router.push('/wiki')" title="Wiki & Changelog">📖</button>
         <button class="pixel-btn" @click="router.push('/')">← Menu</button>
       </div>
     </div>
