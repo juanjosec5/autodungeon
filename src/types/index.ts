@@ -160,6 +160,40 @@ export interface OfflineResult {
   itemsFound: Item[]
 }
 
+export type TaskType =
+  | 'kill_enemies'
+  | 'kill_bosses'
+  | 'deal_damage'
+  | 'earn_gold'
+  | 'land_crits'
+  | 'reach_level'
+  | 'prestige_run'
+
+export interface TaskReward {
+  gold: number
+  xp: number
+  tokens: number
+}
+
+export interface TaskInstance {
+  id: string
+  type: TaskType
+  zone?: ZoneId
+  target: number
+  description: string
+  reward: TaskReward
+  period: 'daily' | 'weekly'
+}
+
+export interface TaskTracker {
+  kills: number
+  bossKills: number
+  damageDealt: number
+  goldEarned: number
+  crits: number
+  prestigesDone: number
+}
+
 export interface PrestigeState {
   prestigeCount: number
   ascensionTokens: number
