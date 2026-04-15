@@ -111,6 +111,7 @@ export const useSaveStore = defineStore('save', () => {
 
     const characterStore = useCharacterStore()
     const prestigeStore = usePrestigeStore()
+    prestigeStore.loadPrestige()
     characterStore.restoreCharacter(char)
     localStorage.setItem(LS_ACTIVE_KEY, id)
     await _applyOfflineProgress(characterStore, prestigeStore)
