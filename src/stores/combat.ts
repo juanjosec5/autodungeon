@@ -10,6 +10,7 @@ import { useSaveStore } from './save'
 import { useAchievementStore } from './achievement'
 import { usePrestigeStore } from './prestige'
 import { useTaskStore } from './tasks'
+import { useShopStore } from './shop'
 
 const MAX_LOG = 100
 
@@ -36,8 +37,6 @@ export const useCombatStore = defineStore('combat', () => {
   const isBossActive = ref(false)
   const killCount = ref(0)
   const killsToNextBoss = ref(12)
-  const pausedForLevelUp = ref(false)
-
   // Floating number triggers
   const playerMissFlash = ref(0)
   const lifestealFlash = ref(0)
@@ -172,7 +171,12 @@ export const useCombatStore = defineStore('combat', () => {
 
       case 'xp_gained': {
         const prestigeStore = usePrestigeStore()
-        const xpAmount = Math.floor((p.amount as number) * prestigeStore.xpMultiplier)
+        const shopStore = useShopStore()
+        let xpAmount = Math.floor((p.amount as number) * prestigeStore.xpMultiplier * (1 + shopStore.xpBonus))
+        // Arcane Surge: chance to double XP from a kill
+        if (prestigeStore.xpDoubleChance > 0 && Math.random() < prestigeStore.xpDoubleChance) {
+          xpAmount *= 2
+        }
         addLogEntry({ type: 'hit', message: `✨ +${xpAmount} XP` })
         const levelsGained = characterStore.applyXP(xpAmount)
         if (levelsGained > 0) {
@@ -182,12 +186,6 @@ export const useCombatStore = defineStore('combat', () => {
           })
           engine.updateCharacter(characterStore.character!)
           _triggerSave()
-          // Pause combat so the player can choose an upgrade
-          if ((characterStore.character?.pendingLevelUps ?? 0) > 0) {
-            engine.pause()
-            isPaused.value = true
-            pausedForLevelUp.value = true
-          }
         }
         break
       }
@@ -208,7 +206,8 @@ export const useCombatStore = defineStore('combat', () => {
         if (result.sold) {
           const prestigeStore = usePrestigeStore()
           const baseGold = result.gold
-          const gold = Math.floor(baseGold * prestigeStore.goldMultiplier)
+          const shopStore = useShopStore()
+          const gold = Math.floor(baseGold * prestigeStore.goldMultiplier * (1 + shopStore.goldBonus))
           // addToInventory already added baseGold to char.gold — add the bonus on top
           const goldBonus = gold - baseGold
           if (goldBonus > 0 && characterStore.character) {
@@ -299,7 +298,12 @@ export const useCombatStore = defineStore('combat', () => {
       zone: zoneStore.activeZone,
       speed: speed.value,
       isPaused: false,
-      dropRateBonus: prestigeStore.dropRateBonus,
+      dropRateBonus:      prestigeStore.dropRateBonus,
+      hitChanceBonus:     prestigeStore.hitChanceBonus,
+      damageReduction:    prestigeStore.damageReduction,
+      overkillStacks:     prestigeStore.overkillStacks,
+      passiveRegenPerSec: prestigeStore.passiveRegenPerSec,
+      deathPactSaves:     prestigeStore.deathPactSaves,
     })
 
     isRunning.value = true
@@ -341,14 +345,6 @@ export const useCombatStore = defineStore('combat', () => {
     setTimeout(() => startCombat(), 100)
   }
 
-  /** Called by LevelUpModal after the last pending upgrade is selected. */
-  function resumeAfterLevelUp(): void {
-    if (!pausedForLevelUp.value) return
-    pausedForLevelUp.value = false
-    engine.resume()
-    isPaused.value = false
-  }
-
   return {
     currentEnemy,
     combatLog,
@@ -363,7 +359,6 @@ export const useCombatStore = defineStore('combat', () => {
     isBossActive,
     killCount,
     killsToNextBoss,
-    pausedForLevelUp,
     playerMissFlash,
     lifestealFlash,
     lastLifestealAmount,
@@ -376,7 +371,6 @@ export const useCombatStore = defineStore('combat', () => {
     resumeCombat,
     setSpeed,
     restartCombat,
-    resumeAfterLevelUp,
     addLogEntry,
   }
 })

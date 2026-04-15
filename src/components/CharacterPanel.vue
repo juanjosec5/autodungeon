@@ -10,7 +10,6 @@ import { getActiveSet } from '../game/sets'
 import { getSpecial } from '../game/formulas'
 import { buildClassSpriteStyle } from '../game/class-sprites'
 import { fmtNum } from '../utils/format'
-import { useAutoPickSetting } from '../composables/useAutoPickSetting'
 import type { ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -182,8 +181,6 @@ const damageStat = computed(() =>
   char.value ? CLASS_DEFINITIONS[char.value.class].damageStat.toUpperCase() : '',
 )
 
-const { alwaysAuto, toggleAlwaysAuto } = useAutoPickSetting()
-
 const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
@@ -241,21 +238,6 @@ function toggleCollapse() {
           <span v-for="pill in upgradesSummary" :key="pill.label" class="upg-pill" :data-tip="pill.tip">{{ pill.label }}</span>
         </div>
 
-        <!-- Auto-pick level-up toggle -->
-        <div class="autopick-row">
-          <button
-            class="ap-pill-toggle"
-            :class="{ active: alwaysAuto }"
-            :aria-label="alwaysAuto ? 'Auto-pick on — click to turn off' : 'Auto-pick off — click to turn on'"
-            @click="toggleAlwaysAuto"
-          >
-            <span class="ap-pill-knob" />
-          </button>
-          <span class="ap-label">Level-up picks:</span>
-          <span class="ap-state" :class="{ 'ap-state-on': alwaysAuto }">
-            {{ alwaysAuto ? 'AUTO' : 'MANUAL' }}
-          </span>
-        </div>
       </div>
 
       <!-- Col 2: Combat Stats + Set Bonus -->
@@ -501,57 +483,4 @@ function toggleCollapse() {
 .set-name { font-size: 6px; color: var(--gold); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .set-val  { font-size: 6px; color: #80d0a0; flex-shrink: 0; white-space: nowrap; }
 
-/* Auto-pick toggle row */
-.autopick-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border);
-}
-
-.ap-label {
-  font-size: 6px;
-  color: var(--text-dim);
-  flex: 1;
-}
-
-.ap-state {
-  font-size: 6px;
-  color: var(--text-dim);
-}
-.ap-state-on {
-  color: var(--gold);
-}
-
-.ap-pill-toggle {
-  position: relative;
-  width: 26px;
-  height: 13px;
-  background: #2a2840;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
-}
-.ap-pill-toggle.active {
-  background: var(--gold);
-  border-color: var(--gold);
-}
-.ap-pill-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 7px;
-  height: 7px;
-  background: var(--text-dim);
-  border-radius: 50%;
-  transition: left 0.15s, background 0.15s;
-}
-.ap-pill-toggle.active .ap-pill-knob {
-  left: 15px;
-  background: #000;
-}
 </style>

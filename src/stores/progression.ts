@@ -12,6 +12,12 @@ export interface PanelUnlock {
 
 export const PANEL_UNLOCKS: PanelUnlock[] = [
   {
+    panelId: 'skills',
+    requiredLevel: 3,
+    title: 'Skills Unlocked',
+    description: "Earn Skill Points on every level-up. Spend them at your own pace from the Skills tab to strengthen your character.",
+  },
+  {
     panelId: 'zone',
     requiredLevel: 3,
     title: 'Zone Map Unlocked',

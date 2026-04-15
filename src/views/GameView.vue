@@ -9,7 +9,7 @@ import { useAchievementStore } from '../stores/achievement'
 import { useTaskStore } from '../stores/tasks'
 import { useProgressionStore } from '../stores/progression'
 import { usePrestigeStore } from '../stores/prestige'
-import { useAutoPickSetting } from '../composables/useAutoPickSetting'
+import { useShopStore } from '../stores/shop'
 import { ZONE_META } from '../game/zones'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
@@ -17,9 +17,9 @@ import CombatLog from '../components/CombatLog.vue'
 import ItemsPanel from '../components/ItemsPanel.vue'
 import ZoneSelector from '../components/ZoneSelector.vue'
 import DeathModal from '../components/DeathModal.vue'
-import LevelUpModal from '../components/LevelUpModal.vue'
 import OfflineRewardModal from '../components/OfflineRewardModal.vue'
 import UnlockModal from '../components/UnlockModal.vue'
+import SkillsPanel from '../components/SkillsPanel.vue'
 import ShopPanel from '../components/ShopPanel.vue'
 import CodexPanel from '../components/CodexPanel.vue'
 import EnchantPanel from '../components/EnchantPanel.vue'
@@ -37,12 +37,15 @@ const achievementStore = useAchievementStore()
 const taskStore = useTaskStore()
 const progressionStore = useProgressionStore()
 const prestigeStore = usePrestigeStore()
-const { alwaysAuto, toggleAlwaysAuto } = useAutoPickSetting()
+const shopStore = useShopStore()
 
 const activePanel = ref<PanelId>('items')
+const skillPoints = computed(() => characterStore.character?.skillPoints ?? 0)
+const canUse4x = computed(() => prestigeStore.prestigeCount >= 3)
 
 const NAV_ITEMS: { id: PanelId; icon: string; label: string }[] = [
   { id: 'items',      icon: '⚔',  label: 'Items'      },
+  { id: 'skills',     icon: '⬆',  label: 'Skills'     },
   { id: 'zone',       icon: '🗺', label: 'Zone'       },
   { id: 'shop',       icon: '🛒', label: 'Shop'       },
   { id: 'codex',      icon: '📖', label: 'Codex'      },
@@ -60,6 +63,11 @@ const SPEEDS = [0.5, 1, 2, 4] as const
 function togglePause() {
   if (combatStore.isPaused) combatStore.resumeCombat()
   else combatStore.pauseCombat()
+}
+
+function setSpeed(s: 0.5 | 1 | 2 | 4) {
+  if (s === 4 && !canUse4x.value) return
+  combatStore.setSpeed(s)
 }
 
 // Zone indicator
@@ -93,11 +101,7 @@ function handleUnlockConfirm(panelId: PanelId): void {
   // pendingUnlockModal was already marked seen inside UnlockModal before this call.
   // If another unlock is still queued, stay paused so it can show next.
   if (!progressionStore.pendingUnlockModal) {
-    if (combatStore.pausedForLevelUp) {
-      combatStore.resumeAfterLevelUp()
-    } else {
-      combatStore.resumeCombat()
-    }
+    combatStore.resumeCombat()
   }
 }
 
@@ -112,6 +116,7 @@ onMounted(async () => {
   // Always load prestige data first — covers new-character creation path where
   // loadCharacter() is skipped and prestige multipliers must apply from the start.
   prestigeStore.loadPrestige()
+  shopStore.load()
 
   // Character already set means we just came from character creation — skip load
   if (!characterStore.character) {
@@ -186,23 +191,10 @@ onUnmounted(() => {
                 v-for="s in SPEEDS"
                 :key="s"
                 class="pixel-btn speed-btn"
-                :class="combatStore.speed === s ? 'btn-gold' : ''"
-                @click="combatStore.setSpeed(s)"
-              >{{ s }}×</button>
-            </div>
-            <!-- Auto-pick toggle -->
-            <div class="auto-pick-row">
-              <button
-                class="pill-toggle"
-                :class="{ active: alwaysAuto }"
-                :aria-label="alwaysAuto ? 'Auto-pick on' : 'Auto-pick off'"
-                @click="toggleAlwaysAuto"
-              >
-                <span class="pill-knob" />
-              </button>
-              <span class="auto-pick-label" :class="{ 'auto-pick-on': alwaysAuto }">
-                {{ alwaysAuto ? 'Auto-pick: ON' : 'Auto-pick: off' }}
-              </span>
+                :class="[combatStore.speed === s ? 'btn-gold' : '', s === 4 && !canUse4x ? 'btn-locked' : '']"
+                :title="s === 4 && !canUse4x ? 'Unlock after 3 prestiges' : ''"
+                @click="setSpeed(s)"
+              >{{ s }}×{{ s === 4 && !canUse4x ? ' 🔒' : '' }}</button>
             </div>
           </div>
         </div>
@@ -233,6 +225,10 @@ onUnmounted(() => {
             <span class="nav-icon-wrap">
               <span class="nav-icon">{{ item.icon }}</span>
               <span
+                v-if="item.id === 'skills' && skillPoints > 0"
+                class="nav-badge nav-badge-gold"
+              >{{ skillPoints }}</span>
+              <span
                 v-if="item.id === 'tasks' && taskStore.unclaimedCompletedCount > 0"
                 class="nav-badge"
               >{{ taskStore.unclaimedCompletedCount }}</span>
@@ -248,6 +244,7 @@ onUnmounted(() => {
         <!-- Selected panel -->
         <div class="main-panel">
           <ItemsPanel        v-if="activePanel === 'items'" />
+          <SkillsPanel       v-if="activePanel === 'skills'" />
           <ZoneSelector      v-if="activePanel === 'zone'" />
           <ShopPanel         v-if="activePanel === 'shop'" />
           <CodexPanel        v-if="activePanel === 'codex'" />
@@ -261,14 +258,8 @@ onUnmounted(() => {
     </div>
 
     <DeathModal />
-    <LevelUpModal />
     <OfflineRewardModal />
-    <!-- Only show after all pending level-up picks are done; prevents both modals
-         rendering simultaneously and combat resuming before upgrades are chosen. -->
-    <UnlockModal
-      v-if="(characterStore.character?.pendingLevelUps ?? 0) === 0"
-      :on-confirm="handleUnlockConfirm"
-    />
+    <UnlockModal :on-confirm="handleUnlockConfirm" />
   </div>
 </template>
 
@@ -392,6 +383,10 @@ onUnmounted(() => {
 .nav-badge-green {
   background: #2a7a48;
 }
+.nav-badge-gold {
+  background: var(--gold);
+  color: #000;
+}
 .nav-btn.nav-active .nav-label { color: var(--gold); }
 
 /* Main panel — fills remaining space */
@@ -439,58 +434,7 @@ onUnmounted(() => {
 .pause-btn  { width: 100%; text-align: center; font-size: 7px; }
 .speed-row  { display: flex; gap: 4px; }
 .speed-btn  { flex: 1; text-align: center; font-size: 7px; padding: 4px 2px; }
-
-/* Auto-pick row in popover */
-.auto-pick-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
-}
-
-.auto-pick-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
-  color: var(--text-dim);
-  line-height: 1.4;
-}
-.auto-pick-on { color: var(--gold); }
-
-/* Pill toggle (shared style for popover + modal) */
-.pill-toggle {
-  position: relative;
-  width: 28px;
-  height: 14px;
-  background: #2a2840;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-
-.pill-toggle.active {
-  background: var(--gold);
-  border-color: var(--gold);
-}
-
-.pill-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 8px;
-  height: 8px;
-  background: var(--text-dim);
-  border-radius: 50%;
-  transition: left 0.15s, background 0.15s;
-}
-
-.pill-toggle.active .pill-knob {
-  left: 16px;
-  background: #000;
-}
+.btn-locked { opacity: 0.45; cursor: not-allowed; }
 
 /* Mobile: side nav becomes horizontal tab bar */
 @media (max-width: 639px) {

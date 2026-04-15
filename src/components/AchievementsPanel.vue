@@ -40,7 +40,7 @@ const ZONE_ABBR: Record<ZoneId, string> = {
   shadowrealm: 'Sha',
   celestial: 'Cel',
   void: 'Voi',
-  nightmare: 'Nig',
+  nightmare: 'Nmt',
 }
 
 function isZoneDone(zone: ZoneId): boolean {

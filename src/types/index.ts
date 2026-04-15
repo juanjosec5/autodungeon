@@ -91,8 +91,7 @@ export interface Character {
   currentZone: ZoneId
   upgrades: Partial<Record<UpgradeId, number>>
   pendingLevelUps: number
-  // Legacy — kept for migration only, not used by engine
-  skillPoints?: number
+  skillPoints: number
   skills?: Partial<Record<SkillId, number>>
   createdAt: string
   lastSaved: string
@@ -135,7 +134,7 @@ export interface ZoneAchievementProgress {
   rewardReady: boolean
 }
 
-export type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'tasks' | 'log' | 'prestige'
+export type PanelId = 'items' | 'zone' | 'shop' | 'codex' | 'enchant' | 'challenges' | 'tasks' | 'log' | 'prestige' | 'skills'
 
 /**
  * Auto-scrap mode:
@@ -202,4 +201,20 @@ export interface PrestigeState {
   ascensionTokens: number
   totalTokensEarned: number
   bonuses: Partial<Record<PrestigeBonusId, number>>
+  ascensionBonuses?: Partial<Record<AscensionBonusId, number>>
 }
+
+export type AscensionBonusId =
+  | 'overkill'
+  | 'ghost-strike'
+  | 'arcane-surge'
+  | 'blessed-regen'
+  | 'death-pact'
+  | 'dragon-scales'
+
+export type ConsumableId =
+  | 'war-potion'
+  | 'iron-flask'
+  | 'swift-elixir'
+  | 'fortune-charm'
+  | 'xp-tome'
