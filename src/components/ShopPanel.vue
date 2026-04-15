@@ -43,10 +43,28 @@ const stockWeapons = computed(() => stockItems.value.filter((i) => i.type === 'w
 const stockArmors  = computed(() => stockItems.value.filter((i) => i.type === 'armor'))
 
 const selectedItem = ref<Item | null>(null)
+const popoverStyle = ref<{ left: string; top: string }>({ left: '0px', top: '0px' })
 
-function selectItem(item: Item) {
-  selectedItem.value = selectedItem.value?.id === item.id ? null : item
+function selectItem(item: Item, event: MouseEvent) {
+  if (selectedItem.value?.id === item.id) {
+    selectedItem.value = null
+    return
+  }
+  selectedItem.value = item
+  positionPopover(event)
 }
+
+function positionPopover(event: MouseEvent) {
+  const W = 220, H = 220
+  const x = event.clientX + 12
+  const y = event.clientY - 10
+  popoverStyle.value = {
+    left: (x + W > window.innerWidth  ? event.clientX - W - 12 : x) + 'px',
+    top:  (y + H > window.innerHeight ? window.innerHeight - H - 8 : y) + 'px',
+  }
+}
+
+function closePopover() { selectedItem.value = null }
 
 const char = computed(() => characterStore.character)
 
@@ -70,7 +88,7 @@ function buy(item: Item) {
   if (result === 'bought') {
     flash(`Bought ${item.name}!`)
     saveStore.saveCharacter()
-    selectedItem.value = null
+    closePopover()
   } else if (result === 'no_gold') {
     flash('Not enough gold!')
   } else {
@@ -79,6 +97,48 @@ function buy(item: Item) {
 }
 
 function rarityClass(rarity: string) { return `r-${rarity}` }
+
+const rarityBorderClass: Record<string, string> = {
+  common: 'rb-common', uncommon: 'rb-uncommon', rare: 'rb-rare',
+  epic: 'rb-epic', legendary: 'rb-legendary',
+}
+const rarityTextClass: Record<string, string> = {
+  common: 'rt-common', uncommon: 'rt-uncommon', rare: 'rt-rare',
+  epic: 'rt-epic', legendary: 'rt-legendary',
+}
+
+function statSummary(item: Item): string {
+  const s = item.stats
+  const parts: string[] = []
+  if (s.minDmg !== undefined) parts.push(`${s.minDmg}–${s.maxDmg} dmg`)
+  if (s.defBonus) parts.push(`+${s.defBonus} DEF`)
+  if (s.hpBonus)  parts.push(`+${s.hpBonus} HP`)
+  return parts.join('  ')
+}
+
+interface StatDelta { label: string; value: number }
+const comparisonDeltas = computed<StatDelta[]>(() => {
+  const item = selectedItem.value
+  const c = char.value
+  if (!item || !c) return []
+  const slot = item.type === 'weapon' ? 'weapon' : 'armor'
+  const equipped = c.gear[slot]
+  if (!equipped) return []
+  const iPen = getOffClassPenalty(item, c.class)
+  const ePen = getOffClassPenalty(equipped, c.class)
+  const deltas: StatDelta[] = []
+  if (item.type === 'weapon') {
+    const diff = Math.round(((item.stats.minDmg ?? 0) + (item.stats.maxDmg ?? 0)) / 2 * iPen
+                          - ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2 * ePen)
+    if (diff !== 0) deltas.push({ label: 'DMG', value: diff })
+  } else {
+    const defDiff = Math.floor((item.stats.defBonus ?? 0) * iPen) - Math.floor((equipped.stats.defBonus ?? 0) * ePen)
+    const hpDiff  = Math.floor((item.stats.hpBonus  ?? 0) * iPen) - Math.floor((equipped.stats.hpBonus  ?? 0) * ePen)
+    if (defDiff !== 0) deltas.push({ label: 'DEF', value: defDiff })
+    if (hpDiff  !== 0) deltas.push({ label: 'HP',  value: hpDiff })
+  }
+  return deltas
+})
 
 function classTag(item: Item): string | null {
   if (item.allowedClasses === 'any') return null
@@ -89,33 +149,6 @@ function classTag(item: Item): string | null {
 function isOffClass(item: Item): boolean {
   if (!char.value) return false
   return getOffClassPenalty(item, char.value.class) < 1
-}
-
-function statLine(item: Item): string {
-  const s = item.stats
-  const parts: string[] = []
-  if (s.minDmg !== undefined) parts.push(`DMG ${s.minDmg}–${s.maxDmg}`)
-  if (s.defBonus !== undefined) parts.push(`DEF +${s.defBonus}`)
-  if (s.hpBonus !== undefined) parts.push(`HP +${s.hpBonus}`)
-  return parts.join('  ')
-}
-
-function specialLine(item: Item): string {
-  return (item.stats.special ?? []).map((fx) => {
-    switch (fx.type) {
-      case 'lifesteal':        return `Lifesteal ${Math.round(fx.value * 100)}%`
-      case 'poison':           return `Poison ${Math.round(fx.dpsMultiplier * 100)}%`
-      case 'dodge':            return `Dodge ${Math.round(fx.chance * 100)}%`
-      case 'block':            return `Block ${Math.round(fx.chance * 100)}%`
-      case 'defIgnore':        return `Armor ignore ${Math.round(fx.percent * 100)}%`
-      case 'spellAmp':         return `Spell amp ${Math.round(fx.percent * 100)}%`
-      case 'critThreshold':    return `Crit on ${fx.rollsAt}+`
-      case 'doublecast':       return `Doublecast ${Math.round(fx.chance * 100)}%`
-      case 'attackSpeedBonus': return `Atk speed +${Math.round(fx.percent * 100)}%`
-      case 'regenOnKill':      return `Regen on kill ${Math.round(fx.percent * 100)}%`
-      default: return ''
-    }
-  }).filter(Boolean).join(', ')
 }
 
 // ── Consumables tab ───────────────────────────────────────────────────────────
@@ -211,7 +244,7 @@ function toggleCollapse() {
               { 'slot-selected': selectedItem?.id === item.id },
               { 'slot-cant-afford': !canAfford(item) },
             ]"
-            @click="selectItem(item)"
+            @click="selectItem(item, $event)"
           >
             <div class="slot-sprite-wrap">
               <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
@@ -235,7 +268,7 @@ function toggleCollapse() {
               { 'slot-selected': selectedItem?.id === item.id },
               { 'slot-cant-afford': !canAfford(item) },
             ]"
-            @click="selectItem(item)"
+            @click="selectItem(item, $event)"
           >
             <div class="slot-sprite-wrap">
               <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
@@ -245,33 +278,6 @@ function toggleCollapse() {
             <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
             <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
           </button>
-        </div>
-
-        <!-- Detail panel -->
-        <div v-if="selectedItem" class="detail-panel" :class="rarityClass(selectedItem.rarity)">
-          <div class="detail-header">
-            <div class="detail-sprite-wrap">
-              <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(selectedItem.id, 4) }"></div>
-            </div>
-            <div class="detail-text">
-              <div class="detail-name" :class="rarityClass(selectedItem.rarity)">{{ selectedItem.name }}</div>
-              <div class="detail-rarity">{{ selectedItem.rarity.toUpperCase() }} {{ selectedItem.type.toUpperCase() }}</div>
-            </div>
-          </div>
-          <div class="detail-stats">{{ statLine(selectedItem) }}</div>
-          <div v-if="specialLine(selectedItem)" class="detail-special">{{ specialLine(selectedItem) }}</div>
-          <div v-if="isOffClass(selectedItem)" class="detail-warn">⚠ Off-class: 70% effectiveness</div>
-          <div class="detail-price">Cost: {{ getBuyPrice(selectedItem.rarity) }}g</div>
-          <div class="detail-actions">
-            <button
-              class="pixel-btn btn-gold"
-              :disabled="!canAfford(selectedItem) || invFull()"
-              @click="buy(selectedItem)"
-            >
-              {{ invFull() ? 'Inv Full' : !canAfford(selectedItem) ? 'No Gold' : 'Buy' }}
-            </button>
-            <button class="pixel-btn" @click="selectedItem = null">✕</button>
-          </div>
         </div>
       </template>
 
@@ -304,6 +310,54 @@ function toggleCollapse() {
       </template>
     </div>
   </div>
+
+  <!-- Item popover (same pattern as ItemsPanel) -->
+  <Teleport to="body">
+    <template v-if="selectedItem">
+      <div class="popover-backdrop" @click="closePopover" />
+      <div class="item-popover" :class="rarityBorderClass[selectedItem.rarity]" :style="popoverStyle">
+        <!-- Header -->
+        <div class="pop-header">
+          <div class="pop-sprite-wrap">
+            <div class="pop-sprite" :style="{ boxShadow: getItemSpriteStyle(selectedItem.defId ?? selectedItem.id, 4) }"></div>
+          </div>
+          <div class="pop-name-block">
+            <span :class="['pop-name', rarityTextClass[selectedItem.rarity]]">{{ selectedItem.name }}</span>
+            <span :class="['pop-rarity', rarityTextClass[selectedItem.rarity]]">{{ selectedItem.rarity }}</span>
+          </div>
+          <span class="pop-price">{{ getBuyPrice(selectedItem.rarity) }}g</span>
+        </div>
+        <!-- Stats + comparison vs equipped -->
+        <div class="pop-stats">
+          {{ statSummary(selectedItem) }}
+          <span
+            v-for="d in comparisonDeltas"
+            :key="d.label"
+            class="cmp-delta"
+            :class="d.value > 0 ? 'cmp-pos' : 'cmp-neg'"
+          > {{ d.value > 0 ? '+' : '' }}{{ d.value }} {{ d.label }}</span>
+        </div>
+        <!-- Specials -->
+        <div v-if="selectedItem.stats.special?.length" class="pop-specials">
+          <span v-for="s in selectedItem.stats.special" :key="s.type" class="pop-special">✦ {{ s.type }}</span>
+        </div>
+        <!-- Class -->
+        <div class="pop-class" :class="{ 'pop-class-warn': isOffClass(selectedItem) }">
+          {{ selectedItem.allowedClasses === 'any' ? 'Any class' : selectedItem.allowedClasses.join(' / ') }}
+          <span v-if="isOffClass(selectedItem)"> · 70% effectiveness</span>
+        </div>
+        <!-- Actions -->
+        <div class="pop-btns">
+          <button
+            class="pixel-btn btn-gold"
+            :disabled="!canAfford(selectedItem) || invFull()"
+            @click="buy(selectedItem)"
+          >{{ invFull() ? 'Inv Full' : !canAfford(selectedItem) ? 'No Gold' : 'Buy' }}</button>
+          <button class="pixel-btn" @click="closePopover">✕</button>
+        </div>
+      </div>
+    </template>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -435,50 +489,6 @@ function toggleCollapse() {
   color: var(--orange, #f08830);
   line-height: 1;
 }
-
-/* Detail panel */
-.detail-panel {
-  background: #100e20;
-  border: 2px solid var(--border);
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.detail-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.detail-sprite-wrap {
-  width: 36px;
-  height: 36px;
-  overflow: visible;
-  flex-shrink: 0;
-  position: relative;
-}
-.detail-sprite {
-  width: 4px;
-  height: 4px;
-  image-rendering: pixelated;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.detail-text   { display: flex; flex-direction: column; gap: 3px; }
-.detail-name    { font-size: 8px; }
-.detail-rarity  { font-size: 7px; color: var(--text-dim); }
-.detail-stats   { font-size: 7px; color: var(--text); }
-.detail-special { font-size: 6px; color: #a080d0; }
-.detail-warn    { font-size: 7px; color: #f07020; }
-.detail-price   { font-size: 7px; color: var(--gold); }
-.detail-actions { display: flex; gap: 6px; margin-top: 2px; }
-
-.r-common .detail-name    { color: #909090; }
-.r-uncommon .detail-name  { color: #4caf50; }
-.r-rare .detail-name      { color: #4488dd; }
-.r-epic .detail-name      { color: #d060b8; }
-.r-legendary .detail-name { color: #daa520; }
 
 /* Consumables grid */
 .cons-grid {
