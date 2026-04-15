@@ -5,6 +5,7 @@ import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
 import { getUpgradeBonuses } from './upgrades'
 import { getActiveSet } from './sets'
+import { useShopStore } from '../stores/shop'
 
 // ─── Exported types ───────────────────────────────────────────────────────────
 
@@ -17,6 +18,13 @@ export interface CombatState {
   killCount: number        // normal kills since last boss
   killsToNextBoss: number  // threshold, rerolled after each boss
   dropRateBonus: number    // prestige Fortune bonus (0–0.5)
+  // Ascension bonuses
+  hitChanceBonus: number       // ghost-strike: +3% hit chance per stack
+  damageReduction: number      // dragon-scales: +2% DR per stack
+  overkillStacks: number       // >0 = overkill carry active
+  passiveRegenPerSec: number   // blessed-regen: HP healed per second
+  deathPactSaves: number       // remaining death pact saves this zone
+  overkillCarry: number        // internal: excess damage carried to next enemy
 }
 
 export type CombatEventType =
@@ -47,19 +55,27 @@ export class CombatEngine {
   private state: CombatState | null = null
   private playerTickTimer: ReturnType<typeof setTimeout> | null = null
   private enemyTickTimer: ReturnType<typeof setTimeout> | null = null
+  private regenTimer: ReturnType<typeof setInterval> | null = null
   private handlers: CombatEventHandler[] = []
   private isDead = false
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
-  start(state: Omit<CombatState, 'killCount' | 'killsToNextBoss'>): void {
+  start(state: Omit<CombatState, 'killCount' | 'killsToNextBoss' | 'overkillCarry'>): void {
     this.state = {
       ...state,
-      dropRateBonus: state.dropRateBonus ?? 0,
+      dropRateBonus:       state.dropRateBonus ?? 0,
+      hitChanceBonus:      state.hitChanceBonus ?? 0,
+      damageReduction:     state.damageReduction ?? 0,
+      overkillStacks:      state.overkillStacks ?? 0,
+      passiveRegenPerSec:  state.passiveRegenPerSec ?? 0,
+      deathPactSaves:      state.deathPactSaves ?? 0,
       killCount: 0,
       killsToNextBoss: rollDamage(10, 15),
+      overkillCarry: 0,
     }
     this.isDead = false
+    this.startRegenTimer()
     this.schedulePlayerTick()
     this.scheduleEnemyTick()
   }
@@ -67,6 +83,7 @@ export class CombatEngine {
   stop(): void {
     if (this.playerTickTimer !== null) clearTimeout(this.playerTickTimer)
     if (this.enemyTickTimer !== null) clearTimeout(this.enemyTickTimer)
+    this.stopRegenTimer()
     this.playerTickTimer = null
     this.enemyTickTimer = null
     this.state = null
@@ -77,6 +94,7 @@ export class CombatEngine {
     this.state.isPaused = true
     if (this.playerTickTimer !== null) clearTimeout(this.playerTickTimer)
     if (this.enemyTickTimer !== null) clearTimeout(this.enemyTickTimer)
+    this.stopRegenTimer()
     this.playerTickTimer = null
     this.enemyTickTimer = null
   }
@@ -84,6 +102,7 @@ export class CombatEngine {
   resume(): void {
     if (!this.state) return
     this.state.isPaused = false
+    this.startRegenTimer()
     this.schedulePlayerTick()
     this.scheduleEnemyTick()
   }
@@ -118,6 +137,25 @@ export class CombatEngine {
     for (const handler of this.handlers) handler(event)
   }
 
+  private startRegenTimer(): void {
+    this.stopRegenTimer()
+    if (!this.state || this.state.passiveRegenPerSec <= 0) return
+    this.regenTimer = setInterval(() => {
+      if (!this.state || this.state.isPaused || this.isDead) return
+      const { character } = this.state
+      const amt = this.state.passiveRegenPerSec
+      character.currentHP = Math.min(character.maxHP, character.currentHP + amt)
+      this.emit({ type: 'hp_regen', payload: { amount: amt, currentHP: character.currentHP } })
+    }, 1000)
+  }
+
+  private stopRegenTimer(): void {
+    if (this.regenTimer !== null) {
+      clearInterval(this.regenTimer)
+      this.regenTimer = null
+    }
+  }
+
   private getPlayerAttackInterval(): number {
     if (!this.state) return 1000
     const { character, speed } = this.state
@@ -127,7 +165,8 @@ export class CombatEngine {
     const speedBonus = getSpecial(weapon?.stats.special, 'attackSpeedBonus')?.percent ?? 0
     const setBonus = getActiveSet(character.gear.weapon, character.gear.armor)
     const setSpeedReduction = setBonus?.bonus.type === 'atk_speed' ? setBonus.bonus.value : 0
-    const interval = Math.max(200, (baseInterval * (1 - speedBonus)) - ub.attackSpeedReduction - setSpeedReduction)
+    const shopSpeedBonus = useShopStore().atkSpeedBonus
+    const interval = Math.max(200, (baseInterval * (1 - speedBonus - shopSpeedBonus)) - ub.attackSpeedReduction - setSpeedReduction)
     return Math.floor(interval / speed)
   }
 
@@ -162,7 +201,9 @@ export class CombatEngine {
     const extraCritThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
 
     const roll = d20()
-    const hits = calcHit(character.stats.dex, enemy.def)
+    // Ghost Strike: each stack adds ~+3% hit chance by boosting effective DEX
+    const bonusDex = Math.round((this.state.hitChanceBonus ?? 0) * 20)
+    const hits = calcHit(character.stats.dex + bonusDex, enemy.def)
     const isCrit = hits && calcCrit(roll, character.class, extraCritThreshold, ub.critThresholdReduction)
 
     if (!hits) {
@@ -191,6 +232,12 @@ export class CombatEngine {
       // Set damage_pct bonus applied after base calc
       if (setBonus?.type === 'damage_pct') {
         damage = Math.floor(damage * (1 + setBonus.value))
+      }
+
+      // War Potion: +25% damage
+      const shopDamageBonus = useShopStore().damageBonus
+      if (shopDamageBonus > 0) {
+        damage = Math.floor(damage * (1 + shopDamageBonus))
       }
 
       // Poison
@@ -279,9 +326,11 @@ export class CombatEngine {
     const armorDef = character.gear.armor?.stats.defBonus ?? 0
     const armorEffBonus = (classDef.passives.armorEffectiveness ?? 1) - 1
     const setFlatDef = setBonus?.type === 'flat_def' ? setBonus.value : 0
-    const playerDef = Math.floor(armorDef * (1 + armorEffBonus)) + ub.flatDef + setFlatDef
+    const playerDef = Math.floor(armorDef * (1 + armorEffBonus)) + ub.flatDef + setFlatDef + useShopStore().defBonus
 
-    const damage = calcEnemyDamage(enemy.atk, playerDef)
+    const rawDamage = calcEnemyDamage(enemy.atk, playerDef)
+    // Dragon Scales: reduce incoming damage by damageReduction (2% per stack, max 10%)
+    const damage = Math.max(1, Math.floor(rawDamage * (1 - (this.state.damageReduction ?? 0))))
     character.currentHP -= damage
     this.emit({
       type: 'enemy_hit',
@@ -294,10 +343,19 @@ export class CombatEngine {
     })
 
     if (character.currentHP <= 0) {
+      // Death Pact: survive a lethal hit with 1 HP (resets per zone start)
+      if ((this.state.deathPactSaves ?? 0) > 0) {
+        this.state.deathPactSaves--
+        character.currentHP = 1
+        this.emit({ type: 'hp_regen', payload: { amount: 0, currentHP: 1 } })
+        this.scheduleEnemyTick()
+        return
+      }
       this.isDead = true
       character.currentHP = 0
       if (this.playerTickTimer !== null) clearTimeout(this.playerTickTimer)
       if (this.enemyTickTimer !== null) clearTimeout(this.enemyTickTimer)
+      this.stopRegenTimer()
       this.playerTickTimer = null
       this.enemyTickTimer = null
       this.emit({ type: 'player_dead', payload: { enemyName: enemy.name } })
@@ -357,6 +415,12 @@ export class CombatEngine {
       })
     }
 
+    // Overkill: carry excess damage (up to 50% of overkill) to next normal enemy
+    let overkillCarry = 0
+    if ((this.state.overkillStacks ?? 0) > 0 && !enemy.isBoss && enemy.hp < 0) {
+      overkillCarry = Math.floor(Math.abs(enemy.hp) * 0.5)
+    }
+
     // Spawn next enemy — boss after threshold, otherwise normal
     if (!enemy.isBoss && this.state.killCount >= this.state.killsToNextBoss) {
       const boss = getBossForZone(this.state.zone)
@@ -364,6 +428,16 @@ export class CombatEngine {
       this.emit({ type: 'boss_spawned', payload: { enemy: boss } })
     } else {
       const newEnemy = spawnEnemy(this.state.zone)
+      // Apply overkill carry to new enemy
+      if (overkillCarry > 0) {
+        newEnemy.hp -= overkillCarry
+        if (newEnemy.hp <= 0) {
+          this.state.enemy = newEnemy
+          this.emit({ type: 'enemy_spawned', payload: { enemy: newEnemy } })
+          this.handleEnemyDeath()
+          return
+        }
+      }
       this.state.enemy = newEnemy
       this.emit({ type: 'enemy_spawned', payload: { enemy: newEnemy } })
     }

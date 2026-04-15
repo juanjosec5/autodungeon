@@ -5,7 +5,7 @@ import { usePrestigeStore } from './prestige'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
 import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
-import { applyUpgrade, rollUpgradeChoices, autoPickUpgrade } from '../game/upgrades'
+import { applyUpgrade, rollUpgradeChoices, autoPickUpgrade, UPGRADE_DEFINITIONS } from '../game/upgrades'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
   warrior:   { weaponId: 'rusty-sword',  armorId: 'leather-scraps' },
@@ -125,6 +125,7 @@ export const useCharacterStore = defineStore('character', () => {
       currentZone: 'forest',
       upgrades: {},
       pendingLevelUps: 0,
+      skillPoints: 0,
       createdAt: new Date().toISOString(),
       lastSaved: new Date().toISOString(),
       lifetime: _blankLifetime(),
@@ -155,6 +156,12 @@ export const useCharacterStore = defineStore('character', () => {
       if (s['battle-focus'])    data.upgrades['spell-amp']   = (s['battle-focus']    ?? 0)
     }
     if (data.pendingLevelUps === undefined) data.pendingLevelUps = 0
+    // Migrate pendingLevelUps → skillPoints (old saves had pendingLevelUps; new system uses skillPoints)
+    if (data.pendingLevelUps > 0) {
+      data.skillPoints = (data.skillPoints ?? 0) + data.pendingLevelUps
+      data.pendingLevelUps = 0
+    }
+    if (data.skillPoints === undefined) data.skillPoints = 0
     // Ensure rewardReady is present on existing zone achievement saves
     if (data.zoneAchievements) {
       for (const p of Object.values(data.zoneAchievements)) {
@@ -310,7 +317,7 @@ export const useCharacterStore = defineStore('character', () => {
       char.xp -= char.xpToNext
       char.level += 1
       levelsGained++
-      char.pendingLevelUps = (char.pendingLevelUps ?? 0) + 1
+      char.skillPoints = (char.skillPoints ?? 0) + 1
 
       const newStats = getStatsAtLevel(char.class, char.level)
       const newMaxHP = prestigeStore.hpMultiplier > 1
@@ -382,10 +389,35 @@ export const useCharacterStore = defineStore('character', () => {
     return 'bought'
   }
 
+  function spendGold(amount: number): boolean {
+    const char = character.value
+    if (!char || char.gold < amount) return false
+    char.gold -= amount
+    return true
+  }
+
   function setZone(zone: ZoneId): void {
     const char = character.value
     if (!char) return
     char.currentZone = zone
+  }
+
+  /**
+   * Spends one skill point on the given upgrade.
+   * Returns 'spent', 'no_points', 'maxed', or 'ineligible'.
+   */
+  function spendSkillPoint(upgradeId: UpgradeId): 'spent' | 'no_points' | 'maxed' | 'ineligible' {
+    const char = character.value
+    if (!char || (char.skillPoints ?? 0) <= 0) return 'no_points'
+    const def = UPGRADE_DEFINITIONS.find((d) => d.id === upgradeId)
+    if (!def) return 'no_points'
+    const allowed = def.allowedClasses === 'any' || def.allowedClasses.includes(char.class)
+    if (!allowed) return 'ineligible'
+    const current = char.upgrades[upgradeId] ?? 0
+    if (current >= def.maxPicks) return 'maxed'
+    char.skillPoints = (char.skillPoints ?? 0) - 1
+    applyUpgrade(char, upgradeId)
+    return 'spent'
   }
 
   /**
@@ -489,7 +521,7 @@ export const useCharacterStore = defineStore('character', () => {
     while (char.xp >= char.xpToNext && char.level < MAX_LEVEL) {
       char.xp -= char.xpToNext
       char.level++
-      char.pendingLevelUps = (char.pendingLevelUps ?? 0) + 1
+      char.skillPoints = (char.skillPoints ?? 0) + 1
       const newStats = getStatsAtLevel(char.class, char.level)
       const newMaxHP = offlinePrestigeStore.hpMultiplier > 1
         ? Math.floor(newStats.maxHP * offlinePrestigeStore.hpMultiplier)
@@ -551,10 +583,12 @@ export const useCharacterStore = defineStore('character', () => {
     addToInventory,
     sellItems,
     buyItem,
+    spendGold,
     applyXP,
     applyOfflineRewards,
     applyDeathPenalty,
     setZone,
+    spendSkillPoint,
     selectUpgrade,
     autoSelectUpgrade,
     getUpgradeChoices,

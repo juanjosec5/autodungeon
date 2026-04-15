@@ -15,6 +15,9 @@ export const useAchievementStore = defineStore('achievement', () => {
   const characterStore = useCharacterStore()
   const rewardNotifications = ref<RewardNotification[]>([])
 
+  // Persists the selected zone tab across panel switches
+  const selectedChallengeZone = ref<ZoneId>('forest')
+
   // ── Progress access ───────────────────────────────────────────────────────
 
   function getProgress(zone: ZoneId) {
@@ -155,5 +158,6 @@ export const useAchievementStore = defineStore('achievement', () => {
     claimReward,
     rewardNotifications,
     clearNotification,
+    selectedChallengeZone,
   }
 })

@@ -5,7 +5,8 @@ import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
-import type { PrestigeBonusId } from '../types/index'
+import { CLASS_ASCENSION_BONUS } from '../stores/prestige'
+import type { PrestigeBonusId, ClassId } from '../types/index'
 
 const prestigeStore = usePrestigeStore()
 const characterStore = useCharacterStore()
@@ -14,6 +15,16 @@ const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
 
 const confirming = ref(false)
+
+const CLASS_ORDER: ClassId[] = ['warrior', 'rogue', 'mage', 'priest', 'undead', 'dragonkin']
+const CLASS_ICONS: Record<ClassId, string> = {
+  warrior: '⚔', rogue: '🗡', mage: '🔮', priest: '✝', undead: '💀', dragonkin: '🐉',
+}
+
+function ascStacks(classId: ClassId): number {
+  const bonusId = CLASS_ASCENSION_BONUS[classId].id
+  return prestigeStore.ascensionBonuses[bonusId] ?? 0
+}
 
 const char = computed(() => characterStore.character)
 const canPrestige = computed(() => (char.value?.level ?? 0) >= 50)
@@ -98,6 +109,34 @@ function doPrestige(): void {
             <template v-if="isMaxed(id)">MAX</template>
             <template v-else>{{ prestigeStore.BONUS_DEFS[id].cost }} ⚡</template>
           </button>
+        </div>
+      </div>
+
+      <!-- Class Mastery -->
+      <div class="section-label">Class Mastery</div>
+      <div class="mastery-list">
+        <div
+          v-for="cls in CLASS_ORDER"
+          :key="cls"
+          class="mastery-row"
+          :class="{ 'mastery-active': char?.class === cls }"
+        >
+          <span class="mastery-icon">{{ CLASS_ICONS[cls] }}</span>
+          <div class="mastery-info">
+            <div class="mastery-name">{{ CLASS_ASCENSION_BONUS[cls].label }}</div>
+            <div class="mastery-desc">{{ CLASS_ASCENSION_BONUS[cls].description }}</div>
+          </div>
+          <div class="mastery-progress">
+            <div class="mastery-pips">
+              <span
+                v-for="i in CLASS_ASCENSION_BONUS[cls].maxStacks"
+                :key="i"
+                class="mastery-pip"
+                :class="{ filled: i <= ascStacks(cls) }"
+              />
+            </div>
+            <span class="mastery-count">{{ ascStacks(cls) }}/{{ CLASS_ASCENSION_BONUS[cls].maxStacks }}</span>
+          </div>
         </div>
       </div>
 
@@ -192,6 +231,76 @@ function doPrestige(): void {
 }
 .buy-btn:disabled { opacity: 0.4; cursor: default; box-shadow: none; top: 0; left: 0; }
 .buy-btn.maxed { border-color: var(--gold); color: var(--gold); }
+
+/* Class Mastery */
+.mastery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mastery-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  background: #0d0b1a;
+  border: 1px solid var(--border);
+}
+
+.mastery-row.mastery-active {
+  border-color: var(--gold);
+  background: rgba(200,160,40,0.06);
+}
+
+.mastery-icon { font-size: 12px; flex-shrink: 0; }
+
+.mastery-info { flex: 1; min-width: 0; }
+
+.mastery-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: var(--text-hi);
+  margin-bottom: 3px;
+}
+
+.mastery-desc {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.mastery-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.mastery-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.mastery-pip {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--border);
+  background: #1a1830;
+}
+
+.mastery-pip.filled {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.mastery-count {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  color: var(--text-dim);
+}
 
 /* Prestige section */
 .prestige-section {

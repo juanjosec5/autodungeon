@@ -1,56 +1,46 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useCharacterStore } from '../stores/character'
-import { useZoneStore } from '../stores/zone'
 import { useSaveStore } from '../stores/save'
 import { useProgressionStore } from '../stores/progression'
-import { ITEM_DEFINITIONS, SHOP_ITEMS } from '../game/item-data'
+import { useShopStore } from '../stores/shop'
+import { CONSUMABLE_DEFS } from '../game/shop'
 import { getBuyPrice } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
 import { getItemSpriteStyle } from '../game/item-sprites'
 import { fmtNum } from '../utils/format'
 import TutorialToast from './TutorialToast.vue'
-import type { Item, ZoneId } from '../types/index'
+import type { Item, ConsumableId } from '../types/index'
 
 const characterStore = useCharacterStore()
-const zoneStore = useZoneStore()
 const saveStore = useSaveStore()
 const progressionStore = useProgressionStore()
+const shopStore = useShopStore()
 
-const ZONE_ORDER: ZoneId[] = ['forest', 'dungeon', 'volcano', 'abyss', 'shadowrealm', 'celestial', 'void', 'nightmare']
-const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+type Tab = 'stock' | 'consumables'
+const activeTab = ref<Tab>('stock')
 
-const availableItems = computed(() => {
-  const zone = zoneStore.activeZone
-  const zoneIdx = ZONE_ORDER.indexOf(zone)
-  return SHOP_ITEMS
-    .filter(({ minZone }) => minZone <= zoneIdx)
-    .map(({ id }) => ITEM_DEFINITIONS.find((i) => i.id === id)!)
-    .filter(Boolean)
-})
+// ── Countdown timer ───────────────────────────────────────────────────────────
+const now = ref(Date.now())
+let clockTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => { clockTimer = setInterval(() => { now.value = Date.now() }, 1000) })
+onUnmounted(() => { if (clockTimer) clearInterval(clockTimer) })
 
-type ItemGroup = { rarity: string; items: Item[] }
+function formatMs(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const m = Math.floor(total / 60).toString().padStart(2, '0')
+  const s = (total % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
 
-const weaponGroups = computed<ItemGroup[]>(() =>
-  RARITIES
-    .map(rarity => ({
-      rarity,
-      items: availableItems.value.filter(i => i.type === 'weapon' && i.rarity === rarity),
-    }))
-    .filter(g => g.items.length > 0),
-)
+const restockIn = computed(() => formatMs(shopStore.timeToNextRotation))
 
-const armorGroups = computed<ItemGroup[]>(() =>
-  RARITIES
-    .map(rarity => ({
-      rarity,
-      items: availableItems.value.filter(i => i.type === 'armor' && i.rarity === rarity),
-    }))
-    .filter(g => g.items.length > 0),
-)
+// ── Stock tab ─────────────────────────────────────────────────────────────────
+const stockItems = computed(() => shopStore.currentStock)
 
-const weaponsOpen = ref(true)
-const armorOpen = ref(true)
+const stockWeapons = computed(() => stockItems.value.filter((i) => i.type === 'weapon'))
+const stockArmors  = computed(() => stockItems.value.filter((i) => i.type === 'armor'))
 
 const selectedItem = ref<Item | null>(null)
 
@@ -128,8 +118,32 @@ function specialLine(item: Item): string {
   }).filter(Boolean).join(', ')
 }
 
-const RARITY_LABEL: Record<string, string> = {
-  common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary',
+// ── Consumables tab ───────────────────────────────────────────────────────────
+const consFlashMsg = ref<Record<ConsumableId, string | null>>({
+  'war-potion': null, 'iron-flask': null, 'swift-elixir': null,
+  'fortune-charm': null, 'xp-tome': null,
+})
+const consFlashTimers: Partial<Record<ConsumableId, ReturnType<typeof setTimeout>>> = {}
+
+function flashCons(id: ConsumableId, msg: string) {
+  consFlashMsg.value[id] = msg
+  if (consFlashTimers[id]) clearTimeout(consFlashTimers[id])
+  consFlashTimers[id] = setTimeout(() => { consFlashMsg.value[id] = null }, 2000)
+}
+
+function buyCons(id: ConsumableId) {
+  const def = CONSUMABLE_DEFS.find((d) => d.id === id)
+  if (!def || !char.value) return
+  const result = shopStore.buyConsumable(id, char.value.gold, (amount) => {
+    const success = characterStore.spendGold(amount)
+    if (success) saveStore.saveCharacter()
+    return success
+  })
+  if (result) {
+    flashCons(id, 'Active!')
+  } else {
+    flashCons(id, 'Not enough gold!')
+  }
 }
 
 const collapsed = ref(localStorage.getItem('collapsed_shop') === 'true')
@@ -153,9 +167,8 @@ function toggleCollapse() {
         title="The Shop"
         @dismiss="progressionStore.markTutorialSeen('shop')"
       >
-        Buy weapons and armor directly with gold. Shop inventory expands as you reach new zones.<br>
-        Items are class-tagged — buying off-class gear applies a <b>30% stat penalty</b>.<br>
-        You can't sell shop items back, so only buy what you plan to use or enchant.
+        Stock rotates every 30 minutes — 3 weapons + 3 armors each rotation.<br>
+        Consumables are temporary gold-bought buffs that persist through page reloads.
       </TutorialToast>
 
       <!-- Gold + flash -->
@@ -165,114 +178,130 @@ function toggleCollapse() {
         <span v-if="flashMsg" class="flash-msg">{{ flashMsg }}</span>
       </div>
 
-      <!-- Weapons accordion -->
-      <div class="accordion-section">
-        <button class="accordion-header" @click="weaponsOpen = !weaponsOpen">
-          <span class="acc-icon">⚔</span>
-          <span class="acc-label">Weapons</span>
-          <span class="acc-count">{{ availableItems.filter(i => i.type === 'weapon').length }}</span>
-          <span class="acc-chevron" :class="{ open: weaponsOpen }">▾</span>
-        </button>
-
-        <Transition name="acc">
-          <div v-if="weaponsOpen" class="accordion-body">
-            <template v-for="group in weaponGroups" :key="group.rarity">
-              <div class="rarity-divider" :class="rarityClass(group.rarity)">
-                {{ RARITY_LABEL[group.rarity] }}
-              </div>
-              <div class="shop-grid">
-                <button
-                  v-for="item in group.items"
-                  :key="item.id"
-                  class="shop-slot"
-                  :class="[
-                    rarityClass(item.rarity),
-                    { 'slot-selected': selectedItem?.id === item.id },
-                    { 'slot-cant-afford': !canAfford(item) },
-                  ]"
-                  @click="selectItem(item)"
-                >
-                  <div class="slot-sprite-wrap">
-                    <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
-                  </div>
-                  <span class="slot-name">{{ item.name }}</span>
-                  <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
-                  <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
-                  <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
-                </button>
-              </div>
-            </template>
-          </div>
-        </Transition>
+      <!-- Tabs -->
+      <div class="tabs">
+        <button
+          class="tab-btn"
+          :class="{ 'tab-active': activeTab === 'stock' }"
+          @click="activeTab = 'stock'"
+        >⚔ Stock</button>
+        <button
+          class="tab-btn"
+          :class="{ 'tab-active': activeTab === 'consumables' }"
+          @click="activeTab = 'consumables'"
+        >🧪 Consumables</button>
       </div>
 
-      <!-- Armor accordion -->
-      <div class="accordion-section">
-        <button class="accordion-header" @click="armorOpen = !armorOpen">
-          <span class="acc-icon">🛡</span>
-          <span class="acc-label">Armor</span>
-          <span class="acc-count">{{ availableItems.filter(i => i.type === 'armor').length }}</span>
-          <span class="acc-chevron" :class="{ open: armorOpen }">▾</span>
-        </button>
-
-        <Transition name="acc">
-          <div v-if="armorOpen" class="accordion-body">
-            <template v-for="group in armorGroups" :key="group.rarity">
-              <div class="rarity-divider" :class="rarityClass(group.rarity)">
-                {{ RARITY_LABEL[group.rarity] }}
-              </div>
-              <div class="shop-grid">
-                <button
-                  v-for="item in group.items"
-                  :key="item.id"
-                  class="shop-slot"
-                  :class="[
-                    rarityClass(item.rarity),
-                    { 'slot-selected': selectedItem?.id === item.id },
-                    { 'slot-cant-afford': !canAfford(item) },
-                  ]"
-                  @click="selectItem(item)"
-                >
-                  <div class="slot-sprite-wrap">
-                    <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
-                  </div>
-                  <span class="slot-name">{{ item.name }}</span>
-                  <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
-                  <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
-                  <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
-                </button>
-              </div>
-            </template>
-          </div>
-        </Transition>
-      </div>
-
-      <!-- Detail panel -->
-      <div v-if="selectedItem" class="detail-panel" :class="rarityClass(selectedItem.rarity)">
-        <div class="detail-header">
-          <div class="detail-sprite-wrap">
-            <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(selectedItem.id, 4) }"></div>
-          </div>
-          <div class="detail-text">
-            <div class="detail-name" :class="rarityClass(selectedItem.rarity)">{{ selectedItem.name }}</div>
-            <div class="detail-rarity">{{ selectedItem.rarity.toUpperCase() }} {{ selectedItem.type.toUpperCase() }}</div>
-          </div>
+      <!-- ── Stock tab ─────────────────────────────────────────────────── -->
+      <template v-if="activeTab === 'stock'">
+        <div class="restock-row">
+          <span class="restock-label">Restock in:</span>
+          <span class="restock-val">{{ restockIn }}</span>
         </div>
-        <div class="detail-stats">{{ statLine(selectedItem) }}</div>
-        <div v-if="specialLine(selectedItem)" class="detail-special">{{ specialLine(selectedItem) }}</div>
-        <div v-if="isOffClass(selectedItem)" class="detail-warn">⚠ Off-class: 70% effectiveness</div>
-        <div class="detail-price">Cost: {{ getBuyPrice(selectedItem.rarity) }}g</div>
-        <div class="detail-actions">
+
+        <!-- Weapons -->
+        <div class="stock-section-label">⚔ Weapons</div>
+        <div class="shop-grid">
           <button
-            class="pixel-btn btn-gold"
-            :disabled="!canAfford(selectedItem) || invFull()"
-            @click="buy(selectedItem)"
+            v-for="item in stockWeapons"
+            :key="item.id"
+            class="shop-slot"
+            :class="[
+              rarityClass(item.rarity),
+              { 'slot-selected': selectedItem?.id === item.id },
+              { 'slot-cant-afford': !canAfford(item) },
+            ]"
+            @click="selectItem(item)"
           >
-            {{ invFull() ? 'Inv Full' : !canAfford(selectedItem) ? 'No Gold' : 'Buy' }}
+            <div class="slot-sprite-wrap">
+              <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+            </div>
+            <span class="slot-name">{{ item.name }}</span>
+            <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
+            <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
+            <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
           </button>
-          <button class="pixel-btn" @click="selectedItem = null">✕</button>
         </div>
-      </div>
+
+        <!-- Armor -->
+        <div class="stock-section-label">🛡 Armor</div>
+        <div class="shop-grid">
+          <button
+            v-for="item in stockArmors"
+            :key="item.id"
+            class="shop-slot"
+            :class="[
+              rarityClass(item.rarity),
+              { 'slot-selected': selectedItem?.id === item.id },
+              { 'slot-cant-afford': !canAfford(item) },
+            ]"
+            @click="selectItem(item)"
+          >
+            <div class="slot-sprite-wrap">
+              <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
+            </div>
+            <span class="slot-name">{{ item.name }}</span>
+            <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
+            <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
+            <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
+          </button>
+        </div>
+
+        <!-- Detail panel -->
+        <div v-if="selectedItem" class="detail-panel" :class="rarityClass(selectedItem.rarity)">
+          <div class="detail-header">
+            <div class="detail-sprite-wrap">
+              <div class="detail-sprite" :style="{ boxShadow: getItemSpriteStyle(selectedItem.id, 4) }"></div>
+            </div>
+            <div class="detail-text">
+              <div class="detail-name" :class="rarityClass(selectedItem.rarity)">{{ selectedItem.name }}</div>
+              <div class="detail-rarity">{{ selectedItem.rarity.toUpperCase() }} {{ selectedItem.type.toUpperCase() }}</div>
+            </div>
+          </div>
+          <div class="detail-stats">{{ statLine(selectedItem) }}</div>
+          <div v-if="specialLine(selectedItem)" class="detail-special">{{ specialLine(selectedItem) }}</div>
+          <div v-if="isOffClass(selectedItem)" class="detail-warn">⚠ Off-class: 70% effectiveness</div>
+          <div class="detail-price">Cost: {{ getBuyPrice(selectedItem.rarity) }}g</div>
+          <div class="detail-actions">
+            <button
+              class="pixel-btn btn-gold"
+              :disabled="!canAfford(selectedItem) || invFull()"
+              @click="buy(selectedItem)"
+            >
+              {{ invFull() ? 'Inv Full' : !canAfford(selectedItem) ? 'No Gold' : 'Buy' }}
+            </button>
+            <button class="pixel-btn" @click="selectedItem = null">✕</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- ── Consumables tab ───────────────────────────────────────────── -->
+      <template v-if="activeTab === 'consumables'">
+        <div class="cons-grid">
+          <div
+            v-for="def in CONSUMABLE_DEFS"
+            :key="def.id"
+            class="cons-card"
+            :class="{ 'cons-active': shopStore.isActive(def.id) }"
+          >
+            <div class="cons-icon">{{ def.icon }}</div>
+            <div class="cons-name">{{ def.name }}</div>
+            <div class="cons-desc">{{ def.description }}</div>
+            <div v-if="shopStore.isActive(def.id)" class="cons-timer">
+              ⏱ {{ formatMs(shopStore.remainingMs(def.id)) }}
+            </div>
+            <div v-if="consFlashMsg[def.id]" class="cons-flash">{{ consFlashMsg[def.id] }}</div>
+            <button
+              class="pixel-btn cons-buy"
+              :disabled="shopStore.isActive(def.id) || (char?.gold ?? 0) < def.cost"
+              @click="buyCons(def.id)"
+            >
+              <template v-if="shopStore.isActive(def.id)">Active</template>
+              <template v-else>{{ def.cost }}g</template>
+            </button>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -291,72 +320,53 @@ function toggleCollapse() {
 .gold-val   { color: var(--gold); }
 .flash-msg  { color: var(--gold); font-size: 7px; margin-left: auto; }
 
-/* Accordion */
-.accordion-section { border: 2px solid var(--border); }
-
-.accordion-header {
-  width: 100%;
-  background: #16142a;
-  border: none;
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 4px;
+}
+.tab-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-  color: var(--text);
-  padding: 7px 8px;
+  font-size: 6px;
+  background: #1a1830;
+  border: 2px solid var(--border);
+  color: var(--text-dim);
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.tab-btn:hover { border-color: var(--border-hi); color: var(--text); }
+.tab-active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(200,160,40,0.08);
+}
+
+/* Restock row */
+.restock-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
-  text-align: left;
+  font-size: 7px;
 }
-.accordion-header:hover { background: #1e1c38; }
+.restock-label { color: var(--text-dim); }
+.restock-val   { color: var(--gold); font-size: 8px; }
 
-.acc-icon  { font-size: 10px; }
-.acc-label { flex: 1; }
-.acc-count { color: var(--text-dim); font-size: 7px; }
-.acc-chevron {
-  font-size: 10px;
+/* Stock section label */
+.stock-section-label {
+  font-size: 7px;
   color: var(--text-dim);
-  transition: transform 0.2s;
-  display: inline-block;
-}
-.acc-chevron.open { transform: rotate(180deg); }
-
-.accordion-body {
-  padding: 6px 6px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow: hidden;
-}
-
-.acc-enter-active, .acc-leave-active {
-  transition: opacity 0.15s, max-height 0.2s ease;
-  max-height: 1000px;
-  overflow: hidden;
-}
-.acc-enter-from, .acc-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-
-/* Rarity sub-dividers */
-.rarity-divider {
-  font-size: 6px;
-  padding: 2px 4px;
   letter-spacing: 1px;
-  border-left: 2px solid currentColor;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
   margin-top: 2px;
 }
-.r-common    { color: #909090; border-color: #555560; }
-.r-uncommon  { color: #4caf50; border-color: #2d7a30; }
-.r-rare      { color: #4488dd; border-color: #2a5898; }
-.r-epic      { color: #d060b8; border-color: #80306a; }
-.r-legendary { color: #daa520; border-color: #987820; }
 
 /* Shop grid */
 .shop-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 4px;
 }
 
@@ -469,4 +479,41 @@ function toggleCollapse() {
 .r-rare .detail-name      { color: #4488dd; }
 .r-epic .detail-name      { color: #d060b8; }
 .r-legendary .detail-name { color: #daa520; }
+
+/* Consumables grid */
+.cons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.cons-card {
+  background: #0d0b1a;
+  border: 1px solid var(--border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.cons-card.cons-active {
+  border-color: var(--gold);
+  background: rgba(200,160,40,0.06);
+}
+
+.cons-icon { font-size: 16px; }
+.cons-name { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--text-hi); }
+.cons-desc { font-family: 'Press Start 2P', monospace; font-size: 5px; color: var(--text-dim); line-height: 1.6; }
+.cons-timer { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--gold); }
+.cons-flash { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--gold); }
+
+.cons-buy {
+  font-size: 6px;
+  padding: 4px 8px;
+  width: 100%;
+  margin-top: 2px;
+}
+.cons-buy:disabled { opacity: 0.4; cursor: default; box-shadow: none; top: 0; left: 0; }
 </style>

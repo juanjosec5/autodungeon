@@ -18,7 +18,7 @@ const SELL_PRICES: Record<RarityId, number> = {
 }
 
 const BUY_PRICES: Record<RarityId, number> = {
-  common: 20, uncommon: 60, rare: 150, epic: 450, legendary: 2000,
+  common: 50, uncommon: 150, rare: 400, epic: 1200, legendary: 5000,
 }
 
 export function getSellPrice(item: Item | RarityId): number {

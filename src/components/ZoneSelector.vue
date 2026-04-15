@@ -26,7 +26,11 @@ function isUnlocked(zone: ZoneId) {
 
 function select(zone: ZoneId) {
   if (!isUnlocked(zone)) return
-  zoneStore.setZone(zone)
+  zoneStore.selectPending(zone)
+}
+
+function travel() {
+  zoneStore.confirmPending()
 }
 
 const collapsed = ref(localStorage.getItem('collapsed_zone') === 'true')
@@ -49,6 +53,7 @@ function toggleCollapse() {
         class="zone-btn"
         :class="{
           'zone-active': zoneStore.activeZone === zone.id,
+          'zone-pending': zoneStore.pendingZone === zone.id && zoneStore.pendingZone !== zoneStore.activeZone,
           'zone-locked': !isUnlocked(zone.id),
         }"
         :disabled="!isUnlocked(zone.id)"
@@ -57,6 +62,13 @@ function toggleCollapse() {
         <span>{{ zone.icon }} {{ zone.label.toUpperCase() }}</span>
         <span v-if="!isUnlocked(zone.id)" class="zone-lock">LV.{{ zone.unlockLevel }}</span>
         <span v-else-if="zoneStore.activeZone === zone.id" class="zone-active-label">active</span>
+      </button>
+      <button
+        v-if="zoneStore.pendingZone !== zoneStore.activeZone"
+        class="travel-btn"
+        @click="travel"
+      >
+        ▶ Travel to {{ ZONES.find(z => z.id === zoneStore.pendingZone)?.label }}
       </button>
     </div>
   </div>
@@ -82,8 +94,23 @@ function toggleCollapse() {
 }
 .zone-btn:hover:not(:disabled) { border-color: var(--border-hi); }
 .zone-btn:active:not(:disabled) { top: 2px; left: 2px; box-shadow: none; }
-.zone-active { border-color: var(--gold); color: var(--gold); background: rgba(100,70,20,0.15); }
-.zone-locked { opacity: 0.45; cursor: not-allowed; color: var(--text-dim); }
-.zone-lock   { font-size: 7px; color: var(--text-dim); }
+.zone-active  { border-color: var(--gold); color: var(--gold); background: rgba(100,70,20,0.15); }
+.zone-pending { border-color: #5a9fff; color: #5a9fff; background: rgba(40,80,160,0.15); }
+.zone-locked  { opacity: 0.45; cursor: not-allowed; color: var(--text-dim); }
+.zone-lock    { font-size: 7px; color: var(--text-dim); }
 .zone-active-label { font-size: 7px; color: var(--gold-dim); }
+.travel-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  margin-top: 4px;
+  padding: 8px;
+  width: 100%;
+  background: #1a3a6a;
+  border: 2px solid #5a9fff;
+  color: #5a9fff;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000;
+}
+.travel-btn:hover { background: #1f4a8a; }
+.travel-btn:active { box-shadow: none; transform: translate(2px, 2px); }
 </style>

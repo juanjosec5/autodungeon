@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { PanelId } from '../types/index'
 import { useCharacterStore } from './character'
+import { usePrestigeStore } from './prestige'
 
 export interface PanelUnlock {
   panelId: PanelId
@@ -11,6 +12,12 @@ export interface PanelUnlock {
 }
 
 export const PANEL_UNLOCKS: PanelUnlock[] = [
+  {
+    panelId: 'skills',
+    requiredLevel: 3,
+    title: 'Skills Unlocked',
+    description: "Earn Skill Points on every level-up. Spend them at your own pace from the Skills tab to strengthen your character.",
+  },
   {
     panelId: 'zone',
     requiredLevel: 3,
@@ -73,17 +80,17 @@ export const useProgressionStore = defineStore('progression', () => {
 
   // Panels accessible at current level
   const unlockedPanels = computed<PanelId[]>(() => {
+    const prestigeStore = usePrestigeStore()
     const level = characterStore.character?.level ?? 1
+    // After the first prestige all panels stay unlocked permanently — the
+    // player has already experienced the progressive reveal on their first run.
+    if (prestigeStore.prestigeCount > 0) {
+      return [...new Set([...ALWAYS_ON, ...PANEL_UNLOCKS.map((u) => u.panelId)])]
+    }
     const fromUnlocks = PANEL_UNLOCKS
       .filter((u) => level >= u.requiredLevel)
       .map((u) => u.panelId)
-    // Keep prestige tab accessible permanently once the player has reached it —
-    // after a prestige the character resets to level 1 but the tab must remain
-    // visible so the player can access it without grinding back to level 50.
-    const alwaysOn: PanelId[] = seenUnlocks.value.includes('prestige')
-      ? [...ALWAYS_ON, 'prestige']
-      : ALWAYS_ON
-    return [...new Set([...alwaysOn, ...fromUnlocks])]
+    return [...new Set([...ALWAYS_ON, ...fromUnlocks])]
   })
 
   // First unlock that is newly available but the player hasn't seen the modal for yet
@@ -102,6 +109,12 @@ export const useProgressionStore = defineStore('progression', () => {
       seenUnlocks.value.push(panelId)
       localStorage.setItem(LS_PROGRESSION, JSON.stringify(seenUnlocks.value))
     }
+  }
+
+  /** Called when starting a brand-new character so unlock modals fire fresh. */
+  function resetSeenUnlocks(): void {
+    seenUnlocks.value = []
+    localStorage.removeItem(LS_PROGRESSION)
   }
 
   // Silently mark all currently-unlocked panels as seen — called once on game
@@ -135,6 +148,7 @@ export const useProgressionStore = defineStore('progression', () => {
     unlockedPanels,
     pendingUnlockModal,
     markUnlockSeen,
+    resetSeenUnlocks,
     bulkMarkCurrentUnlocksSeen,
     markTutorialSeen,
     hasSeen,

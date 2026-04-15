@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { PrestigeBonusId, PrestigeState } from '../types/index'
+import type { PrestigeBonusId, PrestigeState, AscensionBonusId, ClassId } from '../types/index'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { useCharacterStore } from './character'
 import { useTaskStore } from './tasks'
@@ -15,11 +15,23 @@ export interface BonusDef {
   icon: string
 }
 
+const CLASS_ASCENSION_BONUS: Record<ClassId, { id: AscensionBonusId; maxStacks: number; label: string; description: string }> = {
+  warrior:   { id: 'overkill',      maxStacks: 5, label: 'Overkill',       description: 'Excess damage on kill carries to next enemy (50% cap)' },
+  rogue:     { id: 'ghost-strike',  maxStacks: 5, label: 'Ghost Strike',   description: '+3% hit chance per stack (max +15%)' },
+  mage:      { id: 'arcane-surge',  maxStacks: 5, label: 'Arcane Surge',   description: '+5% chance to double XP from a kill per stack' },
+  priest:    { id: 'blessed-regen', maxStacks: 5, label: 'Blessed Regen',  description: '+1 HP regenerated per second per stack' },
+  undead:    { id: 'death-pact',    maxStacks: 3, label: 'Death Pact',     description: 'Survive a lethal hit with 1 HP (resets per zone)' },
+  dragonkin: { id: 'dragon-scales', maxStacks: 5, label: 'Dragon Scales',  description: '+2% damage reduction per stack (max 10%)' },
+}
+
+export { CLASS_ASCENSION_BONUS }
+
 export const usePrestigeStore = defineStore('prestige', () => {
   const prestigeCount = ref(0)
   const ascensionTokens = ref(0)
   const totalTokensEarned = ref(0)
   const bonuses = ref<Partial<Record<PrestigeBonusId, number>>>({})
+  const ascensionBonuses = ref<Partial<Record<AscensionBonusId, number>>>({})
 
   // ── Computed multipliers ────────────────────────────────────────────────────
 
@@ -32,6 +44,14 @@ export const usePrestigeStore = defineStore('prestige', () => {
   })
   const hpMultiplier = computed(() => 1 + (bonuses.value.hpBonus ?? 0) * 0.1)
   const dropRateBonus = computed(() => (bonuses.value.dropRateBonus ?? 0) * 0.1)
+
+  // ── Ascension bonus computed getters ────────────────────────────────────────
+  const hitChanceBonus     = computed(() => (ascensionBonuses.value['ghost-strike']  ?? 0) * 0.03)
+  const xpDoubleChance     = computed(() => (ascensionBonuses.value['arcane-surge']  ?? 0) * 0.05)
+  const passiveRegenPerSec = computed(() => ascensionBonuses.value['blessed-regen']  ?? 0)
+  const damageReduction    = computed(() => (ascensionBonuses.value['dragon-scales'] ?? 0) * 0.02)
+  const deathPactSaves     = computed(() => ascensionBonuses.value['death-pact']     ?? 0)
+  const overkillStacks     = computed(() => ascensionBonuses.value['overkill']       ?? 0)
 
   // ── Bonus definitions ───────────────────────────────────────────────────────
 
@@ -68,12 +88,20 @@ export const usePrestigeStore = defineStore('prestige', () => {
     prestigeCount.value++
     useTaskStore().updateTracker({ prestigesDone: 1 })
 
+    // Award class-specific ascension bonus
+    const cb = CLASS_ASCENSION_BONUS[char.class]
+    const cur = ascensionBonuses.value[cb.id] ?? 0
+    if (cur < cb.maxStacks) {
+      ascensionBonuses.value[cb.id] = cur + 1
+    }
+
     // Preserve persistent data before reset
     const charId = char.id
     const lifetime = { ...char.lifetime }
     const discoveredItems = [...(char.discoveredItems ?? [])]
     const charName = char.name
     const charClass = char.class
+    const savedUpgrades = { ...(char.upgrades ?? {}) }
 
     // Full character reset (zone challenges reset so set items can be re-earned)
     characterStore.createCharacter(charName, charClass)
@@ -85,16 +113,31 @@ export const usePrestigeStore = defineStore('prestige', () => {
       newChar.lifetime = lifetime
       newChar.discoveredItems = discoveredItems
 
-      // Apply startingLevel bonus
+      // Restore all spent skill-point upgrades
+      newChar.upgrades = savedUpgrades
+
+      // Re-apply the four upgrades that bake mutations directly into char.stats
+      // (all others are read at combat time via getUpgradeBonuses so need no re-application)
+      newChar.stats.str += (savedUpgrades['str-up'] ?? 0) * 2
+      newChar.stats.dex += (savedUpgrades['dex-up'] ?? 0) * 2
+      newChar.stats.int += (savedUpgrades['int-up'] ?? 0) * 2
+      const hpFromUpgrades = (savedUpgrades['hp-up'] ?? 0) * 15
+      newChar.maxHP += hpFromUpgrades
+      newChar.currentHP = newChar.maxHP
+
+      // Apply startingLevel bonus — grant skill points for skipped levels
       const sl = startingLevel.value
       if (sl > 1) {
         newChar.level = sl
         const stats = getStatsAtLevel(newChar.class, sl)
-        newChar.stats = { str: stats.str, dex: stats.dex, int: stats.int }
-        newChar.maxHP = Math.floor(stats.maxHP * hpMultiplier.value)
+        newChar.stats.str = stats.str + (savedUpgrades['str-up'] ?? 0) * 2
+        newChar.stats.dex = stats.dex + (savedUpgrades['dex-up'] ?? 0) * 2
+        newChar.stats.int = stats.int + (savedUpgrades['int-up'] ?? 0) * 2
+        newChar.maxHP = Math.floor(stats.maxHP * hpMultiplier.value) + hpFromUpgrades
         newChar.currentHP = newChar.maxHP
         newChar.xpToNext = getXPToNextLevel(sl)
-        newChar.pendingLevelUps = sl - 1  // upgrade picks for each skipped level
+        newChar.skillPoints = (newChar.skillPoints ?? 0) + (sl - 1)
+        newChar.pendingLevelUps = 0
       }
     }
 
@@ -113,6 +156,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
       ascensionTokens: ascensionTokens.value,
       totalTokensEarned: totalTokensEarned.value,
       bonuses: bonuses.value,
+      ascensionBonuses: ascensionBonuses.value,
     } satisfies PrestigeState))
   }
 
@@ -125,6 +169,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
       ascensionTokens.value = data.ascensionTokens ?? 0
       totalTokensEarned.value = data.totalTokensEarned ?? 0
       bonuses.value = data.bonuses ?? {}
+      ascensionBonuses.value = data.ascensionBonuses ?? {}
     } catch {
       // Corrupt data — ignore
     }
@@ -135,12 +180,19 @@ export const usePrestigeStore = defineStore('prestige', () => {
     ascensionTokens,
     totalTokensEarned,
     bonuses,
+    ascensionBonuses,
     xpMultiplier,
     goldMultiplier,
     offlineEfficiencyBonus,
     startingLevel,
     hpMultiplier,
     dropRateBonus,
+    hitChanceBonus,
+    xpDoubleChance,
+    passiveRegenPerSec,
+    damageReduction,
+    deathPactSaves,
+    overkillStacks,
     BONUS_DEFS,
     addTokens,
     buyBonus,
