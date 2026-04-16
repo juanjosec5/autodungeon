@@ -26,13 +26,14 @@ export function calcOfflineProgress(
 
   const enemy = spawnEnemy(zone)
   const xpEarned = kills * enemy.xpReward
-  const goldEarned = kills * Math.floor(enemy.xpReward * 0.6)
+  const goldEarned = kills * Math.max(1, Math.floor(enemy.xpReward * 0.6))
 
   // 1 loot roll per ~300 kills, capped at 3 items total
   const itemsFound = []
   const rollCount = Math.min(3, Math.floor(kills / 300))
   for (let i = 0; i < rollCount; i++) {
-    itemsFound.push(rollLoot(zone, enemy.id))
+    const offlineItem = rollLoot(zone, enemy.id)
+    if (offlineItem) itemsFound.push(offlineItem)
   }
 
   // Suppress unused param warning — character reserved for future zone-level checks

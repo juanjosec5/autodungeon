@@ -81,7 +81,7 @@ function rollRarity(isBoss: boolean): RarityId {
  * @param bonusChance - optional prestige drop rate bonus (0–0.5). When > 0,
  *   each roll has this probability of bumping rarity up one tier.
  */
-export function rollLoot(zone: ZoneId, enemyId: string, bonusChance = 0): Item {
+export function rollLoot(zone: ZoneId, enemyId: string, bonusChance = 0): Item | null {
   const isBoss = BOSS_IDS.has(enemyId)
   const zoneIdx = ZONE_INDEX[zone]
   let rarity = rollRarity(isBoss)
@@ -107,6 +107,7 @@ export function rollLoot(zone: ZoneId, enemyId: string, bonusChance = 0): Item {
       (item.dropFromZoneIdx === undefined || item.dropFromZoneIdx <= zoneIdx),
   )
   const template = pool[Math.floor(Math.random() * pool.length)]
+  if (!template) return null
   return { ...structuredClone(template), defId: template.id, id: crypto.randomUUID() }
 }
 
@@ -114,9 +115,10 @@ export function rollLoot(zone: ZoneId, enemyId: string, bonusChance = 0): Item {
  * Rolls a zone-specific BiS (best-in-slot) legendary.
  * Called at 1/200 chance on boss kill.
  */
-export function rollBisLoot(zone: ZoneId): Item {
+export function rollBisLoot(zone: ZoneId): Item | null {
   const ids = ZONE_BIS_IDS[zone]
   const id = ids[Math.floor(Math.random() * ids.length)]
-  const template = ITEM_DEFINITIONS.find((i) => i.id === id)!
+  const template = ITEM_DEFINITIONS.find((i) => i.id === id)
+  if (!template) return null
   return { ...structuredClone(template), defId: template.id, id: crypto.randomUUID() }
 }

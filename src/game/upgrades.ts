@@ -78,6 +78,7 @@ export function rollUpgradeChoices(
 }
 
 export function autoPickUpgrade(classId: ClassId, choices: UpgradeDef[]): UpgradeDef {
+  if (choices.length === 0) throw new Error('autoPickUpgrade called with empty choices')
   const priority = AUTO_PRIORITY[classId]
   for (const id of priority) {
     const match = choices.find((c) => c.id === id)

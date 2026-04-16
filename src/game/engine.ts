@@ -1,5 +1,5 @@
 import type { Character, Enemy, ZoneId } from '../types/index'
-import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial } from './formulas'
+import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial, rollDamage } from './formulas'
 import { rollLoot, rollBisLoot } from './items'
 import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
@@ -195,13 +195,13 @@ export class CombatEngine {
     const classDef = CLASS_DEFINITIONS[character.class]
     const baseDefIgnore = classDef.passives.defIgnore ?? 0
     const weaponDefIgnore = getSpecial(weapon?.stats.special, 'defIgnore')?.percent ?? 0
-    const defIgnorePercent = Math.min(0.9, baseDefIgnore + weaponDefIgnore + ub.defIgnoreBonus)
+    const defIgnorePercent = Math.min(0.9, baseDefIgnore + weaponDefIgnore + ub.defIgnoreBonus) // capped at 90% to prevent zero-defence enemies
 
     // Crit threshold from weapon special
     const extraCritThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
 
     const roll = d20()
-    // Ghost Strike: each stack adds ~+3% hit chance by boosting effective DEX
+    // Ghost Strike: hitChanceBonus is stacks × 0.03; ×20 converts to effective DEX (~1 DEX ≈ 0.15% hit)
     const bonusDex = Math.round((this.state.hitChanceBonus ?? 0) * 20)
     const hits = calcHit(character.stats.dex + bonusDex, enemy.def)
     const isCrit = hits && calcCrit(roll, character.class, extraCritThreshold, ub.critThresholdReduction)
@@ -381,12 +381,12 @@ export class CombatEngine {
     const dropBonus = this.state.dropRateBonus ?? 0
     if (enemy.isBoss) {
       const regularItem = rollLoot(this.state.zone, enemy.id, dropBonus)
-      this.emit({ type: 'loot_dropped', payload: { item: regularItem } })
+      if (regularItem) this.emit({ type: 'loot_dropped', payload: { item: regularItem } })
 
       // 1/200 chance for zone-specific BiS legendary
       if (Math.random() < 1 / 200) {
         const bisItem = rollBisLoot(this.state.zone)
-        this.emit({ type: 'loot_dropped', payload: { item: bisItem, isBossLoot: true } })
+        if (bisItem) this.emit({ type: 'loot_dropped', payload: { item: bisItem, isBossLoot: true } })
       }
 
       this.emit({ type: 'boss_defeated', payload: { enemyName: enemy.name } })
@@ -394,7 +394,7 @@ export class CombatEngine {
       this.state.killsToNextBoss = rollDamage(10, 15)
     } else {
       const item = rollLoot(this.state.zone, enemy.id, dropBonus)
-      this.emit({ type: 'loot_dropped', payload: { item } })
+      if (item) this.emit({ type: 'loot_dropped', payload: { item } })
       this.state.killCount++
     }
 
@@ -447,9 +447,5 @@ export class CombatEngine {
   }
 }
 
-// Reuse rollDamage for integer range — same formula, named clearly in context
-function rollDamage(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
 
 export default CombatEngine
