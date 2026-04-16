@@ -11,11 +11,12 @@ import { useAchievementStore } from './achievement'
 import { usePrestigeStore } from './prestige'
 import { useTaskStore } from './tasks'
 import { useShopStore } from './shop'
+import { LS_KEYS } from '../utils/storage'
 
 const MAX_LOG = 100
 
 function loadSpeed(): 0.5 | 1 | 2 | 4 {
-  const saved = localStorage.getItem('combatSpeed')
+  const saved = localStorage.getItem(LS_KEYS.combatSpeed)
   if (saved === '0.5' || saved === '1' || saved === '2' || saved === '4') {
     return Number(saved) as 0.5 | 1 | 2 | 4
   }
@@ -337,7 +338,7 @@ export const useCombatStore = defineStore('combat', () => {
   function setSpeed(s: 0.5 | 1 | 2 | 4): void {
     speed.value = s
     engine.setSpeed(s)
-    localStorage.setItem('combatSpeed', String(s))
+    localStorage.setItem(LS_KEYS.combatSpeed, String(s))
   }
 
   function restartCombat(): void {

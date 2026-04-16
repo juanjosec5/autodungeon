@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, onScopeDispose } from 'vue'
 import type { ConsumableId } from '../types/index'
 import { CONSUMABLE_DEFS, getStockForSlot, ROTATION_INTERVAL_MS } from '../game/shop'
 import { useZoneStore } from './zone'
@@ -95,7 +95,8 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // Prune expired consumables every second
-  setInterval(pruneExpired, 1000)
+  const _pruneTimer = setInterval(pruneExpired, 1000)
+  onScopeDispose(() => clearInterval(_pruneTimer))
 
   return {
     currentStock,

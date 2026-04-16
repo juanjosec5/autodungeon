@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onBeforeUnmount } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useProgressionStore } from '../stores/progression'
 import { fmtNum } from '../utils/format'
+import { LS_KEYS } from '../utils/storage'
 import TutorialToast from './TutorialToast.vue'
 import type { Item } from '../types/index'
 
@@ -56,10 +57,12 @@ function doEnchant(item: Item) {
   enchantFlashTimer = setTimeout(() => { enchantFlash.value = null }, 2000)
 }
 
-const collapsed = ref(localStorage.getItem('collapsed_enchant') === 'true')
+onBeforeUnmount(() => { if (enchantFlashTimer) clearTimeout(enchantFlashTimer) })
+
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.enchant) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_enchant', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.enchant, String(collapsed.value))
 }
 </script>
 

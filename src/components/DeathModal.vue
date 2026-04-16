@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useCombatStore } from '../stores/combat'
-import { useCharacterStore } from '../stores/character'
 
 const combatStore = useCombatStore()
-const characterStore = useCharacterStore()
 
 const visible = ref(false)
 const slainBy = ref('')
@@ -16,11 +14,6 @@ watch(
   (log) => {
     const latest = log[log.length - 1]
     if (latest?.type === 'death') {
-      const char = characterStore.character
-      if (char) {
-        xpLost.value = Math.floor((char.xp + (char.xp * 0.1)) * 0.1)
-        goldLost.value = Math.floor((char.gold + (char.gold * 0.15)) * 0.15)
-      }
       const match = latest.message.match(/slain by (.+?)!/)
       slainBy.value = match ? match[1] : 'an enemy'
       xpLost.value = 0

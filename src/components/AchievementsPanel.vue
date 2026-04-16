@@ -5,6 +5,7 @@ import { useSaveStore } from '../stores/save'
 import { ZONE_CHALLENGE_SETS } from '../game/achievements'
 import { getItemSpriteStyle } from '../game/item-sprites'
 import { fmtNum } from '../utils/format'
+import { LS_KEYS } from '../utils/storage'
 import type { ZoneId } from '../types/index'
 
 const achievementStore = useAchievementStore()
@@ -23,10 +24,10 @@ function handleClaim(zone: ZoneId): void {
   }
 }
 
-const collapsed = ref(localStorage.getItem('collapsed_achievements') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.achievements) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_achievements', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.achievements, String(collapsed.value))
 }
 
 const activeZone = computed({

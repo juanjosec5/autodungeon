@@ -6,6 +6,7 @@ import { ITEM_DEFINITIONS, SHOP_ITEMS } from '../game/item-data'
 import { getOffClassPenalty } from '../game/formulas'
 import { getItemSpriteStyle } from '../game/item-sprites'
 import type { Item, ZoneId } from '../types/index'
+import { LS_KEYS } from '../utils/storage'
 
 const characterStore = useCharacterStore()
 const zoneStore = useZoneStore()
@@ -33,6 +34,7 @@ type ZoneSection = {
 }
 
 const codexZones = computed<ZoneSection[]>(() => {
+  // -1 if activeZone is not in ZONE_ORDER; all zone-progress checks below will fail safely (level gate still applies)
   const currentZoneIdx = ZONE_ORDER.indexOf(zoneStore.activeZone)
   const charLevel = characterStore.character?.level ?? 1
 
@@ -117,10 +119,10 @@ function hideTooltip() {
   tooltipItem.value = null
 }
 
-const collapsed = ref(localStorage.getItem('collapsed_codex') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.codex) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_codex', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.codex, String(collapsed.value))
 }
 </script>
 

@@ -3,6 +3,7 @@ import { computed, watch, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { useCombatStore } from '../stores/combat'
 import { useCharacterStore } from '../stores/character'
 import { fmtNum } from '../utils/format'
+import { LS_KEYS } from '../utils/storage'
 import type { CombatLogEntry } from '../types/index'
 
 const combatStore = useCombatStore()
@@ -27,10 +28,10 @@ const entryClass: Record<CombatLogEntry['type'], string> = {
   zone:    'l-zone',
 }
 
-const collapsed = ref(localStorage.getItem('collapsed_combatlog') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.combatLog) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_combatlog', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.combatLog, String(collapsed.value))
 }
 
 type FilterMode = 'all' | 'combat' | 'loot' | 'system' | 'stats'

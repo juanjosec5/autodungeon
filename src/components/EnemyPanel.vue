@@ -4,6 +4,7 @@ import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { getSpriteForEnemy, buildSpriteStyle } from '../game/sprites'
 import { ZONE_META } from '../game/zones'
+import { LS_KEYS } from '../utils/storage'
 
 const combatStore = useCombatStore()
 const zoneStore = useZoneStore()
@@ -67,10 +68,10 @@ interface FloatNumber {
   offsetX: number
 }
 
-const collapsed = ref(localStorage.getItem('collapsed_enemy') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.enemy) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_enemy', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.enemy, String(collapsed.value))
 }
 
 const floatNumbers = ref<FloatNumber[]>([])

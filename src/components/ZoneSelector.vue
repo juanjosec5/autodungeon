@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useZoneStore } from '../stores/zone'
 import { useCharacterStore } from '../stores/character'
+import { LS_KEYS } from '../utils/storage'
 import type { ZoneId } from '../types/index'
 
 const zoneStore = useZoneStore()
@@ -33,10 +34,10 @@ function travel() {
   zoneStore.confirmPending()
 }
 
-const collapsed = ref(localStorage.getItem('collapsed_zone') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.zone) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_zone', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.zone, String(collapsed.value))
 }
 </script>
 

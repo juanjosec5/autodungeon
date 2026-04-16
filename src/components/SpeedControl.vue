@@ -2,14 +2,15 @@
 import { ref, computed } from 'vue'
 import { useCombatStore } from '../stores/combat'
 import { usePrestigeStore } from '../stores/prestige'
+import { LS_KEYS } from '../utils/storage'
 
 const combatStore = useCombatStore()
 const prestigeStore = usePrestigeStore()
 
-const collapsed = ref(localStorage.getItem('collapsed_controls') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.controls) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_controls', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.controls, String(collapsed.value))
 }
 
 const SPEEDS = [0.5, 1, 2, 4] as const
