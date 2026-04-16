@@ -6,6 +6,7 @@ import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
 import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
 import { applyUpgrade, rollUpgradeChoices, autoPickUpgrade, UPGRADE_DEFINITIONS } from '../game/upgrades'
+import { LS_KEYS } from '../utils/storage'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
   warrior:   { weaponId: 'rusty-sword',  armorId: 'leather-scraps' },
@@ -36,20 +37,20 @@ export const useCharacterStore = defineStore('character', () => {
   const pendingOfflineResult = ref<OfflineResult | null>(null)  // not persisted
 
   const SCRAP_MODES = ['off', 'smart', 'smart-c', 'smart-u', 'smart-r'] as const satisfies readonly ScrapMode[]
-  const savedScrapMode = localStorage.getItem('scrapMode') as ScrapMode | null
+  const savedScrapMode = localStorage.getItem(LS_KEYS.scrapMode) as ScrapMode | null
   const scrapMode = ref<ScrapMode>(
     savedScrapMode && (SCRAP_MODES as readonly string[]).includes(savedScrapMode) ? savedScrapMode : 'off',
   )
-  const autoEquip = ref(localStorage.getItem('autoEquip') === 'true')
+  const autoEquip = ref(localStorage.getItem(LS_KEYS.autoEquip) === 'true')
 
   function setScrapMode(mode: ScrapMode): void {
     scrapMode.value = mode
-    localStorage.setItem('scrapMode', mode)
+    localStorage.setItem(LS_KEYS.scrapMode, mode)
   }
 
   function toggleAutoEquip(): void {
     autoEquip.value = !autoEquip.value
-    localStorage.setItem('autoEquip', String(autoEquip.value))
+    localStorage.setItem(LS_KEYS.autoEquip, String(autoEquip.value))
   }
 
   // ── Getters ──────────────────────────────────────────────────────────────────

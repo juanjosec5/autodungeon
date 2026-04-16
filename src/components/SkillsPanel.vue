@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { UPGRADE_DEFINITIONS } from '../game/upgrades'
+import type { UpgradeDef } from '../game/upgrades'
 import type { UpgradeId } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -17,8 +18,8 @@ function defsForColumn(ids: UpgradeId[]) {
   if (!char.value) return []
   const cls = char.value.class
   return ids
-    .map((id) => UPGRADE_DEFINITIONS.find((d) => d.id === id)!)
-    .filter((d) => d && (d.allowedClasses === 'any' || d.allowedClasses.includes(cls)))
+    .map((id) => UPGRADE_DEFINITIONS.find((d) => d.id === id))
+    .filter((d): d is UpgradeDef => !!d && (d.allowedClasses === 'any' || d.allowedClasses.includes(cls)))
 }
 
 const offenseDefs = computed(() => defsForColumn(OFFENSE_IDS))

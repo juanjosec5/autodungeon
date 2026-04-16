@@ -10,6 +10,7 @@ import { getActiveSet } from '../game/sets'
 import { getSpecial } from '../game/formulas'
 import { buildClassSpriteStyle } from '../game/class-sprites'
 import { fmtNum } from '../utils/format'
+import { LS_KEYS } from '../utils/storage'
 import type { ZoneId } from '../types/index'
 
 const characterStore = useCharacterStore()
@@ -181,10 +182,10 @@ const damageStat = computed(() =>
   char.value ? CLASS_DEFINITIONS[char.value.class].damageStat.toUpperCase() : '',
 )
 
-const collapsed = ref(localStorage.getItem('collapsed_character') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.character) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_character', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.character, String(collapsed.value))
 }
 </script>
 

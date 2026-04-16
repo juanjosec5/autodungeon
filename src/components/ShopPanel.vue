@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useProgressionStore } from '../stores/progression'
@@ -9,6 +9,7 @@ import { getBuyPrice } from '../game/items'
 import { getOffClassPenalty } from '../game/formulas'
 import { getItemSpriteStyle } from '../game/item-sprites'
 import { fmtNum } from '../utils/format'
+import { LS_KEYS } from '../utils/storage'
 import TutorialToast from './TutorialToast.vue'
 import type { Item, ConsumableId } from '../types/index'
 
@@ -158,6 +159,10 @@ const consFlashMsg = ref<Record<ConsumableId, string | null>>({
 })
 const consFlashTimers: Partial<Record<ConsumableId, ReturnType<typeof setTimeout>>> = {}
 
+onBeforeUnmount(() => {
+  Object.values(consFlashTimers).forEach(t => t && clearTimeout(t))
+})
+
 function flashCons(id: ConsumableId, msg: string) {
   consFlashMsg.value[id] = msg
   if (consFlashTimers[id]) clearTimeout(consFlashTimers[id])
@@ -179,10 +184,10 @@ function buyCons(id: ConsumableId) {
   }
 }
 
-const collapsed = ref(localStorage.getItem('collapsed_shop') === 'true')
+const collapsed = ref(localStorage.getItem(LS_KEYS.collapsed.shop) === 'true')
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('collapsed_shop', String(collapsed.value))
+  localStorage.setItem(LS_KEYS.collapsed.shop, String(collapsed.value))
 }
 </script>
 
