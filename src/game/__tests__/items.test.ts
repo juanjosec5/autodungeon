@@ -109,7 +109,7 @@ describe('getItemById', () => {
 
 describe('rollLoot', () => {
   it('returns an Item with a unique id', () => {
-    const item = rollLoot('forest', 'goblin')
+    const item = rollLoot('forest', 'goblin')!
     expect(item).toBeDefined()
     expect(item.id).toBeTruthy()
     expect(item.defId).toBeTruthy()
@@ -121,6 +121,7 @@ describe('rollLoot', () => {
     // Run many times to be statistically confident
     for (let i = 0; i < 200; i++) {
       const item = rollLoot('forest', 'goblin')
+      if (!item) continue
       expect(['common', 'uncommon', 'rare']).toContain(item.rarity)
     }
   })
@@ -128,6 +129,7 @@ describe('rollLoot', () => {
   it('dungeon zone: never returns legendary (for non-boss)', () => {
     for (let i = 0; i < 200; i++) {
       const item = rollLoot('dungeon', 'skeleton')
+      if (!item) continue
       expect(item.rarity).not.toBe('legendary')
     }
   })
@@ -136,13 +138,13 @@ describe('rollLoot', () => {
     // Force Math.random to hit the legendary weight bracket by returning a value
     // just below cumulative sum where legendary kicks in (> 0.9999)
     vi.spyOn(Math, 'random').mockReturnValue(0.9999)
-    const item = rollLoot('void', 'the-unmaker')
+    const item = rollLoot('void', 'the-unmaker')!
     expect(item.rarity).toBe('legendary')
     vi.restoreAllMocks()
   })
 
   it('items belong to a pool reachable from the given zone', () => {
-    const item = rollLoot('forest', 'goblin')
+    const item = rollLoot('forest', 'goblin')!
     const template = ITEM_DEFINITIONS.find((i) => i.id === item.defId)
     expect(template).toBeDefined()
     // Forest is zone index 0, so dropFromZoneIdx must be 0 or undefined
@@ -152,8 +154,8 @@ describe('rollLoot', () => {
   })
 
   it('returns a different id on each call (no referential sharing)', () => {
-    const a = rollLoot('dungeon', 'skeleton')
-    const b = rollLoot('dungeon', 'skeleton')
+    const a = rollLoot('dungeon', 'skeleton')!
+    const b = rollLoot('dungeon', 'skeleton')!
     expect(a.id).not.toBe(b.id)
   })
 })
@@ -162,7 +164,7 @@ describe('rollLoot', () => {
 
 describe('rollBisLoot', () => {
   it('returns an Item with a unique id', () => {
-    const item = rollBisLoot('forest')
+    const item = rollBisLoot('forest')!
     expect(item).toBeDefined()
     expect(item.id).toBeTruthy()
   })
@@ -171,18 +173,19 @@ describe('rollBisLoot', () => {
     // BiS loot is always legendary
     for (const zone of ['forest', 'dungeon', 'volcano', 'abyss', 'shadowrealm', 'celestial', 'void', 'nightmare'] as const) {
       const item = rollBisLoot(zone)
+      if (!item) continue
       expect(item.rarity).toBe('legendary')
     }
   })
 
   it('id differs from defId (deep clone with new uuid)', () => {
-    const item = rollBisLoot('dungeon')
+    const item = rollBisLoot('dungeon')!
     expect(item.id).not.toBe(item.defId)
   })
 
   it('gives different ids on successive calls', () => {
-    const a = rollBisLoot('forest')
-    const b = rollBisLoot('forest')
+    const a = rollBisLoot('forest')!
+    const b = rollBisLoot('forest')!
     expect(a.id).not.toBe(b.id)
   })
 })
