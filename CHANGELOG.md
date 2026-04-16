@@ -11,6 +11,10 @@ All notable changes to AutoDungeon are documented here.
 - **setInterval leak in shop store** — prune-expired-consumables interval is now cleaned up via `onScopeDispose`
 - **Non-null assertion in SkillsPanel** — replaced unsafe `!` on `.find()` with a type-narrowing filter predicate
 - **localStorage magic strings** — all hardcoded keys centralised in `src/utils/storage.ts` (`LS_KEYS`)
+- **Crash when loot pool is empty** — `rollLoot` and `rollBisLoot` now return `null` instead of crashing if no matching item definition is found; all callers guard against null
+- **Offline gold always 0 for low-XP enemies** — offline gold-per-kill is now `Math.max(1, ...)` so weak enemies always award at least 1 gold
+- **`autoPickUpgrade` silent undefined return** — throws a clear error if called with an empty choices array instead of returning `undefined` typed as `UpgradeDef`
+- **Duplicate `rollDamage` in engine.ts** — removed local copy, now imports from `formulas.ts`
 
 ### Changed
 - Zone unlock level labels synced with actual unlock thresholds
