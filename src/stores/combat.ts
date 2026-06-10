@@ -136,6 +136,17 @@ export const useCombatStore = defineStore('combat', () => {
         const bossKill = p.isBoss as boolean | undefined
         addLogEntry({ type: 'hit', message: `💀 ${p.enemyName} has been slain!` })
         useAchievementStore().trackKill(useZoneStore().activeZone, p.enemyId as string, bossKill ?? false)
+        // Direct gold drop (multiplied by prestige/shop bonuses)
+        const baseGoldReward = (p.goldReward as number | undefined) ?? 0
+        if (baseGoldReward > 0 && characterStore.character) {
+          const goldPrestige = usePrestigeStore()
+          const goldShop = useShopStore()
+          const gold = Math.floor(baseGoldReward * goldPrestige.goldMultiplier * (1 + goldShop.goldBonus))
+          characterStore.character.gold += gold
+          session.goldEarned += gold
+          characterStore.updateLifetime({ goldEarned: gold })
+          useTaskStore().updateTracker({ goldEarned: gold })
+        }
         if (bossKill) {
           session.bossKills++
           characterStore.updateLifetime({ bossKills: 1 })

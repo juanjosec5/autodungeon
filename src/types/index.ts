@@ -99,6 +99,11 @@ export interface Character {
   lifetime: LifetimeStats
   zoneAchievements?: Partial<Record<ZoneId, ZoneAchievementProgress>>
   discoveredItems?: string[]
+  pity?: {
+    sinceRare: number          // drops since the last rare+ drop
+    sinceEpic: number          // drops since the last epic+ drop
+    bossKillsSinceBis: number  // boss kills since the last BiS legendary
+  }
 }
 
 export interface Enemy {

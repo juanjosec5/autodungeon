@@ -1163,6 +1163,367 @@ export const ITEM_DEFS: ItemDef[] = [
     allowedClasses: ['dragonkin'], zoneTier: 7, dropFromZoneIdx: 7, defMod: 1.41, hpMod: 0.81,
     special: [{ type: 'block', chance: 0.32 }, { type: 'regenOnKill', percent: 0.4 }],
   },
+
+  // ── Forest zone items (dropFromZoneIdx: 0) ────────────────────────────────────
+  {
+    id: 'oakheart-blade', name: 'Oakheart Blade', type: 'weapon', category: 'Sword', rarity: 'uncommon',
+    allowedClasses: ['warrior'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.1,
+  },
+  {
+    id: 'thornfang-dagger', name: 'Thornfang Dagger', type: 'weapon', category: 'Dagger', rarity: 'uncommon',
+    allowedClasses: ['rogue'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.05,
+    special: [{ type: 'poison', dpsMultiplier: 0.1 }],
+  },
+  {
+    id: 'willow-staff', name: 'Willow Staff', type: 'weapon', category: 'Staff', rarity: 'uncommon',
+    allowedClasses: ['mage'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.05,
+  },
+  {
+    id: 'grovekeeper-rod', name: 'Grovekeeper Rod', type: 'weapon', category: 'Wand', rarity: 'uncommon',
+    allowedClasses: ['priest'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.05,
+  },
+  {
+    id: 'gravewood-scythe', name: 'Gravewood Scythe', type: 'weapon', category: 'Scythe', rarity: 'uncommon',
+    allowedClasses: ['undead'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.1,
+  },
+  {
+    id: 'wyrmling-claw', name: 'Wyrmling Claw', type: 'weapon', category: 'Gauntlet', rarity: 'uncommon',
+    allowedClasses: ['dragonkin'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.1,
+  },
+  {
+    id: 'barkhide-plate', name: 'Barkhide Plate', type: 'armor', category: 'Plate Armor', rarity: 'rare',
+    allowedClasses: ['warrior'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 1.2, hpMod: 0.9,
+  },
+  {
+    id: 'wolfshadow-cloak', name: 'Wolfshadow Cloak', type: 'armor', category: 'Cloak', rarity: 'rare',
+    allowedClasses: ['rogue'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 0.7, hpMod: 1.1,
+    special: [{ type: 'dodge', chance: 0.06 }],
+  },
+  {
+    id: 'fernweave-robe', name: 'Fernweave Robe', type: 'armor', category: 'Robes', rarity: 'rare',
+    allowedClasses: ['mage'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 0.6, hpMod: 1.2,
+    special: [{ type: 'spellAmp', percent: 0.06 }],
+  },
+  {
+    id: 'sylvan-vestments', name: 'Sylvan Vestments', type: 'armor', category: 'Vestments', rarity: 'rare',
+    allowedClasses: ['priest'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 0.65, hpMod: 1.2,
+    special: [{ type: 'regenOnKill', percent: 0.06 }],
+  },
+  {
+    id: 'mossbone-shroud', name: 'Mossbone Shroud', type: 'armor', category: 'Shroud', rarity: 'rare',
+    allowedClasses: ['undead'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 0.9, hpMod: 1.05,
+  },
+  {
+    id: 'greenscale-mail', name: 'Greenscale Mail', type: 'armor', category: 'Scale Armor', rarity: 'rare',
+    allowedClasses: ['dragonkin'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 1.15, hpMod: 0.95,
+  },
+
+  // ── Forest BiS legendaries (boss-only via ZONE_BIS_IDS) ───────────────────────
+  {
+    id: 'heartwood-cleaver', name: 'Heartwood Cleaver', type: 'weapon', category: 'Axe', rarity: 'legendary',
+    allowedClasses: ['warrior'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.2,
+    special: [{ type: 'lifesteal', value: 0.1 }, { type: 'critThreshold', rollsAt: 18 }],
+  },
+  {
+    id: 'kingsbane-fang', name: 'Kingsbane Fang', type: 'weapon', category: 'Dagger', rarity: 'legendary',
+    allowedClasses: ['rogue'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.15,
+    special: [{ type: 'poison', dpsMultiplier: 0.18 }, { type: 'critThreshold', rollsAt: 16 }],
+  },
+  {
+    id: 'archdruid-staff', name: 'Archdruid Staff', type: 'weapon', category: 'Staff', rarity: 'legendary',
+    allowedClasses: ['mage'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.15,
+    special: [{ type: 'spellAmp', percent: 0.12 }, { type: 'doublecast', chance: 0.08 }],
+  },
+  {
+    id: 'lifebloom-relic', name: 'Lifebloom Relic', type: 'weapon', category: 'Staff', rarity: 'legendary',
+    allowedClasses: ['priest'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.15,
+    special: [{ type: 'lifesteal', value: 0.12 }, { type: 'attackSpeedBonus', percent: 0.08 }],
+  },
+  {
+    id: 'rotwood-reaper', name: 'Rotwood Reaper', type: 'weapon', category: 'Scythe', rarity: 'legendary',
+    allowedClasses: ['undead'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.2,
+    special: [{ type: 'lifesteal', value: 0.14 }, { type: 'critThreshold', rollsAt: 17 }],
+  },
+  {
+    id: 'emerald-wyrm-talon', name: 'Emerald Wyrm Talon', type: 'weapon', category: 'Gauntlet', rarity: 'legendary',
+    allowedClasses: ['dragonkin'], zoneTier: 0, dropFromZoneIdx: 0, dmgMod: 1.2,
+    special: [{ type: 'defIgnore', percent: 0.1 }, { type: 'attackSpeedBonus', percent: 0.1 }],
+  },
+  {
+    id: 'ancient-oak-aegis', name: 'Ancient Oak Aegis', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['warrior'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 1.25, hpMod: 1.0,
+    special: [{ type: 'block', chance: 0.1 }],
+  },
+  {
+    id: 'verdant-shadow-garb', name: 'Verdant Shadow Garb', type: 'armor', category: 'Cloak', rarity: 'legendary',
+    allowedClasses: ['rogue'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 0.75, hpMod: 1.15,
+    special: [{ type: 'dodge', chance: 0.12 }],
+  },
+  {
+    id: 'living-root-mantle', name: 'Living Root Mantle', type: 'armor', category: 'Robes', rarity: 'legendary',
+    allowedClasses: ['mage'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 0.6, hpMod: 1.25,
+    special: [{ type: 'spellAmp', percent: 0.1 }],
+  },
+  {
+    id: 'blessed-grove-raiment', name: 'Blessed Grove Raiment', type: 'armor', category: 'Vestments', rarity: 'legendary',
+    allowedClasses: ['priest'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 0.65, hpMod: 1.25,
+    special: [{ type: 'regenOnKill', percent: 0.12 }],
+  },
+  {
+    id: 'lichen-bone-carapace', name: 'Lichen Bone Carapace', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['undead'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 1.1, hpMod: 1.05,
+    special: [{ type: 'block', chance: 0.08 }, { type: 'dodge', chance: 0.06 }],
+  },
+  {
+    id: 'verdant-dragonhide', name: 'Verdant Dragonhide', type: 'armor', category: 'Scale Armor', rarity: 'legendary',
+    allowedClasses: ['dragonkin'], zoneTier: 0, dropFromZoneIdx: 0, defMod: 1.2, hpMod: 1.05,
+    special: [{ type: 'regenOnKill', percent: 0.1 }],
+  },
+
+  // ── Dungeon zone items (dropFromZoneIdx: 1) ───────────────────────────────────
+  {
+    id: 'dungeoneer-greatsword', name: 'Dungeoneer Greatsword', type: 'weapon', category: 'Sword', rarity: 'rare',
+    allowedClasses: ['warrior'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.1,
+  },
+  {
+    id: 'lockpick-stiletto', name: 'Lockpick Stiletto', type: 'weapon', category: 'Dagger', rarity: 'rare',
+    allowedClasses: ['rogue'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.05,
+    special: [{ type: 'attackSpeedBonus', percent: 0.06 }],
+  },
+  {
+    id: 'catacomb-scepter', name: 'Catacomb Scepter', type: 'weapon', category: 'Staff', rarity: 'rare',
+    allowedClasses: ['mage'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.05,
+    special: [{ type: 'spellAmp', percent: 0.05 }],
+  },
+  {
+    id: 'crypt-censer', name: 'Crypt Censer', type: 'weapon', category: 'Wand', rarity: 'rare',
+    allowedClasses: ['priest'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.05,
+    special: [{ type: 'lifesteal', value: 0.05 }],
+  },
+  {
+    id: 'ossuary-scythe', name: 'Ossuary Scythe', type: 'weapon', category: 'Scythe', rarity: 'rare',
+    allowedClasses: ['undead'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.1,
+  },
+  {
+    id: 'iron-fang-gauntlet', name: 'Iron Fang Gauntlet', type: 'weapon', category: 'Gauntlet', rarity: 'rare',
+    allowedClasses: ['dragonkin'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.1,
+  },
+  {
+    id: 'jailer-plate', name: 'Jailer Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['warrior'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 1.2, hpMod: 0.95,
+    special: [{ type: 'block', chance: 0.08 }],
+  },
+  {
+    id: 'cell-shadow-garb', name: 'Cell Shadow Garb', type: 'armor', category: 'Cloak', rarity: 'epic',
+    allowedClasses: ['rogue'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 0.7, hpMod: 1.15,
+    special: [{ type: 'dodge', chance: 0.1 }],
+  },
+  {
+    id: 'warden-seal-robe', name: 'Warden Seal Robe', type: 'armor', category: 'Robes', rarity: 'epic',
+    allowedClasses: ['mage'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 0.6, hpMod: 1.2,
+    special: [{ type: 'spellAmp', percent: 0.08 }],
+  },
+  {
+    id: 'sanctum-vestments', name: 'Sanctum Vestments', type: 'armor', category: 'Vestments', rarity: 'epic',
+    allowedClasses: ['priest'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 0.65, hpMod: 1.2,
+    special: [{ type: 'regenOnKill', percent: 0.08 }],
+  },
+  {
+    id: 'tombguard-plate', name: 'Tombguard Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['undead'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 1.1, hpMod: 1.0,
+    special: [{ type: 'block', chance: 0.08 }],
+  },
+  {
+    id: 'drakebone-mail', name: 'Drakebone Mail', type: 'armor', category: 'Scale Armor', rarity: 'epic',
+    allowedClasses: ['dragonkin'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 1.2, hpMod: 0.95,
+    special: [{ type: 'regenOnKill', percent: 0.06 }],
+  },
+
+  // ── Dungeon BiS legendaries ───────────────────────────────────────────────────
+  {
+    id: 'oathbreaker', name: 'Oathbreaker', type: 'weapon', category: 'Sword', rarity: 'legendary',
+    allowedClasses: ['warrior'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.2,
+    special: [{ type: 'lifesteal', value: 0.12 }, { type: 'defIgnore', percent: 0.1 }],
+  },
+  {
+    id: 'wardens-end', name: "Warden's End", type: 'weapon', category: 'Dagger', rarity: 'legendary',
+    allowedClasses: ['rogue'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.15,
+    special: [{ type: 'critThreshold', rollsAt: 15 }, { type: 'attackSpeedBonus', percent: 0.1 }],
+  },
+  {
+    id: 'lichbane-scepter', name: 'Lichbane Scepter', type: 'weapon', category: 'Staff', rarity: 'legendary',
+    allowedClasses: ['mage'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.15,
+    special: [{ type: 'spellAmp', percent: 0.15 }, { type: 'doublecast', chance: 0.1 }],
+  },
+  {
+    id: 'redemption-rod', name: 'Redemption Rod', type: 'weapon', category: 'Wand', rarity: 'legendary',
+    allowedClasses: ['priest'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.15,
+    special: [{ type: 'lifesteal', value: 0.15 }, { type: 'critThreshold', rollsAt: 17 }],
+  },
+  {
+    id: 'soulchain-reaper', name: 'Soulchain Reaper', type: 'weapon', category: 'Scythe', rarity: 'legendary',
+    allowedClasses: ['undead'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.2,
+    special: [{ type: 'lifesteal', value: 0.16 }, { type: 'critThreshold', rollsAt: 16 }],
+  },
+  {
+    id: 'dungeon-wyrm-fist', name: 'Dungeon Wyrm Fist', type: 'weapon', category: 'Gauntlet', rarity: 'legendary',
+    allowedClasses: ['dragonkin'], zoneTier: 1, dropFromZoneIdx: 1, dmgMod: 1.2,
+    special: [{ type: 'defIgnore', percent: 0.12 }, { type: 'attackSpeedBonus', percent: 0.12 }],
+  },
+  {
+    id: 'darkcell-bulwark', name: 'Darkcell Bulwark', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['warrior'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 1.25, hpMod: 1.0,
+    special: [{ type: 'block', chance: 0.12 }],
+  },
+  {
+    id: 'gloomstalker-shroud', name: 'Gloomstalker Shroud', type: 'armor', category: 'Cloak', rarity: 'legendary',
+    allowedClasses: ['rogue'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 0.75, hpMod: 1.15,
+    special: [{ type: 'dodge', chance: 0.14 }],
+  },
+  {
+    id: 'spellbound-mantle', name: 'Spellbound Mantle', type: 'armor', category: 'Robes', rarity: 'legendary',
+    allowedClasses: ['mage'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 0.6, hpMod: 1.25,
+    special: [{ type: 'spellAmp', percent: 0.12 }],
+  },
+  {
+    id: 'martyr-vestments', name: 'Martyr Vestments', type: 'armor', category: 'Vestments', rarity: 'legendary',
+    allowedClasses: ['priest'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 0.65, hpMod: 1.25,
+    special: [{ type: 'regenOnKill', percent: 0.14 }],
+  },
+  {
+    id: 'deathwarden-plate', name: 'Deathwarden Plate', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['undead'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 1.1, hpMod: 1.1,
+    special: [{ type: 'block', chance: 0.1 }, { type: 'dodge', chance: 0.06 }],
+  },
+  {
+    id: 'obsidian-drakemail', name: 'Obsidian Drakemail', type: 'armor', category: 'Scale Armor', rarity: 'legendary',
+    allowedClasses: ['dragonkin'], zoneTier: 1, dropFromZoneIdx: 1, defMod: 1.2, hpMod: 1.05,
+    special: [{ type: 'regenOnKill', percent: 0.12 }],
+  },
+
+  // ── Volcano zone items (dropFromZoneIdx: 2) ───────────────────────────────────
+  {
+    id: 'magma-edge', name: 'Magma Edge', type: 'weapon', category: 'Sword', rarity: 'epic',
+    allowedClasses: ['warrior'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.1,
+    special: [{ type: 'defIgnore', percent: 0.08 }],
+  },
+  {
+    id: 'cinder-fang', name: 'Cinder Fang', type: 'weapon', category: 'Dagger', rarity: 'epic',
+    allowedClasses: ['rogue'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.05,
+    special: [{ type: 'poison', dpsMultiplier: 0.15 }],
+  },
+  {
+    id: 'flamecaller-staff', name: 'Flamecaller Staff', type: 'weapon', category: 'Staff', rarity: 'epic',
+    allowedClasses: ['mage'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.05,
+    special: [{ type: 'spellAmp', percent: 0.1 }],
+  },
+  {
+    id: 'sunfire-rod', name: 'Sunfire Rod', type: 'weapon', category: 'Wand', rarity: 'epic',
+    allowedClasses: ['priest'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.05,
+    special: [{ type: 'lifesteal', value: 0.08 }],
+  },
+  {
+    id: 'charblack-scythe', name: 'Charblack Scythe', type: 'weapon', category: 'Scythe', rarity: 'epic',
+    allowedClasses: ['undead'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.1,
+    special: [{ type: 'lifesteal', value: 0.08 }],
+  },
+  {
+    id: 'lavaborn-claw', name: 'Lavaborn Claw', type: 'weapon', category: 'Gauntlet', rarity: 'epic',
+    allowedClasses: ['dragonkin'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.1,
+    special: [{ type: 'attackSpeedBonus', percent: 0.08 }],
+  },
+  {
+    id: 'pyroclast-plate', name: 'Pyroclast Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['warrior'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 1.2, hpMod: 0.95,
+    special: [{ type: 'block', chance: 0.1 }],
+  },
+  {
+    id: 'ashwalker-garb', name: 'Ashwalker Garb', type: 'armor', category: 'Cloak', rarity: 'epic',
+    allowedClasses: ['rogue'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 0.7, hpMod: 1.15,
+    special: [{ type: 'dodge', chance: 0.12 }],
+  },
+  {
+    id: 'emberweave-robe', name: 'Emberweave Robe', type: 'armor', category: 'Robes', rarity: 'epic',
+    allowedClasses: ['mage'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 0.6, hpMod: 1.2,
+    special: [{ type: 'spellAmp', percent: 0.1 }],
+  },
+  {
+    id: 'flamewarded-vestments', name: 'Flamewarded Vestments', type: 'armor', category: 'Vestments', rarity: 'epic',
+    allowedClasses: ['priest'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 0.65, hpMod: 1.2,
+    special: [{ type: 'regenOnKill', percent: 0.1 }],
+  },
+  {
+    id: 'scorchbone-plate', name: 'Scorchbone Plate', type: 'armor', category: 'Plate Armor', rarity: 'epic',
+    allowedClasses: ['undead'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 1.1, hpMod: 1.0,
+    special: [{ type: 'block', chance: 0.08 }],
+  },
+  {
+    id: 'moltenscale-mail', name: 'Moltenscale Mail', type: 'armor', category: 'Scale Armor', rarity: 'epic',
+    allowedClasses: ['dragonkin'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 1.2, hpMod: 0.95,
+    special: [{ type: 'regenOnKill', percent: 0.08 }],
+  },
+
+  // ── Volcano BiS legendaries ───────────────────────────────────────────────────
+  {
+    id: 'caldera-greatblade', name: 'Caldera Greatblade', type: 'weapon', category: 'Sword', rarity: 'legendary',
+    allowedClasses: ['warrior'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.2,
+    special: [{ type: 'lifesteal', value: 0.14 }, { type: 'defIgnore', percent: 0.12 }],
+  },
+  {
+    id: 'phoenix-talon-daggers', name: 'Phoenix Talon Daggers', type: 'weapon', category: 'Dagger', rarity: 'legendary',
+    allowedClasses: ['rogue'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.15,
+    special: [{ type: 'critThreshold', rollsAt: 15 }, { type: 'poison', dpsMultiplier: 0.2 }],
+  },
+  {
+    id: 'eruption-codex', name: 'Eruption Codex', type: 'weapon', category: 'Tome', rarity: 'legendary',
+    allowedClasses: ['mage'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.15,
+    special: [{ type: 'spellAmp', percent: 0.18 }, { type: 'doublecast', chance: 0.12 }],
+  },
+  {
+    id: 'solar-benediction', name: 'Solar Benediction', type: 'weapon', category: 'Staff', rarity: 'legendary',
+    allowedClasses: ['priest'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.15,
+    special: [{ type: 'lifesteal', value: 0.16 }, { type: 'attackSpeedBonus', percent: 0.1 }],
+  },
+  {
+    id: 'pyre-harvester', name: 'Pyre Harvester', type: 'weapon', category: 'Scythe', rarity: 'legendary',
+    allowedClasses: ['undead'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.2,
+    special: [{ type: 'lifesteal', value: 0.18 }, { type: 'critThreshold', rollsAt: 16 }],
+  },
+  {
+    id: 'dragonfire-fist', name: 'Dragonfire Fist', type: 'weapon', category: 'Gauntlet', rarity: 'legendary',
+    allowedClasses: ['dragonkin'], zoneTier: 2, dropFromZoneIdx: 2, dmgMod: 1.2,
+    special: [{ type: 'defIgnore', percent: 0.15 }, { type: 'attackSpeedBonus', percent: 0.12 }],
+  },
+  {
+    id: 'magma-lord-plate', name: 'Magma Lord Plate', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['warrior'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 1.25, hpMod: 1.0,
+    special: [{ type: 'block', chance: 0.14 }],
+  },
+  {
+    id: 'firewalker-shroud', name: 'Firewalker Shroud', type: 'armor', category: 'Cloak', rarity: 'legendary',
+    allowedClasses: ['rogue'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 0.75, hpMod: 1.15,
+    special: [{ type: 'dodge', chance: 0.16 }],
+  },
+  {
+    id: 'cinderlord-mantle', name: 'Cinderlord Mantle', type: 'armor', category: 'Robes', rarity: 'legendary',
+    allowedClasses: ['mage'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 0.6, hpMod: 1.25,
+    special: [{ type: 'spellAmp', percent: 0.14 }],
+  },
+  {
+    id: 'phoenix-feather-raiment', name: 'Phoenix Feather Raiment', type: 'armor', category: 'Vestments', rarity: 'legendary',
+    allowedClasses: ['priest'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 0.65, hpMod: 1.25,
+    special: [{ type: 'regenOnKill', percent: 0.16 }],
+  },
+  {
+    id: 'ashlord-carapace', name: 'Ashlord Carapace', type: 'armor', category: 'Plate Armor', rarity: 'legendary',
+    allowedClasses: ['undead'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 1.1, hpMod: 1.1,
+    special: [{ type: 'block', chance: 0.12 }, { type: 'dodge', chance: 0.08 }],
+  },
+  {
+    id: 'infernal-dragonplate', name: 'Infernal Dragonplate', type: 'armor', category: 'Scale Armor', rarity: 'legendary',
+    allowedClasses: ['dragonkin'], zoneTier: 2, dropFromZoneIdx: 2, defMod: 1.2, hpMod: 1.05,
+    special: [{ type: 'regenOnKill', percent: 0.14 }],
+  },
 ]
 
 // ── Materialization ───────────────────────────────────────────────────────────
@@ -1205,9 +1566,9 @@ export const ZONE_INDEX: Record<ZoneId, number> = {
 // ── BiS pools per zone ────────────────────────────────────────────────────────
 
 export const ZONE_BIS_IDS: Record<ZoneId, string[]> = {
-  forest      : ['void-edge', 'godslayer', 'titans-fist', 'shadowdancer', 'wraithfang', 'phantom-blades', 'celestial-tome', 'eternum', 'seraphic-tome', 'divine-arbiter', 'soul-harvester-scythe', 'banshee-blade', 'dragonlord-gauntlet', 'titan-axe-of-flames', 'aegis-of-eternity', 'voidweave-shroud', 'archmages-mantle'],
-  dungeon     : ['void-edge', 'godslayer', 'titans-fist', 'shadowdancer', 'wraithfang', 'phantom-blades', 'celestial-tome', 'eternum', 'seraphic-tome', 'divine-arbiter', 'soul-harvester-scythe', 'banshee-blade', 'dragonlord-gauntlet', 'titan-axe-of-flames', 'aegis-of-eternity', 'voidweave-shroud', 'archmages-mantle'],
-  volcano     : ['titans-fist', 'phantom-blades', 'abyssal-tome', 'abyssal-plate', 'void-shroud', 'rift-mantle'],
+  forest      : ['heartwood-cleaver', 'kingsbane-fang', 'archdruid-staff', 'lifebloom-relic', 'rotwood-reaper', 'emerald-wyrm-talon', 'ancient-oak-aegis', 'verdant-shadow-garb', 'living-root-mantle', 'blessed-grove-raiment', 'lichen-bone-carapace', 'verdant-dragonhide'],
+  dungeon     : ['oathbreaker', 'wardens-end', 'lichbane-scepter', 'redemption-rod', 'soulchain-reaper', 'dungeon-wyrm-fist', 'darkcell-bulwark', 'gloomstalker-shroud', 'spellbound-mantle', 'martyr-vestments', 'deathwarden-plate', 'obsidian-drakemail'],
+  volcano     : ['caldera-greatblade', 'phoenix-talon-daggers', 'eruption-codex', 'solar-benediction', 'pyre-harvester', 'dragonfire-fist', 'magma-lord-plate', 'firewalker-shroud', 'cinderlord-mantle', 'phoenix-feather-raiment', 'ashlord-carapace', 'infernal-dragonplate'],
   abyss       : ['abyss-warlord', 'void-dancer', 'void-grimoire', 'divine-word', 'soul-drinker', 'iron-dragon-gauntlet', 'abyss-guardian-plate', 'abyssal-mantle', 'void-archmage-robe', 'priest-abyss-vestment', 'bonelord-plate', 'dragonlord-plate'],
   shadowrealm : ['shade-reaper', 'twilight-fang', 'grimoire-of-dread', 'dread-sermon', 'dread-reaper', 'dread-gauntlet', 'shadowplate-fortress', 'dread-stalker-veil', 'shadow-weave-mantle', 'dread-cassock', 'dread-boneguard', 'dread-dragonarmor'],
   celestial   : ['sunblade-divine', 'starburst-knives', 'astral-codex', 'seraph-staff', 'death-celestial-blade', 'dragon-celestial-gauntlet', 'celestial-aegis', 'starlight-veil', 'cosmic-mantle', 'seraph-vestment', 'celestial-deathlord-armor', 'dragon-celestial-plate'],
