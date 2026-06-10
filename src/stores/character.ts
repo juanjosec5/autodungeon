@@ -169,6 +169,8 @@ export const useCharacterStore = defineStore('character', () => {
         if (p && p.rewardReady === undefined) p.rewardReady = false
       }
     }
+    // Default pity counters for saves predating the pity system
+    if (!data.pity) data.pity = { sinceRare: 0, sinceEpic: 0, bossKillsSinceBis: 0 }
     // Recalculate xpToNext in case the XP formula changed since the save was written
     data.xpToNext = getXPToNextLevel(data.level)
     // Rehydrate item stats from current templates (stats are curve-generated and

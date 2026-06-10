@@ -1,6 +1,6 @@
 import type { Character, Enemy, ZoneId } from '../types/index'
 import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial, rollDamage, SPECIAL_CAPS } from './formulas'
-import { rollLoot, rollBisLoot } from './items'
+import { rollLoot, rollBisLoot, blankPity, DROP_CHANCE, BIS_CHANCE, PITY_BIS } from './items'
 import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
 import { getUpgradeBonuses } from './upgrades'
@@ -378,27 +378,42 @@ export class CombatEngine {
     this.playerTickTimer = null
 
     enemy.hp = 0
-    this.emit({ type: 'enemy_dead', payload: { enemyId: enemy.id, enemyName: enemy.name, isBoss: enemy.isBoss ?? false } })
+    this.emit({
+      type: 'enemy_dead',
+      payload: {
+        enemyId: enemy.id,
+        enemyName: enemy.name,
+        isBoss: enemy.isBoss ?? false,
+        goldReward: Math.max(1, Math.round(enemy.xpReward * 0.35)),
+      },
+    })
     this.emit({ type: 'xp_gained', payload: { amount: enemy.xpReward } })
 
-    // Loot
+    // Loot — bosses always drop (with rarity floor); normal kills at DROP_CHANCE
     const dropBonus = this.state.dropRateBonus ?? 0
+    const pity = (character.pity ??= blankPity())
     if (enemy.isBoss) {
-      const regularItem = rollLoot(this.state.zone, enemy.id, dropBonus)
+      const regularItem = rollLoot(this.state.zone, enemy.id, dropBonus, pity)
       if (regularItem) this.emit({ type: 'loot_dropped', payload: { item: regularItem } })
 
-      // 1/200 chance for zone-specific BiS legendary
-      if (Math.random() < 1 / 200) {
+      // BiS legendary: BIS_CHANCE per boss kill, hard pity at PITY_BIS kills
+      pity.bossKillsSinceBis++
+      if (Math.random() < BIS_CHANCE || pity.bossKillsSinceBis >= PITY_BIS) {
         const bisItem = rollBisLoot(this.state.zone)
-        if (bisItem) this.emit({ type: 'loot_dropped', payload: { item: bisItem, isBossLoot: true } })
+        if (bisItem) {
+          pity.bossKillsSinceBis = 0
+          this.emit({ type: 'loot_dropped', payload: { item: bisItem, isBossLoot: true } })
+        }
       }
 
       this.emit({ type: 'boss_defeated', payload: { enemyName: enemy.name } })
       this.state.killCount = 0
       this.state.killsToNextBoss = rollDamage(10, 15)
     } else {
-      const item = rollLoot(this.state.zone, enemy.id, dropBonus)
-      if (item) this.emit({ type: 'loot_dropped', payload: { item } })
+      if (Math.random() < DROP_CHANCE) {
+        const item = rollLoot(this.state.zone, enemy.id, dropBonus, pity)
+        if (item) this.emit({ type: 'loot_dropped', payload: { item } })
+      }
       this.state.killCount++
     }
 
