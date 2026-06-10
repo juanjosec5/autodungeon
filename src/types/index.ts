@@ -159,6 +159,8 @@ export type PrestigeBonusId =
   | 'startingLevel'
   | 'hpBonus'
   | 'dropRateBonus'
+  | 'transcend'
+  | 'lootMastery'
 
 export interface OfflineResult {
   durationMs: number
@@ -208,6 +210,7 @@ export interface PrestigeState {
   totalTokensEarned: number
   bonuses: Partial<Record<PrestigeBonusId, number>>
   ascensionBonuses?: Partial<Record<AscensionBonusId, number>>
+  masteryPoints?: number  // unspent class-mastery points (1 earned per prestige)
 }
 
 export type AscensionBonusId =

@@ -528,8 +528,10 @@ function toggleZone(zone: string) {
         <p class="section-label">How Ascension Works</p>
         <ul class="passive-list">
           <li>Unlocked by reaching <span class="gold-text">level 50</span></li>
-          <li>Tokens earned per prestige = <span class="gold-text">floor(level / 10)</span></li>
-          <li>Spend tokens on permanent bonuses that persist across all future runs</li>
+          <li>Tokens earned per prestige = <span class="gold-text">floor(level / 10 × (1 + 0.5 × NG+ tier))</span></li>
+          <li>Each prestige raises the <span class="gold-text">NG+ tier</span>: enemies gain +25% HP and +18% ATK per tier, and XP/gold rewards rise +15% per tier to match</li>
+          <li>Each prestige also grants 1 <span class="gold-text">Mastery Point</span> to spend on any class's mastery bonus</li>
+          <li>Spend tokens on permanent bonuses that persist across all future runs — each stack costs ×1.5 more than the last</li>
           <li>Ascension panel stays unlocked permanently after your first prestige</li>
         </ul>
       </div>
@@ -538,15 +540,17 @@ function toggleZone(zone: string) {
       <div class="tbl-wrap">
         <table class="wiki-table">
           <thead>
-            <tr><th>Bonus</th><th>Cost</th><th>Max Stacks</th><th>Effect</th></tr>
+            <tr><th>Bonus</th><th>Base Cost</th><th>Max Stacks</th><th>Effect</th></tr>
           </thead>
           <tbody>
-            <tr><td class="gold-text">XP Boost</td><td>2 ⚡</td><td>5</td><td>+20% XP per stack</td></tr>
-            <tr><td class="gold-text">Gold Boost</td><td>2 ⚡</td><td>5</td><td>+20% gold per stack</td></tr>
+            <tr><td class="gold-text">XP Boost</td><td>2 ⚡</td><td>8</td><td>+20% XP per stack</td></tr>
+            <tr><td class="gold-text">Gold Boost</td><td>2 ⚡</td><td>8</td><td>+20% gold per stack</td></tr>
             <tr><td class="gold-text">Offline Efficiency</td><td>3 ⚡</td><td>10</td><td>+10% offline kill rate per stack</td></tr>
             <tr><td class="gold-text">Head Start</td><td>5 ⚡</td><td>5</td><td>Start new runs at level 5 / 10 / 15...</td></tr>
-            <tr><td class="gold-text">Vitality</td><td>2 ⚡</td><td>10</td><td>+10% max HP per stack</td></tr>
+            <tr><td class="gold-text">Vitality</td><td>2 ⚡</td><td>12</td><td>+10% max HP per stack</td></tr>
             <tr><td class="gold-text">Fortune</td><td>4 ⚡</td><td>5</td><td>+10% item drop chance per stack</td></tr>
+            <tr><td class="gold-text">Transcend</td><td>25 ⚡</td><td>5</td><td>+5 max level per stack (100 → 125)</td></tr>
+            <tr><td class="gold-text">Loot Mastery</td><td>10 ⚡</td><td>2</td><td>Minimum drop rarity: uncommon, then rare</td></tr>
           </tbody>
         </table>
       </div>
@@ -555,7 +559,8 @@ function toggleZone(zone: string) {
         <div class="pixel-panel carry-box">
           <p class="section-label carry-title keep">Carries Over</p>
           <ul class="passive-list">
-            <li>Ascension tokens &amp; bonuses</li>
+            <li>Ascension tokens, bonuses &amp; mastery points</li>
+            <li>Stat upgrade picks (skill points)</li>
             <li>Lifetime stats (kills, time played, gold earned)</li>
             <li>Items Codex (discovered items log)</li>
             <li>Character name &amp; class</li>
@@ -566,8 +571,8 @@ function toggleZone(zone: string) {
           <ul class="passive-list">
             <li>Level, XP, gold</li>
             <li>Gear &amp; inventory</li>
-            <li>Stat upgrade picks</li>
             <li>Zone challenge progress</li>
+            <li>Loot pity counters</li>
           </ul>
         </div>
       </div>

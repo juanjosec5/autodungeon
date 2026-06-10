@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { usePrestigeStore } from '../stores/prestige'
+import { usePrestigeStore, costAt, MASTERY_RESPEC_COST } from '../stores/prestige'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { CLASS_ASCENSION_BONUS } from '../stores/prestige'
+import { TIER_HP_GROWTH, TIER_ATK_GROWTH } from '../game/enemies'
 import type { PrestigeBonusId, ClassId } from '../types/index'
 
 const prestigeStore = usePrestigeStore()
@@ -26,21 +27,44 @@ function ascStacks(classId: ClassId): number {
   return prestigeStore.ascensionBonuses[bonusId] ?? 0
 }
 
+function canAllocate(classId: ClassId): boolean {
+  return prestigeStore.masteryPoints > 0 && ascStacks(classId) < CLASS_ASCENSION_BONUS[classId].maxStacks
+}
+
+function allocate(classId: ClassId): void {
+  prestigeStore.allocateMastery(CLASS_ASCENSION_BONUS[classId].id)
+}
+
+const totalMasteryStacks = computed(() =>
+  CLASS_ORDER.reduce((sum, cls) => sum + ascStacks(cls), 0),
+)
+const canRespec = computed(() =>
+  totalMasteryStacks.value > 0 && prestigeStore.ascensionTokens >= MASTERY_RESPEC_COST,
+)
+
 const char = computed(() => characterStore.character)
 const canPrestige = computed(() => (char.value?.level ?? 0) >= 50)
-const tokensOnNextPrestige = computed(() => Math.floor((char.value?.level ?? 0) / 10))
+const tokensOnNextPrestige = computed(() => prestigeStore.tokensForPrestige(char.value?.level ?? 0))
+
+const nextTierHpMult = computed(() => Math.pow(TIER_HP_GROWTH, prestigeStore.difficultyTier + 1).toFixed(2))
+const nextTierAtkMult = computed(() => Math.pow(TIER_ATK_GROWTH, prestigeStore.difficultyTier + 1).toFixed(2))
 
 const BONUS_ORDER: PrestigeBonusId[] = [
   'xpBoost', 'goldBoost', 'offlineEfficiency', 'startingLevel', 'hpBonus', 'dropRateBonus',
+  'transcend', 'lootMastery',
 ]
 
 function stacks(id: PrestigeBonusId): number {
   return prestigeStore.bonuses[id] ?? 0
 }
 
+function nextCost(id: PrestigeBonusId): number {
+  return costAt(prestigeStore.BONUS_DEFS[id], stacks(id))
+}
+
 function canBuy(id: PrestigeBonusId): boolean {
-  const def = prestigeStore.BONUS_DEFS[id]
-  return stacks(id) < def.maxStacks && prestigeStore.ascensionTokens >= def.cost
+  return stacks(id) < prestigeStore.BONUS_DEFS[id].maxStacks
+    && prestigeStore.ascensionTokens >= nextCost(id)
 }
 
 function isMaxed(id: PrestigeBonusId): boolean {
@@ -83,6 +107,17 @@ function doPrestige(): void {
           <span class="stat-val dim">{{ prestigeStore.totalTokensEarned }}</span>
           <span class="stat-lbl">Total Earned</span>
         </div>
+        <div class="stat-divider"></div>
+        <div class="stat-block">
+          <span class="stat-val tier">{{ prestigeStore.difficultyTier }}</span>
+          <span class="stat-lbl">NG+ Tier</span>
+        </div>
+      </div>
+
+      <div v-if="prestigeStore.difficultyTier > 0" class="tier-note">
+        Enemies: ×{{ Math.pow(TIER_HP_GROWTH, prestigeStore.difficultyTier).toFixed(2) }} HP,
+        ×{{ Math.pow(TIER_ATK_GROWTH, prestigeStore.difficultyTier).toFixed(2) }} ATK
+        — rewards scale to match
       </div>
 
       <!-- Bonus shop -->
@@ -107,13 +142,18 @@ function doPrestige(): void {
             @click="buyBonus(id)"
           >
             <template v-if="isMaxed(id)">MAX</template>
-            <template v-else>{{ prestigeStore.BONUS_DEFS[id].cost }} ⚡</template>
+            <template v-else>{{ nextCost(id) }} ⚡</template>
           </button>
         </div>
       </div>
 
       <!-- Class Mastery -->
-      <div class="section-label">Class Mastery</div>
+      <div class="section-label">
+        Class Mastery
+        <span v-if="prestigeStore.masteryPoints > 0" class="mastery-points">
+          {{ prestigeStore.masteryPoints }} point{{ prestigeStore.masteryPoints > 1 ? 's' : '' }} to spend
+        </span>
+      </div>
       <div class="mastery-list">
         <div
           v-for="cls in CLASS_ORDER"
@@ -137,14 +177,29 @@ function doPrestige(): void {
             </div>
             <span class="mastery-count">{{ ascStacks(cls) }}/{{ CLASS_ASCENSION_BONUS[cls].maxStacks }}</span>
           </div>
+          <button
+            v-if="prestigeStore.masteryPoints > 0"
+            class="pixel-btn mastery-btn"
+            :disabled="!canAllocate(cls)"
+            @click="allocate(cls)"
+          >+</button>
         </div>
+        <button
+          v-if="totalMasteryStacks > 0"
+          class="pixel-btn respec-btn"
+          :disabled="!canRespec"
+          @click="prestigeStore.respecMastery()"
+        >
+          Respec all mastery ({{ MASTERY_RESPEC_COST }} ⚡)
+        </button>
       </div>
 
       <!-- Prestige button -->
       <div class="prestige-section">
         <div v-if="canPrestige" class="prestige-preview">
           Next prestige: <span class="gold">+{{ tokensOnNextPrestige }} tokens</span>
-          (level {{ char?.level }})
+          (level {{ char?.level }}) · NG+{{ prestigeStore.difficultyTier + 1 }}:
+          enemies ×{{ nextTierHpMult }} HP / ×{{ nextTierAtkMult }} ATK
         </div>
         <div v-else class="prestige-locked">
           Reach level 50 to unlock Ascension
@@ -189,6 +244,37 @@ function doPrestige(): void {
 .stat-val { font-size: 14px; color: var(--text-hi); }
 .stat-val.gold { color: var(--gold); }
 .stat-val.dim { color: var(--text-dim); }
+.stat-val.tier { color: #c060ff; }
+
+.tier-note {
+  font-size: 6px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.6;
+  padding: 4px;
+  border: 1px dashed var(--border);
+}
+
+.mastery-points { color: var(--gold); margin-left: 6px; }
+
+.mastery-btn {
+  font-size: 9px;
+  padding: 4px 8px;
+  background: #1a2818;
+  border-color: #50a040;
+  color: #80e060;
+  flex-shrink: 0;
+}
+.mastery-btn:disabled { opacity: 0.3; cursor: default; box-shadow: none; top: 0; left: 0; }
+
+.respec-btn {
+  font-size: 7px;
+  padding: 6px;
+  background: #281818;
+  border-color: #a05040;
+  color: #e08060;
+}
+.respec-btn:disabled { opacity: 0.4; cursor: default; box-shadow: none; top: 0; left: 0; }
 .stat-lbl { font-size: 6px; color: var(--text-dim); text-transform: uppercase; }
 .stat-divider { width: 1px; height: 28px; background: var(--border); }
 
