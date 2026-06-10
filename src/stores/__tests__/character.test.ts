@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useCharacterStore } from '../character'
 import { getXPToNextLevel } from '../../game/classes'
+import { getItemById } from '../../game/items'
 import type { Character, Item } from '../../types/index'
 
 // ── localStorage mock (node env has no DOM) ───────────────────────────────────
@@ -118,7 +119,7 @@ describe('applyXP', () => {
     expect(store.character!.level).toBeGreaterThan(2)
   })
 
-  it('awards a skill point at every 5th level', () => {
+  it('awards one skill point per level gained', () => {
     const store = getStore()
     createTestCharacter(store)
     // Give enough XP to reach level 5
@@ -126,17 +127,17 @@ describe('applyXP', () => {
     for (let lvl = 1; lvl <= 4; lvl++) xp += getXPToNextLevel(lvl)
     store.applyXP(xp)
     expect(store.character!.level).toBe(5)
-    expect(store.character!.skillPoints).toBe(1)
+    expect(store.character!.skillPoints).toBe(4)
   })
 
-  it('awards 2 skill points when passing levels 5 and 10', () => {
+  it('awards 9 skill points when reaching level 10', () => {
     const store = getStore()
     createTestCharacter(store)
     let xp = 0
     for (let lvl = 1; lvl <= 9; lvl++) xp += getXPToNextLevel(lvl)
     store.applyXP(xp)
     expect(store.character!.level).toBe(10)
-    expect(store.character!.skillPoints).toBe(2)
+    expect(store.character!.skillPoints).toBe(9)
   })
 
   it('caps at MAX_LEVEL (100) and does not go over', () => {
@@ -401,9 +402,28 @@ describe('applyDeathPenalty', () => {
 // ── restoreCharacter ──────────────────────────────────────────────────────────
 
 describe('restoreCharacter', () => {
+  /** Minimal valid old-save shape (restoreCharacter walks gear + inventory) */
+  function makeOldSave(overrides: Partial<Character> = {}): Character {
+    return {
+      id: 'old', name: 'Old', class: 'warrior', level: 3, xp: 0, xpToNext: 100,
+      currentHP: 100, maxHP: 100,
+      stats: { str: 10, dex: 5, int: 2 },
+      gear: { weapon: null, armor: null },
+      inventory: [],
+      gold: 0, currentZone: 'forest',
+      upgrades: {}, pendingLevelUps: 0, skillPoints: 0,
+      createdAt: '', lastSaved: '',
+      lifetime: {
+        kills: 0, bossKills: 0, deaths: 0, damageDealt: 0, damageReceived: 0,
+        goldEarned: 0, itemsLooted: 0, itemsScrapped: 0, highestHit: 0, timePlayed: 0,
+      },
+      ...overrides,
+    }
+  }
+
   it('backfills missing lifetime field from old saves', () => {
     const store = getStore()
-    const oldSave = { lifetime: undefined } as unknown as Character
+    const oldSave = makeOldSave({ lifetime: undefined as unknown as Character['lifetime'] })
     store.restoreCharacter(oldSave)
     expect(store.character!.lifetime).toBeDefined()
     expect(store.character!.lifetime.kills).toBe(0)
@@ -411,16 +431,62 @@ describe('restoreCharacter', () => {
 
   it('backfills missing skillPoints from old saves', () => {
     const store = getStore()
-    const oldSave = { skillPoints: undefined } as unknown as Character
+    const oldSave = makeOldSave({ skillPoints: undefined as unknown as number })
     store.restoreCharacter(oldSave)
     expect(store.character!.skillPoints).toBe(0)
   })
 
   it('backfills missing skills from old saves', () => {
     const store = getStore()
-    const oldSave = { skills: undefined } as unknown as Character
+    const oldSave = makeOldSave({ skills: undefined })
     store.restoreCharacter(oldSave)
-    expect(store.character!.skills).toEqual({})
+    expect(store.character!.upgrades).toEqual({})
+  })
+
+  it('rehydrates saved item stats from current templates', () => {
+    const store = getStore()
+    const stale: Item = {
+      id: 'instance-1', defId: 'rusty-sword', name: 'Rusty Sword',
+      type: 'weapon', category: 'Sword', rarity: 'common', allowedClasses: ['warrior'],
+      stats: { minDmg: 999, maxDmg: 1000 }, // stale stats from an old save
+    }
+    const oldSave = makeOldSave({ gear: { weapon: stale, armor: null } })
+    store.restoreCharacter(oldSave)
+    const weapon = store.character!.gear.weapon!
+    const template = getItemById('rusty-sword')!
+    expect(weapon.stats.minDmg).toBe(template.stats.minDmg)
+    expect(weapon.stats.maxDmg).toBe(template.stats.maxDmg)
+    expect(weapon.zoneTier).toBe(template.zoneTier)
+    expect(weapon.id).toBe('instance-1') // instance id preserved
+  })
+
+  it('preserves enchanted specials but refreshes base stats', () => {
+    const store = getStore()
+    const enchanted: Item = {
+      id: 'instance-2', defId: 'rusty-sword', name: 'Rusty Sword',
+      type: 'weapon', category: 'Sword', rarity: 'common', allowedClasses: ['warrior'],
+      enchantCount: 2,
+      stats: { minDmg: 999, maxDmg: 1000, special: [{ type: 'lifesteal', value: 0.08 }] },
+    }
+    const oldSave = makeOldSave({ inventory: [enchanted] })
+    store.restoreCharacter(oldSave)
+    const item = store.character!.inventory[0]
+    const template = getItemById('rusty-sword')!
+    expect(item.stats.minDmg).toBe(template.stats.minDmg)
+    expect(item.stats.special).toEqual([{ type: 'lifesteal', value: 0.08 }])
+    expect(item.enchantCount).toBe(2)
+  })
+
+  it('leaves items with unknown defId untouched', () => {
+    const store = getStore()
+    const unknown: Item = {
+      id: 'instance-3', defId: 'does-not-exist', name: 'Mystery',
+      type: 'weapon', category: 'Sword', rarity: 'rare', allowedClasses: 'any',
+      stats: { minDmg: 12, maxDmg: 20 },
+    }
+    const oldSave = makeOldSave({ inventory: [unknown] })
+    store.restoreCharacter(oldSave)
+    expect(store.character!.inventory[0].stats.minDmg).toBe(12)
   })
 })
 

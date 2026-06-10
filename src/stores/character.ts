@@ -171,7 +171,33 @@ export const useCharacterStore = defineStore('character', () => {
     }
     // Recalculate xpToNext in case the XP formula changed since the save was written
     data.xpToNext = getXPToNextLevel(data.level)
+    // Rehydrate item stats from current templates (stats are curve-generated and
+    // may have changed since the save was written)
+    _rehydrateItem(data.gear.weapon)
+    _rehydrateItem(data.gear.armor)
+    for (const item of data.inventory) _rehydrateItem(item)
     character.value = data
+    _recalcMaxHP()
+  }
+
+  /**
+   * Replaces a saved item's base stats with the current template's
+   * curve-generated values. Preserves the instance id and enchantCount;
+   * enchanted items keep their own special[] (enchants live there).
+   * Idempotent — safe to run on every load.
+   */
+  function _rehydrateItem(item: Item | null): void {
+    if (!item) return
+    const template = getItemById(item.defId ?? item.id)
+    if (!template) return
+    item.stats.minDmg = template.stats.minDmg
+    item.stats.maxDmg = template.stats.maxDmg
+    item.stats.defBonus = template.stats.defBonus
+    item.stats.hpBonus = template.stats.hpBonus
+    item.zoneTier = template.zoneTier
+    if (!(item.enchantCount && item.enchantCount > 0)) {
+      item.stats.special = structuredClone(template.stats.special)
+    }
   }
 
   function updateLifetime(delta: Partial<LifetimeStats>): void {
@@ -381,7 +407,7 @@ export const useCharacterStore = defineStore('character', () => {
     const template = getItemById(itemId)
     if (!template) return 'inv_full'
 
-    const price = getBuyPrice(template.rarity)
+    const price = getBuyPrice(template.rarity, template.zoneTier ?? 0)
     if (char.gold < price) return 'no_gold'
     if (char.inventory.length >= 50) return 'inv_full'
 
@@ -454,7 +480,7 @@ export const useCharacterStore = defineStore('character', () => {
 
   /**
    * Enchants an item (in inventory or equipped) by adding/rerolling a special effect.
-   * Cost: getBuyPrice(rarity) * 3 * 2^enchantCount
+   * Cost: getBuyPrice(rarity, zoneTier) × 1.5 × 1.6^enchantCount
    * Returns 'enchanted', 'no_gold', or 'not_found'.
    */
   function enchantItem(itemId: string): 'enchanted' | 'no_gold' | 'not_found' {

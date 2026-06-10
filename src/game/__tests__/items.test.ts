@@ -30,18 +30,24 @@ describe('getSellPrice', () => {
 
 describe('getBuyPrice', () => {
   const cases: [RarityId, number][] = [
-    ['common', 20],
-    ['uncommon', 60],
-    ['rare', 150],
-    ['epic', 450],
-    ['legendary', 2000],
+    ['common', 40],
+    ['uncommon', 120],
+    ['rare', 320],
+    ['epic', 960],
+    ['legendary', 4000],
   ]
 
-  it.each(cases)('returns %d for %s', (rarity, expected) => {
+  it.each(cases)('returns %d for %s at zone tier 0', (rarity, expected) => {
     expect(getBuyPrice(rarity)).toBe(expected)
   })
 
-  it('buy price is always >= sell price', () => {
+  it('scales with zone tier (×1.5 per tier)', () => {
+    expect(getBuyPrice('common', 1)).toBe(60)
+    expect(getBuyPrice('common', 2)).toBe(90)
+    expect(getBuyPrice('legendary', 7)).toBe(Math.round(4000 * Math.pow(1.5, 7)))
+  })
+
+  it('buy price is always > sell price', () => {
     const rarities: RarityId[] = ['common', 'uncommon', 'rare', 'epic', 'legendary']
     for (const r of rarities) {
       expect(getBuyPrice(r)).toBeGreaterThan(getSellPrice(r))
@@ -49,39 +55,64 @@ describe('getBuyPrice', () => {
   })
 })
 
+// ── getSellPrice zone scaling ────────────────────────────────────────────────
+
+describe('getSellPrice zone scaling', () => {
+  function makeItem(rarity: RarityId, zoneTier: number): Item {
+    return {
+      id: 'x', name: 'X', type: 'weapon', category: 'sword',
+      rarity, allowedClasses: 'any', zoneTier,
+      stats: { minDmg: 1, maxDmg: 2 },
+    }
+  }
+
+  it('scales sell price by 1.5^zoneTier', () => {
+    expect(getSellPrice(makeItem('common', 0))).toBe(5)
+    expect(getSellPrice(makeItem('common', 4))).toBe(Math.round(5 * Math.pow(1.5, 4)))
+    expect(getSellPrice(makeItem('legendary', 7))).toBe(Math.round(500 * Math.pow(1.5, 7)))
+  })
+
+  it('treats missing zoneTier as 0 (legacy saved items)', () => {
+    const item = makeItem('rare', 0)
+    delete item.zoneTier
+    expect(getSellPrice(item)).toBe(40)
+  })
+})
+
 // ── calcEnchantCost ───────────────────────────────────────────────────────────
 
 describe('calcEnchantCost', () => {
-  function makeItem(rarity: RarityId, enchantCount?: number): Item {
+  function makeItem(rarity: RarityId, enchantCount?: number, zoneTier = 0): Item {
     return {
       id: 'x', name: 'X', type: 'weapon', category: 'sword',
-      rarity, allowedClasses: 'any',
+      rarity, allowedClasses: 'any', zoneTier,
       stats: { minDmg: 1, maxDmg: 2 },
       enchantCount,
     }
   }
 
-  it('base cost: getBuyPrice * 3 when enchantCount is 0', () => {
+  it('base cost: getBuyPrice × 1.5 when enchantCount is 0', () => {
     const item = makeItem('common', 0)
-    expect(calcEnchantCost(item)).toBe(getBuyPrice('common') * 3) // 60
+    expect(calcEnchantCost(item)).toBe(Math.floor(getBuyPrice('common') * 1.5)) // 60
   })
 
   it('base cost when enchantCount is undefined (treated as 0)', () => {
     const item = makeItem('common', undefined)
-    expect(calcEnchantCost(item)).toBe(getBuyPrice('common') * 3)
+    expect(calcEnchantCost(item)).toBe(Math.floor(getBuyPrice('common') * 1.5))
   })
 
-  it('doubles with each enchant (2^n)', () => {
-    const base = getBuyPrice('rare') * 3 // 450
-    expect(calcEnchantCost(makeItem('rare', 0))).toBe(base)
-    expect(calcEnchantCost(makeItem('rare', 1))).toBe(base * 2)
-    expect(calcEnchantCost(makeItem('rare', 2))).toBe(base * 4)
-    expect(calcEnchantCost(makeItem('rare', 3))).toBe(base * 8)
+  it('grows ×1.6 with each enchant', () => {
+    const base = getBuyPrice('rare') * 1.5
+    expect(calcEnchantCost(makeItem('rare', 0))).toBe(Math.floor(base))
+    expect(calcEnchantCost(makeItem('rare', 1))).toBe(Math.floor(base * 1.6))
+    expect(calcEnchantCost(makeItem('rare', 2))).toBe(Math.floor(base * 1.6 ** 2))
+    expect(calcEnchantCost(makeItem('rare', 3))).toBe(Math.floor(base * 1.6 ** 3))
   })
 
-  it('applies to legendary correctly', () => {
-    const item = makeItem('legendary', 1)
-    expect(calcEnchantCost(item)).toBe(getBuyPrice('legendary') * 3 * 2)
+  it('scales with zone tier', () => {
+    const lowTier = calcEnchantCost(makeItem('epic', 0, 0))
+    const highTier = calcEnchantCost(makeItem('epic', 0, 7))
+    expect(highTier).toBeGreaterThan(lowTier * 10)
   })
 })
 

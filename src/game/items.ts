@@ -12,34 +12,47 @@ import {
 export { ITEM_DEFINITIONS, ZONE_INDEX, WEAPON_ENCHANTS, ARMOR_ENCHANTS, SHOP_ITEMS }
 
 // ── Price tables ──────────────────────────────────────────────────────────────
+// Prices scale with the item's zone tier so gold stays relevant in late zones.
 
 const SELL_PRICES: Record<RarityId, number> = {
   common: 5, uncommon: 15, rare: 40, epic: 120, legendary: 500,
 }
 
-const BUY_PRICES: Record<RarityId, number> = {
-  common: 50, uncommon: 150, rare: 400, epic: 1200, legendary: 5000,
+/** Buy price = base sell × this multiplier (before zone scaling) */
+const BUY_MULTIPLIER = 8
+/** Per-zone-tier price growth — matches the item stat curve's ZONE_GROWTH */
+const PRICE_ZONE_GROWTH = 1.5
+/** Enchant cost growth per existing enchant */
+const ENCHANT_GROWTH = 1.6
+/** First enchant costs buyPrice × this factor */
+const ENCHANT_BASE_FACTOR = 1.5
+
+function zonePriceScale(zoneTier: number): number {
+  return Math.pow(PRICE_ZONE_GROWTH, zoneTier)
 }
 
 export function getSellPrice(item: Item | RarityId): number {
   if (typeof item === 'string') return SELL_PRICES[item]
-  const base = SELL_PRICES[item.rarity]
+  const base = Math.round(SELL_PRICES[item.rarity] * zonePriceScale(item.zoneTier ?? 0))
   const n = item.enchantCount ?? 0
   if (n === 0) return base
-  // Total enchant investment = getBuyPrice(rarity) * 3 * (2^n - 1)
-  const enchantTotal = getBuyPrice(item.rarity) * 3 * (Math.pow(2, n) - 1)
+  // Total enchant investment: geometric sum of calcEnchantCost over n enchants
+  const buy = getBuyPrice(item.rarity, item.zoneTier ?? 0)
+  const enchantTotal = buy * ENCHANT_BASE_FACTOR * (Math.pow(ENCHANT_GROWTH, n) - 1) / (ENCHANT_GROWTH - 1)
   return Math.floor((base + enchantTotal) * 0.3)
 }
 
-export function getBuyPrice(rarity: RarityId): number {
-  return BUY_PRICES[rarity]
+export function getBuyPrice(rarity: RarityId, zoneTier = 0): number {
+  return Math.round(SELL_PRICES[rarity] * BUY_MULTIPLIER * zonePriceScale(zoneTier))
 }
 
 /**
- * Cost to enchant an item: getBuyPrice(rarity) × 3 × 2^enchantCount
+ * Cost to enchant an item: buyPrice(rarity, zoneTier) × 1.5 × 1.6^enchantCount
  */
 export function calcEnchantCost(item: Item): number {
-  return Math.floor(getBuyPrice(item.rarity) * 3 * Math.pow(2, item.enchantCount ?? 0))
+  return Math.floor(
+    getBuyPrice(item.rarity, item.zoneTier ?? 0) * ENCHANT_BASE_FACTOR * Math.pow(ENCHANT_GROWTH, item.enchantCount ?? 0),
+  )
 }
 
 // ── Lookup ────────────────────────────────────────────────────────────────────

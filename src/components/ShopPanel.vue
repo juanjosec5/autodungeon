@@ -69,8 +69,11 @@ function closePopover() { selectedItem.value = null }
 
 const char = computed(() => characterStore.character)
 
+function itemBuyPrice(item: Item) {
+  return getBuyPrice(item.rarity, item.zoneTier ?? 0)
+}
 function canAfford(item: Item) {
-  return (char.value?.gold ?? 0) >= getBuyPrice(item.rarity)
+  return (char.value?.gold ?? 0) >= itemBuyPrice(item)
 }
 function invFull() {
   return (char.value?.inventory.length ?? 0) >= 50
@@ -255,7 +258,7 @@ function toggleCollapse() {
               <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
             </div>
             <span class="slot-name">{{ item.name }}</span>
-            <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
+            <span class="slot-price">{{ itemBuyPrice(item) }}g</span>
             <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
             <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
           </button>
@@ -279,7 +282,7 @@ function toggleCollapse() {
               <div class="slot-sprite" :style="{ boxShadow: getItemSpriteStyle(item.id) }"></div>
             </div>
             <span class="slot-name">{{ item.name }}</span>
-            <span class="slot-price">{{ getBuyPrice(item.rarity) }}g</span>
+            <span class="slot-price">{{ itemBuyPrice(item) }}g</span>
             <span v-if="isOffClass(item)" class="off-class-warning">⚠ 30%</span>
             <span v-else-if="classTag(item)" class="class-tag">{{ classTag(item) }}</span>
           </button>
@@ -330,7 +333,7 @@ function toggleCollapse() {
             <span :class="['pop-name', rarityTextClass[selectedItem.rarity]]">{{ selectedItem.name }}</span>
             <span :class="['pop-rarity', rarityTextClass[selectedItem.rarity]]">{{ selectedItem.rarity }}</span>
           </div>
-          <span class="pop-price">{{ getBuyPrice(selectedItem.rarity) }}g</span>
+          <span class="pop-price">{{ itemBuyPrice(selectedItem) }}g</span>
         </div>
         <!-- Stats + comparison vs equipped -->
         <div class="pop-stats">

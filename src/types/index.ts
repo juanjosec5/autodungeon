@@ -18,6 +18,7 @@ export interface Item {
   category: string
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
   allowedClasses: ClassId[] | 'any'
+  zoneTier?: number         // zone tier (0–7) anchoring this item's stat curve and pricing
   dropFromZoneIdx?: number  // minimum zone index this item appears in drop pools
   enchantCount?: number     // number of times enchanted
   stats: {
