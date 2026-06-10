@@ -178,6 +178,7 @@ watch(
 .log-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 6px 10px 10px;
   display: flex;
   flex-direction: column-reverse;
@@ -194,6 +195,7 @@ watch(
   line-height: 2.2;
   padding: 0 2px;
   border-bottom: 1px solid rgba(255,255,255,0.03);
+  overflow-wrap: break-word;
 }
 .log-empty { font-size: 9px; color: var(--text-dim); text-align: center; padding: 20px 0; }
 

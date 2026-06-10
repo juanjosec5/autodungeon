@@ -490,6 +490,7 @@ function toggleZone(zone: string) {
   max-width: 72rem;
   margin: 0 auto;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .back-btn {

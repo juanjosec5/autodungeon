@@ -229,13 +229,15 @@ function doPrestige(): void {
 
 <style scoped>
 .prestige-panel { height: 100%; display: flex; flex-direction: column; }
-.inner { flex: 1; overflow-y: auto; padding: 8px 4px; display: flex; flex-direction: column; gap: 12px; }
+.inner { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 4px; display: flex; flex-direction: column; gap: 12px; }
 
 /* Stats row */
 .stats-row {
   display: flex;
   align-items: center;
   justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 4px;
   padding: 10px;
   background: rgba(255,255,255,0.03);
   border: 1px solid var(--border);
