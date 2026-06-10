@@ -300,10 +300,10 @@ export const useCombatStore = defineStore('combat', () => {
     const char = characterStore.character
     if (!char) return
 
-    const enemy = spawnEnemy(zoneStore.activeZone)
+    const prestigeStore = usePrestigeStore()
+    const enemy = spawnEnemy(zoneStore.activeZone, prestigeStore.difficultyTier)
     currentEnemy.value = enemy
 
-    const prestigeStore = usePrestigeStore()
     engine.start({
       character: char,
       enemy,
@@ -311,10 +311,13 @@ export const useCombatStore = defineStore('combat', () => {
       speed: speed.value,
       isPaused: false,
       dropRateBonus:      prestigeStore.dropRateBonus,
+      difficultyTier:     prestigeStore.difficultyTier,
+      lootMasteryFloor:   prestigeStore.lootMasteryFloor,
       hitChanceBonus:     prestigeStore.hitChanceBonus,
       damageReduction:    prestigeStore.damageReduction,
       overkillStacks:     prestigeStore.overkillStacks,
-      passiveRegenPerSec: prestigeStore.passiveRegenPerSec,
+      overkillCarryPct:   prestigeStore.overkillCarryPct,
+      passiveRegenPct:    prestigeStore.passiveRegenPct,
       deathPactSaves:     prestigeStore.deathPactSaves,
     })
 

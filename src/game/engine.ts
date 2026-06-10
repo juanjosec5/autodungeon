@@ -1,4 +1,4 @@
-import type { Character, Enemy, ZoneId } from '../types/index'
+import type { Character, Enemy, ZoneId, RarityId } from '../types/index'
 import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial, rollDamage, SPECIAL_CAPS } from './formulas'
 import { rollLoot, rollBisLoot, blankPity, DROP_CHANCE, BIS_CHANCE, PITY_BIS } from './items'
 import { CLASS_DEFINITIONS } from './classes'
@@ -18,11 +18,14 @@ export interface CombatState {
   killCount: number        // normal kills since last boss
   killsToNextBoss: number  // threshold, rerolled after each boss
   dropRateBonus: number    // prestige Fortune bonus (0–0.5)
+  difficultyTier: number   // NG+ tier (= prestige count): scales enemy HP/ATK/rewards
+  lootMasteryFloor?: RarityId  // prestige Loot Mastery: minimum drop rarity
   // Ascension bonuses
   hitChanceBonus: number       // ghost-strike: +3% hit chance per stack
   damageReduction: number      // dragon-scales: +2% DR per stack
   overkillStacks: number       // >0 = overkill carry active
-  passiveRegenPerSec: number   // blessed-regen: HP healed per second
+  overkillCarryPct: number     // fraction of excess kill damage carried over
+  passiveRegenPct: number      // blessed-regen: fraction of max HP healed per second
   deathPactSaves: number       // remaining death pact saves this zone
   overkillCarry: number        // internal: excess damage carried to next enemy
 }
@@ -65,10 +68,12 @@ export class CombatEngine {
     this.state = {
       ...state,
       dropRateBonus:       state.dropRateBonus ?? 0,
+      difficultyTier:      state.difficultyTier ?? 0,
       hitChanceBonus:      state.hitChanceBonus ?? 0,
       damageReduction:     state.damageReduction ?? 0,
       overkillStacks:      state.overkillStacks ?? 0,
-      passiveRegenPerSec:  state.passiveRegenPerSec ?? 0,
+      overkillCarryPct:    state.overkillCarryPct ?? 0,
+      passiveRegenPct:     state.passiveRegenPct ?? 0,
       deathPactSaves:      state.deathPactSaves ?? 0,
       killCount: 0,
       killsToNextBoss: rollDamage(10, 15),
@@ -139,11 +144,12 @@ export class CombatEngine {
 
   private startRegenTimer(): void {
     this.stopRegenTimer()
-    if (!this.state || this.state.passiveRegenPerSec <= 0) return
+    if (!this.state || this.state.passiveRegenPct <= 0) return
     this.regenTimer = setInterval(() => {
       if (!this.state || this.state.isPaused || this.isDead) return
       const { character } = this.state
-      const amt = this.state.passiveRegenPerSec
+      // Percent of max HP per second so the bonus stays relevant at any level
+      const amt = Math.max(1, Math.floor(this.state.passiveRegenPct * character.maxHP))
       character.currentHP = Math.min(character.maxHP, character.currentHP + amt)
       this.emit({ type: 'hp_regen', payload: { amount: amt, currentHP: character.currentHP } })
     }, 1000)
@@ -391,9 +397,10 @@ export class CombatEngine {
 
     // Loot — bosses always drop (with rarity floor); normal kills at DROP_CHANCE
     const dropBonus = this.state.dropRateBonus ?? 0
+    const lootFloor = this.state.lootMasteryFloor
     const pity = (character.pity ??= blankPity())
     if (enemy.isBoss) {
-      const regularItem = rollLoot(this.state.zone, enemy.id, dropBonus, pity)
+      const regularItem = rollLoot(this.state.zone, enemy.id, dropBonus, pity, lootFloor)
       if (regularItem) this.emit({ type: 'loot_dropped', payload: { item: regularItem } })
 
       // BiS legendary: BIS_CHANCE per boss kill, hard pity at PITY_BIS kills
@@ -411,7 +418,7 @@ export class CombatEngine {
       this.state.killsToNextBoss = rollDamage(10, 15)
     } else {
       if (Math.random() < DROP_CHANCE) {
-        const item = rollLoot(this.state.zone, enemy.id, dropBonus, pity)
+        const item = rollLoot(this.state.zone, enemy.id, dropBonus, pity, lootFloor)
         if (item) this.emit({ type: 'loot_dropped', payload: { item } })
       }
       this.state.killCount++
@@ -434,19 +441,19 @@ export class CombatEngine {
       })
     }
 
-    // Overkill: carry excess damage (up to 50% of overkill) to next normal enemy
+    // Overkill: carry a fraction of excess kill damage to the next normal enemy
     let overkillCarry = 0
-    if ((this.state.overkillStacks ?? 0) > 0 && !enemy.isBoss && enemy.hp < 0) {
-      overkillCarry = Math.floor(Math.abs(enemy.hp) * 0.5)
+    if ((this.state.overkillCarryPct ?? 0) > 0 && !enemy.isBoss && enemy.hp < 0) {
+      overkillCarry = Math.floor(Math.abs(enemy.hp) * this.state.overkillCarryPct)
     }
 
     // Spawn next enemy — boss after threshold, otherwise normal
     if (!enemy.isBoss && this.state.killCount >= this.state.killsToNextBoss) {
-      const boss = getBossForZone(this.state.zone)
+      const boss = getBossForZone(this.state.zone, this.state.difficultyTier)
       this.state.enemy = boss
       this.emit({ type: 'boss_spawned', payload: { enemy: boss } })
     } else {
-      const newEnemy = spawnEnemy(this.state.zone)
+      const newEnemy = spawnEnemy(this.state.zone, this.state.difficultyTier)
       // Apply overkill carry to new enemy
       if (overkillCarry > 0) {
         newEnemy.hp -= overkillCarry

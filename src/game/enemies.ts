@@ -2,6 +2,27 @@ import type { Enemy, ZoneId } from '../types/index'
 
 const ENEMY_HP_MULTIPLIER = 2.2
 
+// ── NG+ difficulty tiers ──────────────────────────────────────────────────────
+// tier = prestige count. HP/ATK and rewards grow per tier; DEF stays flat on
+// purpose — DEF doubles as the hit DC, and scaling it would recreate the
+// unhittable-boss wall the base curve was tuned to avoid.
+
+export const TIER_HP_GROWTH = 1.25
+export const TIER_ATK_GROWTH = 1.18
+export const TIER_REWARD_GROWTH = 1.15
+
+function applyTier(enemy: Enemy, tier: number): Enemy {
+  if (tier <= 0) return enemy
+  const hpMult = Math.pow(TIER_HP_GROWTH, tier)
+  const atkMult = Math.pow(TIER_ATK_GROWTH, tier)
+  const rewardMult = Math.pow(TIER_REWARD_GROWTH, tier)
+  enemy.maxHp = Math.floor(enemy.maxHp * hpMult)
+  enemy.hp = enemy.maxHp
+  enemy.atk = [Math.floor(enemy.atk[0] * atkMult), Math.floor(enemy.atk[1] * atkMult)]
+  enemy.xpReward = Math.floor(enemy.xpReward * rewardMult)
+  return enemy
+}
+
 // Boss hp/maxHp values below are FINAL (no multiplier applied on spawn).
 // DEF doubles as the hit DC (d20 + dex >= def), so it is tuned to keep
 // at-zone-level characters of every class hitting >= ~70% of the time.
@@ -87,17 +108,17 @@ export function getEnemiesForZone(zone: ZoneId): Enemy[] {
     .map((e) => structuredClone(e))
 }
 
-/** Returns a fresh clone of the zone boss (definition HP is final) */
-export function getBossForZone(zone: ZoneId): Enemy {
+/** Returns a fresh clone of the zone boss (definition HP is final at tier 0) */
+export function getBossForZone(zone: ZoneId, tier = 0): Enemy {
   const boss = ENEMY_DEFINITIONS.find((e) => e.zone === zone && e.isBoss)
   if (!boss) throw new Error(`No boss defined for zone: ${zone}`)
-  return structuredClone(boss)
+  return applyTier(structuredClone(boss), tier)
 }
 
-export function spawnEnemy(zone: ZoneId): Enemy {
+export function spawnEnemy(zone: ZoneId, tier = 0): Enemy {
   const pool = getEnemiesForZone(zone)
   const enemy = pool[Math.floor(Math.random() * pool.length)]
   enemy.maxHp = Math.floor(enemy.maxHp * ENEMY_HP_MULTIPLIER)
   enemy.hp = enemy.maxHp
-  return enemy
+  return applyTier(enemy, tier)
 }

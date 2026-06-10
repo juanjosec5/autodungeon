@@ -21,18 +21,20 @@ const MAX_OFFLINE_ITEMS = 5
  * @param zone      - zone to simulate kills in
  * @param elapsedMs - milliseconds since last save
  * @param offlineEfficiencyBonus - raw decimal bonus from prestige (e.g. 0.3 at 3 stacks)
+ * @param tier      - NG+ difficulty tier (= prestige count), scales kill rewards
  */
 export function calcOfflineProgress(
   character: Character,
   zone: ZoneId,
   elapsedMs: number,
   offlineEfficiencyBonus: number,
+  tier = 0,
 ): OfflineResult {
   const effectiveMs = Math.min(elapsedMs, MAX_OFFLINE_MS)
   const efficiency = 1 + offlineEfficiencyBonus
   const kills = Math.floor((effectiveMs / KILL_INTERVAL_MS) * efficiency)
 
-  const enemy = spawnEnemy(zone)
+  const enemy = spawnEnemy(zone, tier)
   const xpEarned = kills * enemy.xpReward
   const goldEarned = kills * Math.max(1, Math.floor(enemy.xpReward * GOLD_PER_XP))
 
