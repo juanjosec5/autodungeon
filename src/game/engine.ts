@@ -1,5 +1,5 @@
 import type { Character, Enemy, ZoneId } from '../types/index'
-import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial, rollDamage } from './formulas'
+import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial, rollDamage, SPECIAL_CAPS } from './formulas'
 import { rollLoot, rollBisLoot } from './items'
 import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
@@ -166,7 +166,8 @@ export class CombatEngine {
     const setBonus = getActiveSet(character.gear.weapon, character.gear.armor)
     const setSpeedReduction = setBonus?.bonus.type === 'atk_speed' ? setBonus.bonus.value : 0
     const shopSpeedBonus = useShopStore().atkSpeedBonus
-    const interval = Math.max(200, (baseInterval * (1 - speedBonus - shopSpeedBonus)) - ub.attackSpeedReduction - setSpeedReduction)
+    const speedPct = Math.min(SPECIAL_CAPS.attackSpeedPct, speedBonus + shopSpeedBonus)
+    const interval = Math.max(200, (baseInterval * (1 - speedPct)) - ub.attackSpeedReduction - setSpeedReduction)
     return Math.floor(interval / speed)
   }
 
@@ -195,7 +196,7 @@ export class CombatEngine {
     const classDef = CLASS_DEFINITIONS[character.class]
     const baseDefIgnore = classDef.passives.defIgnore ?? 0
     const weaponDefIgnore = getSpecial(weapon?.stats.special, 'defIgnore')?.percent ?? 0
-    const defIgnorePercent = Math.min(0.9, baseDefIgnore + weaponDefIgnore + ub.defIgnoreBonus) // capped at 90% to prevent zero-defence enemies
+    const defIgnorePercent = Math.min(SPECIAL_CAPS.defIgnore, baseDefIgnore + weaponDefIgnore + ub.defIgnoreBonus)
 
     // Crit threshold from weapon special
     const extraCritThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
@@ -253,7 +254,10 @@ export class CombatEngine {
       const lifestealSpecial = getSpecial(weapon?.stats.special, 'lifesteal')
       const lifestealBase = classDef.passives.lifestealBase ?? 0
       const setLifesteal = setBonus?.type === 'lifesteal' ? setBonus.value : 0
-      const totalLifestealFraction = (lifestealSpecial?.value ?? 0) + lifestealBase + ub.lifestealBonus + setLifesteal
+      const totalLifestealFraction = Math.min(
+        SPECIAL_CAPS.lifesteal,
+        (lifestealSpecial?.value ?? 0) + lifestealBase + ub.lifestealBonus + setLifesteal,
+      )
       let lifestealHeal = 0
       if (totalLifestealFraction > 0) {
         lifestealHeal = Math.floor(damage * totalLifestealFraction)
@@ -276,7 +280,7 @@ export class CombatEngine {
       // Doublecast (mage only)
       if (character.class === 'mage') {
         const doublecastSpecial = getSpecial(weapon?.stats.special, 'doublecast')
-        if (doublecastSpecial && Math.random() < doublecastSpecial.chance) {
+        if (doublecastSpecial && Math.random() < Math.min(SPECIAL_CAPS.doublecast, doublecastSpecial.chance)) {
           const bonusDamage = calcPlayerDamage(dmgParams)
           enemy.hp -= bonusDamage
           this.emit({
@@ -306,17 +310,17 @@ export class CombatEngine {
     const activeSet = getActiveSet(character.gear.weapon, character.gear.armor)
     const setBonus = activeSet?.bonus ?? null
 
-    // Dodge (armor + upgrade + set) — capped at 75% to prevent near-immunity
+    // Dodge (armor + upgrade + set)
     const armorDodge = getSpecial(character.gear.armor?.stats.special, 'dodge')?.chance ?? 0
     const setDodge = setBonus?.type === 'dodge' ? setBonus.value : 0
-    if (Math.random() < Math.min(0.75, armorDodge + ub.dodgeBonus + setDodge)) {
+    if (Math.random() < Math.min(SPECIAL_CAPS.dodge, armorDodge + ub.dodgeBonus + setDodge)) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Block (armor + upgrade) — capped at 75%
+    // Block (armor + upgrade)
     const armorBlock = getSpecial(character.gear.armor?.stats.special, 'block')?.chance ?? 0
-    if (Math.random() < Math.min(0.75, armorBlock + ub.blockBonus)) {
+    if (Math.random() < Math.min(SPECIAL_CAPS.block, armorBlock + ub.blockBonus)) {
       this.scheduleEnemyTick()
       return
     }

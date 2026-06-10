@@ -84,8 +84,8 @@ export const CLASS_DEFINITIONS: Record<ClassId, ClassDefinition> = {
     intPerLevel: 2.0,
     damageStat: 'int',
     passives: {
-      regenChance: 0.70,
-      regenPower: 1.4,
+      regenChance: 0.45,
+      regenPower: 1.5,
     },
   },
   undead: {

@@ -1,6 +1,22 @@
 import type { Item, ClassId, SpecialEffect } from '../types/index'
 import { CLASS_DEFINITIONS } from './classes'
 
+/**
+ * Hard caps on combined special-effect totals (item + class + upgrades + sets
+ * + enchants). Applied at consumption sites so legacy saved items with
+ * inflated values are tamed without rewriting them.
+ */
+export const SPECIAL_CAPS = {
+  spellAmp: 0.5,
+  defIgnore: 0.6,
+  lifesteal: 0.3,
+  critThresholdFloor: 14, // effective crit threshold never drops below this (~35% crit)
+  dodge: 0.4,
+  block: 0.4,
+  attackSpeedPct: 0.3,    // percent-based attack interval reduction
+  doublecast: 0.35,
+} as const
+
 export function d20(): number {
   return Math.floor(Math.random() * 20) + 1
 }
@@ -33,7 +49,11 @@ export function calcCrit(
   skillCritBonus: number = 0,
 ): boolean {
   const baseCritThreshold = CLASS_DEFINITIONS[classId].passives.critThreshold ?? 20
-  return roll >= (extraCritThreshold ?? baseCritThreshold) - skillCritBonus
+  const threshold = Math.max(
+    SPECIAL_CAPS.critThresholdFloor,
+    (extraCritThreshold ?? baseCritThreshold) - skillCritBonus,
+  )
+  return roll >= threshold
 }
 
 export function calcPlayerDamage(params: {
@@ -59,7 +79,7 @@ export function calcPlayerDamage(params: {
   // SpellAmp: mage-only multiplier (weapon + armor stacked) applied before DEF reduction
   if (classId === 'mage') {
     const weaponSpellAmp = getSpecial(weapon?.stats.special, 'spellAmp')?.percent ?? 0
-    const totalSpellAmp = weaponSpellAmp + armorSpellAmp
+    const totalSpellAmp = Math.min(SPECIAL_CAPS.spellAmp, weaponSpellAmp + armorSpellAmp)
     if (totalSpellAmp > 0) raw = Math.floor(raw * (1 + totalSpellAmp))
   }
 
