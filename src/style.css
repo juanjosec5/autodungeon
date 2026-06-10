@@ -27,6 +27,13 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Hard horizontal-overflow guard on the app root. iOS Safari ignores
+   overflow-x on html/body, and `clip` (unlike `hidden`) forbids all
+   horizontal scrolling without creating a scroll container. */
+#app {
+  overflow-x: clip;
+}
+
 /* ── Pixel panel ── */
 .pixel-panel {
   background: var(--panel);
