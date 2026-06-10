@@ -8,21 +8,33 @@ import { useTaskStore } from './tasks'
 const LS_PRESTIGE_KEY = 'autodungeon_prestige'
 
 export interface BonusDef {
-  cost: number
+  cost: number       // base cost — escalates per stack via costAt()
   maxStacks: number
   label: string
   effect: string
   icon: string
 }
 
+/** Cost of the next stack: base × 1.5^stacks, rounded up */
+export function costAt(def: BonusDef, stacks: number): number {
+  return Math.ceil(def.cost * Math.pow(1.5, stacks))
+}
+
 const CLASS_ASCENSION_BONUS: Record<ClassId, { id: AscensionBonusId; maxStacks: number; label: string; description: string }> = {
-  warrior:   { id: 'overkill',      maxStacks: 5, label: 'Overkill',       description: 'Excess damage on kill carries to next enemy (50% cap)' },
+  warrior:   { id: 'overkill',      maxStacks: 5, label: 'Overkill',       description: 'Excess damage on kill carries to next enemy (25% +15%/stack)' },
   rogue:     { id: 'ghost-strike',  maxStacks: 5, label: 'Ghost Strike',   description: '+3% hit chance per stack (max +15%)' },
   mage:      { id: 'arcane-surge',  maxStacks: 5, label: 'Arcane Surge',   description: '+5% chance to double XP from a kill per stack' },
-  priest:    { id: 'blessed-regen', maxStacks: 5, label: 'Blessed Regen',  description: '+1 HP regenerated per second per stack' },
-  undead:    { id: 'death-pact',    maxStacks: 3, label: 'Death Pact',     description: 'Survive a lethal hit with 1 HP (resets per zone)' },
+  priest:    { id: 'blessed-regen', maxStacks: 5, label: 'Blessed Regen',  description: 'Regenerate 0.5% max HP per second per stack' },
+  undead:    { id: 'death-pact',    maxStacks: 5, label: 'Death Pact',     description: 'Survive a lethal hit with 1 HP (resets per zone)' },
   dragonkin: { id: 'dragon-scales', maxStacks: 5, label: 'Dragon Scales',  description: '+2% damage reduction per stack (max 10%)' },
 }
+
+const ASCENSION_BONUS_BY_ID = Object.fromEntries(
+  Object.values(CLASS_ASCENSION_BONUS).map((b) => [b.id, b]),
+) as Record<AscensionBonusId, (typeof CLASS_ASCENSION_BONUS)[ClassId]>
+
+/** Token cost to refund all allocated mastery stacks */
+export const MASTERY_RESPEC_COST = 5
 
 export { CLASS_ASCENSION_BONUS }
 
@@ -32,6 +44,17 @@ export const usePrestigeStore = defineStore('prestige', () => {
   const totalTokensEarned = ref(0)
   const bonuses = ref<Partial<Record<PrestigeBonusId, number>>>({})
   const ascensionBonuses = ref<Partial<Record<AscensionBonusId, number>>>({})
+  const masteryPoints = ref(0)
+
+  // ── NG+ difficulty ──────────────────────────────────────────────────────────
+
+  /** Current NG+ difficulty tier — enemies scale with each prestige */
+  const difficultyTier = computed(() => prestigeCount.value)
+
+  /** Tokens a prestige at the given level would award at the current tier */
+  function tokensForPrestige(level: number): number {
+    return Math.floor((level / 10) * (1 + 0.5 * difficultyTier.value))
+  }
 
   // ── Computed multipliers ────────────────────────────────────────────────────
 
@@ -48,20 +71,39 @@ export const usePrestigeStore = defineStore('prestige', () => {
   // ── Ascension bonus computed getters ────────────────────────────────────────
   const hitChanceBonus     = computed(() => (ascensionBonuses.value['ghost-strike']  ?? 0) * 0.03)
   const xpDoubleChance     = computed(() => (ascensionBonuses.value['arcane-surge']  ?? 0) * 0.05)
-  const passiveRegenPerSec = computed(() => ascensionBonuses.value['blessed-regen']  ?? 0)
+  /** Blessed Regen: fraction of max HP regenerated per second */
+  const passiveRegenPct    = computed(() => (ascensionBonuses.value['blessed-regen'] ?? 0) * 0.005)
   const damageReduction    = computed(() => (ascensionBonuses.value['dragon-scales'] ?? 0) * 0.02)
   const deathPactSaves     = computed(() => ascensionBonuses.value['death-pact']     ?? 0)
   const overkillStacks     = computed(() => ascensionBonuses.value['overkill']       ?? 0)
+  /** Overkill: fraction of excess kill damage carried to the next enemy */
+  const overkillCarryPct   = computed(() => {
+    const stacks = ascensionBonuses.value['overkill'] ?? 0
+    return stacks > 0 ? Math.min(1, 0.25 + 0.15 * stacks) : 0
+  })
+
+  // ── Token sink getters ──────────────────────────────────────────────────────
+  /** Transcend: +5 max level per stack (base 100) */
+  const maxLevelBonus = computed(() => (bonuses.value.transcend ?? 0) * 5)
+  /** Loot Mastery: minimum drop rarity floor */
+  const lootMasteryFloor = computed<'uncommon' | 'rare' | undefined>(() => {
+    const stacks = bonuses.value.lootMastery ?? 0
+    if (stacks >= 2) return 'rare'
+    if (stacks === 1) return 'uncommon'
+    return undefined
+  })
 
   // ── Bonus definitions ───────────────────────────────────────────────────────
 
   const BONUS_DEFS: Record<PrestigeBonusId, BonusDef> = {
-    xpBoost:           { cost: 2,  maxStacks: 5,  label: 'XP Boost',          effect: '+20% XP per stack',            icon: '✨' },
-    goldBoost:         { cost: 2,  maxStacks: 5,  label: 'Gold Boost',         effect: '+20% gold per stack',          icon: '💰' },
+    xpBoost:           { cost: 2,  maxStacks: 8,  label: 'XP Boost',           effect: '+20% XP per stack',            icon: '✨' },
+    goldBoost:         { cost: 2,  maxStacks: 8,  label: 'Gold Boost',         effect: '+20% gold per stack',          icon: '💰' },
     offlineEfficiency: { cost: 3,  maxStacks: 10, label: 'Offline Efficiency', effect: '+10% offline kill rate/stack', icon: '⏳' },
     startingLevel:     { cost: 5,  maxStacks: 5,  label: 'Head Start',         effect: 'Start at level 5, 10, 15...',  icon: '🚀' },
-    hpBonus:           { cost: 2,  maxStacks: 10, label: 'Vitality',           effect: '+10% max HP per stack',        icon: '❤' },
+    hpBonus:           { cost: 2,  maxStacks: 12, label: 'Vitality',           effect: '+10% max HP per stack',        icon: '❤' },
     dropRateBonus:     { cost: 4,  maxStacks: 5,  label: 'Fortune',            effect: '+10% drop chance/stack',       icon: '🎁' },
+    transcend:         { cost: 25, maxStacks: 5,  label: 'Transcend',          effect: '+5 max level per stack',       icon: '🌟' },
+    lootMastery:       { cost: 10, maxStacks: 2,  label: 'Loot Mastery',       effect: 'Drops are uncommon+, then rare+', icon: '🍀' },
   }
 
   // ── Actions ─────────────────────────────────────────────────────────────────
@@ -70,9 +112,34 @@ export const usePrestigeStore = defineStore('prestige', () => {
     const def = BONUS_DEFS[id]
     const current = bonuses.value[id] ?? 0
     if (current >= def.maxStacks) return false
-    if (ascensionTokens.value < def.cost) return false
-    ascensionTokens.value -= def.cost
+    const price = costAt(def, current)
+    if (ascensionTokens.value < price) return false
+    ascensionTokens.value -= price
     bonuses.value = { ...bonuses.value, [id]: current + 1 }
+    savePrestige()
+    return true
+  }
+
+  /** Spends one mastery point into any class's ascension bonus */
+  function allocateMastery(id: AscensionBonusId): boolean {
+    if (masteryPoints.value <= 0) return false
+    const def = ASCENSION_BONUS_BY_ID[id]
+    const current = ascensionBonuses.value[id] ?? 0
+    if (current >= def.maxStacks) return false
+    masteryPoints.value--
+    ascensionBonuses.value = { ...ascensionBonuses.value, [id]: current + 1 }
+    savePrestige()
+    return true
+  }
+
+  /** Refunds all allocated mastery stacks back to unspent points */
+  function respecMastery(): boolean {
+    const totalStacks = Object.values(ascensionBonuses.value).reduce((a, b) => a + (b ?? 0), 0)
+    if (totalStacks === 0) return false
+    if (ascensionTokens.value < MASTERY_RESPEC_COST) return false
+    ascensionTokens.value -= MASTERY_RESPEC_COST
+    masteryPoints.value += totalStacks
+    ascensionBonuses.value = {}
     savePrestige()
     return true
   }
@@ -82,18 +149,14 @@ export const usePrestigeStore = defineStore('prestige', () => {
     const char = characterStore.character
     if (!char || char.level < 50) return
 
-    const tokensEarned = Math.floor(char.level / 10)
+    const tokensEarned = tokensForPrestige(char.level)
     ascensionTokens.value += tokensEarned
     totalTokensEarned.value += tokensEarned
     prestigeCount.value++
     useTaskStore().updateTracker({ prestigesDone: 1 })
 
-    // Award class-specific ascension bonus
-    const cb = CLASS_ASCENSION_BONUS[char.class]
-    const cur = ascensionBonuses.value[cb.id] ?? 0
-    if (cur < cb.maxStacks) {
-      ascensionBonuses.value[cb.id] = cur + 1
-    }
+    // Award a class-agnostic mastery point (spend via allocateMastery)
+    masteryPoints.value++
 
     // Preserve persistent data before reset
     const charId = char.id
@@ -157,6 +220,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
       totalTokensEarned: totalTokensEarned.value,
       bonuses: bonuses.value,
       ascensionBonuses: ascensionBonuses.value,
+      masteryPoints: masteryPoints.value,
     } satisfies PrestigeState))
   }
 
@@ -170,6 +234,7 @@ export const usePrestigeStore = defineStore('prestige', () => {
       totalTokensEarned.value = data.totalTokensEarned ?? 0
       bonuses.value = data.bonuses ?? {}
       ascensionBonuses.value = data.ascensionBonuses ?? {}
+      masteryPoints.value = data.masteryPoints ?? 0
     } catch {
       // Corrupt data — ignore
     }
@@ -181,6 +246,9 @@ export const usePrestigeStore = defineStore('prestige', () => {
     totalTokensEarned,
     bonuses,
     ascensionBonuses,
+    masteryPoints,
+    difficultyTier,
+    tokensForPrestige,
     xpMultiplier,
     goldMultiplier,
     offlineEfficiencyBonus,
@@ -189,13 +257,18 @@ export const usePrestigeStore = defineStore('prestige', () => {
     dropRateBonus,
     hitChanceBonus,
     xpDoubleChance,
-    passiveRegenPerSec,
+    passiveRegenPct,
     damageReduction,
     deathPactSaves,
     overkillStacks,
+    overkillCarryPct,
+    maxLevelBonus,
+    lootMasteryFloor,
     BONUS_DEFS,
     addTokens,
     buyBonus,
+    allocateMastery,
+    respecMastery,
     prestige,
     savePrestige,
     loadPrestige,
