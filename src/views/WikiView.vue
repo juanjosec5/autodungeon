@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ENEMY_DEFINITIONS } from '../game/enemies'
+import type { ZoneId } from '../types/index'
 
 const router = useRouter()
 
@@ -24,6 +26,40 @@ const tabs: { id: TabId; label: string }[] = [
   { id: 'items',     label: 'Items'     },
   { id: 'ascension', label: 'Ascension' },
 ]
+
+// Zone table data — derived from ENEMY_DEFINITIONS so it can never go stale.
+// HP shown is the in-combat value (normals ×2.2; boss HP is final).
+const NORMAL_HP_MULT = 2.2
+
+interface ZoneMeta { id: ZoneId; label: string; unlock: number; lootCap: string; capClass: string }
+const ZONE_TABLE: ZoneMeta[] = [
+  { id: 'forest',      label: '🌲 Forest',      unlock: 1,  lootCap: 'Rare',      capClass: 'rarity-rare' },
+  { id: 'dungeon',     label: '🏰 Dungeon',     unlock: 8,  lootCap: 'Epic',      capClass: 'rarity-epic' },
+  { id: 'volcano',     label: '🌋 Volcano',     unlock: 20, lootCap: 'Legendary', capClass: 'rarity-legendary' },
+  { id: 'abyss',       label: '🌑 Abyss',       unlock: 35, lootCap: 'Legendary', capClass: 'rarity-legendary' },
+  { id: 'shadowrealm', label: '👁 Shadowrealm', unlock: 50, lootCap: 'Legendary', capClass: 'rarity-legendary' },
+  { id: 'celestial',   label: '✨ Celestial',   unlock: 65, lootCap: 'Legendary', capClass: 'rarity-legendary' },
+  { id: 'void',        label: '🌀 Void',        unlock: 80, lootCap: 'Legendary', capClass: 'rarity-legendary' },
+  { id: 'nightmare',   label: '💀 Nightmare',   unlock: 95, lootCap: 'Legendary', capClass: 'rarity-legendary' },
+]
+
+function bossNameFor(zone: ZoneId): string {
+  return ENEMY_DEFINITIONS.find((e) => e.zone === zone && e.isBoss)?.name ?? ''
+}
+
+function enemyRowsFor(zone: ZoneId) {
+  return ENEMY_DEFINITIONS
+    .filter((e) => e.zone === zone)
+    .map((e) => ({
+      name: e.isBoss ? `★ ${e.name}` : e.name,
+      hp: e.isBoss ? e.maxHp : Math.floor(e.maxHp * NORMAL_HP_MULT),
+      atk: `${e.atk[0]}–${e.atk[1]}`,
+      def: e.def,
+      xp: e.xpReward,
+      spd: e.attackSpeed,
+      isBoss: e.isBoss ?? false,
+    }))
+}
 
 // Zones collapse state
 const expandedZones = ref<Set<string>>(new Set())
@@ -56,6 +92,25 @@ function toggleZone(zone: string) {
 
     <!-- ═══════════════ CHANGELOG ═══════════════ -->
     <div v-if="activeTab === 'changelog'" class="pixel-panel tab-content">
+
+      <div class="cl-entry">
+        <div class="cl-header">
+          <span class="cl-version">v2.0</span>
+          <span class="cl-date">Jun 2026</span>
+        </div>
+        <ul class="cl-list">
+          <li>Item stats reworked onto smooth zone/rarity curves — no more progression cliffs</li>
+          <li>Enemy rescale: every class now hits reliably at zone level; boss fights last 15–120s</li>
+          <li>Special effect caps (spellAmp 50%, defIgnore 60%, lifesteal 30%, dodge/block 40%)</li>
+          <li>Drops rework: per-zone rarity odds, 45% drop chance, direct gold from kills</li>
+          <li>Bad-luck protection: guaranteed Rare/Epic/BiS within fixed drop counts</li>
+          <li>New loot for Forest, Dungeon &amp; Volcano — zone gear sets + 12 BiS legendaries per zone</li>
+          <li>Prestige NG+: each prestige raises enemy difficulty and token rewards</li>
+          <li>Class Mastery points — spend ascension bonuses on any class, respec anytime</li>
+          <li>New token sinks: Transcend (+5 max level) and Loot Mastery (rarity floor)</li>
+          <li>Priest regen rebalanced (45% chance, +50% power)</li>
+        </ul>
+      </div>
 
       <div class="cl-entry">
         <div class="cl-header">
@@ -178,8 +233,8 @@ function toggleZone(zone: string) {
         <div class="pixel-panel class-card">
           <p class="class-name">Priest</p>
           <ul class="passive-list">
-            <li>70% regen on kill</li>
-            <li>+40% heal power</li>
+            <li>45% regen on kill</li>
+            <li>+50% heal power</li>
             <li>Crit on natural 20</li>
           </ul>
         </div>
@@ -207,188 +262,32 @@ function toggleZone(zone: string) {
     <div v-else-if="activeTab === 'zones'" class="pixel-panel tab-content">
 
       <p class="section-label">Zone Overview</p>
-      <p class="footnote" style="margin-bottom:8px">Click any zone row to expand enemies. HP shown is in-combat value (2.2× base; boss 3×).</p>
+      <p class="footnote" style="margin-bottom:8px">Click any zone row to expand enemies. HP shown is the in-combat value (normals 2.2× base; boss HP as listed). NG+ tiers multiply HP/ATK further.</p>
       <div class="tbl-wrap">
         <table class="wiki-table">
           <thead>
             <tr><th>Zone</th><th>Unlock Lv</th><th>Loot Cap</th><th>Boss</th></tr>
           </thead>
           <tbody>
-            <!-- Forest -->
-            <tr @click="toggleZone('forest')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('forest') }">
-              <td>🌲 Forest</td><td>1</td><td class="rarity-rare">Rare</td><td>Forest Troll</td>
-            </tr>
-            <tr v-if="expandedZones.has('forest')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Wolf</td><td>40</td><td>3–6</td><td>3</td><td>20</td><td>1400</td></tr>
-                      <tr><td>Giant Spider</td><td>55</td><td>3–8</td><td>4</td><td>32</td><td>1100</td></tr>
-                      <tr><td>Goblin</td><td>48</td><td>4–7</td><td>4</td><td>28</td><td>1600</td></tr>
-                      <tr><td>Goblin Shaman</td><td>62</td><td>5–9</td><td>3</td><td>40</td><td>1700</td></tr>
-                      <tr><td>Bandit</td><td>77</td><td>5–9</td><td>5</td><td>45</td><td>1800</td></tr>
-                      <tr class="boss-row"><td>★ Forest Troll</td><td>450</td><td>10–16</td><td>14</td><td>300</td><td>2300</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Dungeon -->
-            <tr @click="toggleZone('dungeon')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('dungeon') }">
-              <td>🏰 Dungeon</td><td>8</td><td class="rarity-epic">Epic</td><td>Dark Knight</td>
-            </tr>
-            <tr v-if="expandedZones.has('dungeon')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Zombie</td><td>121</td><td>6–11</td><td>5</td><td>85</td><td>2400</td></tr>
-                      <tr><td>Skeleton</td><td>110</td><td>7–12</td><td>6</td><td>80</td><td>1500</td></tr>
-                      <tr><td>Orc</td><td>165</td><td>9–15</td><td>9</td><td>120</td><td>2000</td></tr>
-                      <tr><td>Orc Berserker</td><td>176</td><td>11–18</td><td>7</td><td>145</td><td>1600</td></tr>
-                      <tr><td>Lich</td><td>143</td><td>12–20</td><td>6</td><td>160</td><td>1500</td></tr>
-                      <tr class="boss-row"><td>★ Dark Knight</td><td>990</td><td>18–30</td><td>26</td><td>1000</td><td>2200</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Volcano -->
-            <tr @click="toggleZone('volcano')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('volcano') }">
-              <td>🌋 Volcano</td><td>20</td><td class="rarity-legendary">Legendary</td><td>Dragon</td>
-            </tr>
-            <tr v-if="expandedZones.has('volcano')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Fire Elemental</td><td>286</td><td>15–25</td><td>10</td><td>280</td><td>1300</td></tr>
-                      <tr><td>Magma Golem</td><td>374</td><td>14–22</td><td>20</td><td>340</td><td>2400</td></tr>
-                      <tr><td>Wyvern</td><td>396</td><td>18–30</td><td>15</td><td>400</td><td>1800</td></tr>
-                      <tr><td>Inferno Drake</td><td>440</td><td>22–36</td><td>13</td><td>480</td><td>1500</td></tr>
-                      <tr><td>Lava Witch</td><td>341</td><td>20–32</td><td>11</td><td>420</td><td>1400</td></tr>
-                      <tr class="boss-row"><td>★ Dragon</td><td>2700</td><td>38–60</td><td>40</td><td>3500</td><td>2500</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Abyss -->
-            <tr @click="toggleZone('abyss')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('abyss') }">
-              <td>🌑 Abyss</td><td>35</td><td class="rarity-legendary">Legendary</td><td>Abyssal Titan</td>
-            </tr>
-            <tr v-if="expandedZones.has('abyss')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Shadow Imp</td><td>462</td><td>16–26</td><td>14</td><td>525</td><td>1400</td></tr>
-                      <tr><td>Void Hound</td><td>572</td><td>20–32</td><td>18</td><td>650</td><td>1400</td></tr>
-                      <tr><td>Void Knight</td><td>704</td><td>24–38</td><td>24</td><td>800</td><td>1900</td></tr>
-                      <tr><td>Demon Lord</td><td>924</td><td>28–44</td><td>20</td><td>1100</td><td>2100</td></tr>
-                      <tr><td>Void Shade</td><td>616</td><td>22–34</td><td>16</td><td>700</td><td>1600</td></tr>
-                      <tr class="boss-row"><td>★ Abyssal Titan</td><td>4200</td><td>40–64</td><td>40</td><td>8000</td><td>2800</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Shadowrealm -->
-            <tr @click="toggleZone('shadowrealm')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('shadowrealm') }">
-              <td>👁 Shadowrealm</td><td>50</td><td class="rarity-legendary">Legendary</td><td>Dread Sovereign</td>
-            </tr>
-            <tr v-if="expandedZones.has('shadowrealm')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Shadow Wraith</td><td>990</td><td>30–48</td><td>22</td><td>900</td><td>1400</td></tr>
-                      <tr><td>Nightmare Stalker</td><td>1144</td><td>34–54</td><td>24</td><td>1040</td><td>1500</td></tr>
-                      <tr><td>Soul Harvester</td><td>1276</td><td>36–58</td><td>25</td><td>1160</td><td>1600</td></tr>
-                      <tr><td>Dark Phantom</td><td>1408</td><td>38–62</td><td>26</td><td>1280</td><td>1300</td></tr>
-                      <tr><td>Cursed Revenant</td><td>1540</td><td>40–66</td><td>28</td><td>1400</td><td>1800</td></tr>
-                      <tr class="boss-row"><td>★ Dread Sovereign</td><td>10500</td><td>68–108</td><td>65</td><td>16000</td><td>2700</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Celestial -->
-            <tr @click="toggleZone('celestial')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('celestial') }">
-              <td>✨ Celestial</td><td>65</td><td class="rarity-legendary">Legendary</td><td>Celestial Archon</td>
-            </tr>
-            <tr v-if="expandedZones.has('celestial')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Celestial Sentinel</td><td>1870</td><td>45–72</td><td>32</td><td>1700</td><td>1400</td></tr>
-                      <tr><td>Starshard Construct</td><td>2024</td><td>48–78</td><td>35</td><td>1840</td><td>2000</td></tr>
-                      <tr><td>Fallen Seraph</td><td>2156</td><td>50–82</td><td>33</td><td>1960</td><td>1500</td></tr>
-                      <tr><td>Astral Warden</td><td>2310</td><td>52–84</td><td>36</td><td>2100</td><td>1900</td></tr>
-                      <tr><td>Divine Fury</td><td>2420</td><td>55–88</td><td>34</td><td>2200</td><td>1500</td></tr>
-                      <tr class="boss-row"><td>★ Celestial Archon</td><td>27000</td><td>140–220</td><td>120</td><td>30000</td><td>2600</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Void -->
-            <tr @click="toggleZone('void')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('void') }">
-              <td>🌀 Void</td><td>80</td><td class="rarity-legendary">Legendary</td><td>The Unmaker</td>
-            </tr>
-            <tr v-if="expandedZones.has('void')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Void Specter</td><td>2640</td><td>60–96</td><td>40</td><td>2400</td><td>1400</td></tr>
-                      <tr><td>Nullborn</td><td>2860</td><td>65–104</td><td>42</td><td>2600</td><td>1800</td></tr>
-                      <tr><td>Entropy Fiend</td><td>3080</td><td>70–112</td><td>45</td><td>2800</td><td>2000</td></tr>
-                      <tr><td>Oblivion Shade</td><td>3190</td><td>72–116</td><td>44</td><td>2900</td><td>1600</td></tr>
-                      <tr><td>Rift Terror</td><td>3300</td><td>75–120</td><td>46</td><td>3000</td><td>1700</td></tr>
-                      <tr class="boss-row"><td>★ The Unmaker</td><td>54000</td><td>220–340</td><td>180</td><td>60000</td><td>2500</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Nightmare -->
-            <tr @click="toggleZone('nightmare')" class="zone-row" :class="{ 'zone-expanded': expandedZones.has('nightmare') }">
-              <td>💀 Nightmare</td><td>95</td><td class="rarity-legendary">Legendary</td><td>Eternal Nightmare</td>
-            </tr>
-            <tr v-if="expandedZones.has('nightmare')" class="zone-detail">
-              <td colspan="4">
-                <div class="tbl-wrap">
-                  <table class="wiki-table enemy-table">
-                    <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
-                    <tbody>
-                      <tr><td>Nightmare Horror</td><td>3960</td><td>88–140</td><td>55</td><td>3600</td><td>1400</td></tr>
-                      <tr><td>Chaos Spawn</td><td>4180</td><td>92–148</td><td>58</td><td>3800</td><td>1700</td></tr>
-                      <tr><td>Abyssal Nightmare</td><td>4400</td><td>96–155</td><td>60</td><td>4000</td><td>1800</td></tr>
-                      <tr><td>Dread Walker</td><td>4840</td><td>100–162</td><td>62</td><td>4400</td><td>1900</td></tr>
-                      <tr><td>Soul Eater</td><td>5280</td><td>105–170</td><td>65</td><td>4800</td><td>1600</td></tr>
-                      <tr class="boss-row"><td>★ Eternal Nightmare</td><td>105000</td><td>350–540</td><td>280</td><td>120000</td><td>2500</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
+            <template v-for="z in ZONE_TABLE" :key="z.id">
+              <tr @click="toggleZone(z.id)" class="zone-row" :class="{ 'zone-expanded': expandedZones.has(z.id) }">
+                <td>{{ z.label }}</td><td>{{ z.unlock }}</td><td :class="z.capClass">{{ z.lootCap }}</td><td>{{ bossNameFor(z.id) }}</td>
+              </tr>
+              <tr v-if="expandedZones.has(z.id)" class="zone-detail">
+                <td colspan="4">
+                  <div class="tbl-wrap">
+                    <table class="wiki-table enemy-table">
+                      <thead><tr><th>Enemy</th><th>HP</th><th>ATK</th><th>DEF</th><th>XP</th><th>Spd (ms)</th></tr></thead>
+                      <tbody>
+                        <tr v-for="row in enemyRowsFor(z.id)" :key="row.name" :class="{ 'boss-row': row.isBoss }">
+                          <td>{{ row.name }}</td><td>{{ row.hp }}</td><td>{{ row.atk }}</td><td>{{ row.def }}</td><td>{{ row.xp }}</td><td>{{ row.spd }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -396,10 +295,12 @@ function toggleZone(zone: string) {
       <div class="pixel-panel loot-rules">
         <p class="section-label">Loot Rules</p>
         <ul class="passive-list">
-          <li>Boss kills roll loot normally — Legendary can drop at 0.01% (non-boss enemies are capped to Epic)</li>
-          <li><span class="gold-text">BiS gear: 1/200 chance on every boss kill</span> to drop a zone-specific best-in-slot Legendary</li>
-          <li>Forest cap: Rare — Epic and Legendary rolls are demoted to Rare</li>
-          <li>Dungeon cap: Epic — Legendary rolls are demoted to Epic</li>
+          <li>Normal kills drop an item <span class="gold-text">45% of the time</span> — and always drop gold directly</li>
+          <li>Rarity odds scale per zone: deeper zones drop fewer commons and more epics/legendaries (Nightmare: 8% legendary)</li>
+          <li>Legendaries can drop from normal kills from Volcano onward; Forest caps at Rare, Dungeon at Epic</li>
+          <li>Boss drops are guaranteed, with a rarity floor: Rare+ from Volcano, Epic+ from Celestial</li>
+          <li><span class="gold-text">Bad-luck protection:</span> a Rare+ is guaranteed within 30 drops, an Epic+ within 120 (where the zone allows)</li>
+          <li><span class="gold-text">BiS gear: 1/100 chance on every boss kill</span> for a zone-specific best-in-slot Legendary — guaranteed within 150 boss kills</li>
           <li>Click any zone row above to expand its enemy list</li>
         </ul>
       </div>
@@ -413,7 +314,7 @@ function toggleZone(zone: string) {
         <p class="section-label">Player Attack Sequence</p>
         <ol class="combat-list">
           <li>Roll d20 + DEX vs enemy DEF → determines hit or miss (5% minimum hit chance)</li>
-          <li>Class crit check: Warrior/Mage on natural 20; Rogue on roll ≥ 17 or when DEX ≥ 12 (always crits)</li>
+          <li>Class crit check: Warrior/Mage/Priest on natural 20; Dragonkin ≥ 19; Undead ≥ 18; Rogue ≥ 17 (or when DEX ≥ 12)</li>
           <li>Damage = random roll in weapon (min–max) range + primary damage stat</li>
           <li>Multiply by ×1.5 if critical hit</li>
           <li>Spell Amp applied (Mage only): final × (1 + spellAmp%)</li>
@@ -426,9 +327,9 @@ function toggleZone(zone: string) {
       <div class="combat-section">
         <p class="section-label">Enemy Attack Sequence</p>
         <ol class="combat-list">
+          <li>Dodge check, then block check: either fully negates the attack (each capped at 40%)</li>
           <li>Enemy rolls ATK in (min–max) range</li>
           <li>Subtract player DEF (minimum 1 damage)</li>
-          <li>Dodge check: if player has dodge chance, roll to fully negate damage</li>
           <li>Deal remaining damage to player HP</li>
         </ol>
       </div>
@@ -437,8 +338,8 @@ function toggleZone(zone: string) {
         <p class="section-label">Death &amp; Bosses</p>
         <ul class="passive-list">
           <li><span class="gold-text">Death penalty:</span> −10% current XP, −15% current gold, full HP restore</li>
-          <li><span class="gold-text">Boss trigger:</span> every 12 normal kills spawns the zone boss (if one exists)</li>
-          <li><span class="gold-text">Boss reward:</span> guaranteed top-rarity loot drop for the zone</li>
+          <li><span class="gold-text">Boss trigger:</span> every 10–15 normal kills spawns the zone boss</li>
+          <li><span class="gold-text">Boss reward:</span> guaranteed loot drop with a rarity floor (Rare+ from Volcano, Epic+ from Celestial)</li>
         </ul>
       </div>
 
@@ -451,33 +352,33 @@ function toggleZone(zone: string) {
       <div class="tbl-wrap">
         <table class="wiki-table">
           <thead>
-            <tr><th>Rarity</th><th>Drop %</th><th>Sell</th><th>Buy (Shop)</th></tr>
+            <tr><th>Rarity</th><th>Drop % (Forest → Nightmare)</th><th>Sell*</th><th>Buy (Shop)*</th></tr>
           </thead>
           <tbody>
             <tr>
               <td class="rarity-common">Common</td>
-              <td>60%</td><td>5g</td><td>20g</td>
+              <td>70% → 16%</td><td>5g</td><td>40g</td>
             </tr>
             <tr>
               <td class="rarity-uncommon">Uncommon</td>
-              <td>25%</td><td>15g</td><td>60g</td>
+              <td>24% → 24%</td><td>15g</td><td>120g</td>
             </tr>
             <tr>
               <td class="rarity-rare">Rare</td>
-              <td>12%</td><td>40g</td><td>150g</td>
+              <td>6% → 30%</td><td>40g</td><td>320g</td>
             </tr>
             <tr>
               <td class="rarity-epic">Epic</td>
-              <td>3%</td><td>120g</td><td>450g</td>
+              <td>0% → 22%</td><td>120g</td><td>960g</td>
             </tr>
             <tr>
               <td class="rarity-legendary">Legendary</td>
-              <td>0.01%*</td><td>500g</td><td>2000g</td>
+              <td>0% → 8%</td><td>500g</td><td>4000g</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p class="footnote">* Boss kill required. Non-boss enemies are capped to Epic. BiS Legendary has a separate 1/200 chance on boss kill.</p>
+      <p class="footnote">* Base prices at zone tier 0 — all prices scale ×1.5 per zone tier of the item. Rarity odds rise smoothly through the 8 zones; Legendary drops start in Volcano. BiS Legendaries drop only from bosses (1/100, guaranteed within 150 boss kills).</p>
 
       <p class="section-label" style="margin-top:16px">Off-Class Penalty</p>
       <div class="pixel-panel offclass-box">
@@ -513,7 +414,7 @@ function toggleZone(zone: string) {
         <p class="section-label">Enchanting</p>
         <ul class="passive-list">
           <li>Add or reroll a special effect on any item you own</li>
-          <li>Enchant cost doubles with each additional enchant on the same item</li>
+          <li>Enchant cost grows ×1.6 with each additional enchant, and scales with the item's zone tier</li>
           <li>Enchanted items sell for base value + 30% of total enchant investment</li>
           <li>Unlocked at level 10</li>
         </ul>
