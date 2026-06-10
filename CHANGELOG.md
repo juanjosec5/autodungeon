@@ -2,6 +2,35 @@
 
 All notable changes to AutoDungeon are documented here.
 
+## [v2.0] — Core Systems Rework (Jun 2026)
+
+Three-part rework of item balancing, drops, and prestige (PRs #58–#60).
+
+### Changed — Item Balance (#58)
+- **Formula-generated item stats** — all item stats now derive from zone-tier + rarity curves in `src/game/item-curves.ts`; definitions are declarative (tune progression by editing curve constants, not 237 stat blocks)
+- **Special effect caps** enforced at consumption sites: spellAmp 50%, defIgnore 60%, lifesteal 30%, dodge/block 40%, doublecast 35%, attack-speed 30%, crit threshold floor 14
+- **Enemy rescale** — boss DEF now tracks at-level DEX so every class hits ≥70% at zone level (was: nat-20-only vs late bosses); boss HP retuned for 15–120s fights; top-3-zone normals tapered ~25%
+- **Priest rebalance** — regen chance 70% → 45%, regen power 1.4× → 1.5×
+- **Economy** — sell/buy/enchant prices scale ×1.5 per zone tier; enchant cost growth softened (×1.6 per enchant instead of ×2 on a ×3 base) so gold stays relevant late-game
+- Saved characters are migrated automatically: item stats rehydrate from current templates on load (enchants preserved)
+
+### Changed — Drop System (#59)
+- **Per-zone rarity weights** replace the flat table — deeper zones drop meaningfully better loot (Nightmare: 8% legendary); non-boss legendaries possible from Volcano onward
+- **45% drop chance** on normal kills (bosses always drop, with rarity floors: Rare+ from Volcano, Epic+ from Celestial); kills now drop gold directly (0.35 × XP)
+- **Bad-luck protection** — Rare+ guaranteed within 30 drops, Epic+ within 120, BiS legendary within 150 boss kills (base BiS chance doubled to 1/100)
+- **72 new items** — zone gear sets for Forest/Dungeon/Volcano and 12 zone-appropriate BiS legendaries per zone; drop pools are tier-windowed so deep zones stop dropping starter gear
+
+### Added — Prestige NG+ (#60)
+- **Difficulty tiers** — each prestige raises enemy HP ×1.25 / ATK ×1.18 per tier, with XP/gold rewards scaling ×1.15 to match
+- **Tier-scaled tokens** — `floor(level/10 × (1 + 0.5 × tier))`; bonus costs escalate ×1.5 per stack
+- **Class Mastery** — prestige grants a mastery point spendable on any class's ascension bonus; respec for 5 tokens; Overkill and Blessed Regen now scale with stacks; Death Pact 3 → 5 stacks
+- **New token sinks** — Transcend (+5 max level per stack, cap 100 → 125) and Loot Mastery (minimum drop rarity floor)
+
+### Removed
+- Project doc files (`handoff.md`, `AUTODUNGEON_CONTEXT.md`, `DEPLOY.md`, `FEATURES.md`, `ITEMS.md`) and AI-assistant config no longer live in the repository
+
+---
+
 ## [Unreleased]
 
 ### Fixed

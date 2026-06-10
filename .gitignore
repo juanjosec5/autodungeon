@@ -27,3 +27,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local AI-assistant and doc scratch files — do not commit
+.claude/
+handoff.md
+*.local.md

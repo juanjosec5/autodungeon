@@ -28,7 +28,7 @@ const ZONE_UNLOCK_LEVELS: Record<ZoneId, number> = {
   nightmare:   95,
 }
 
-const MAX_LEVEL = 100
+const BASE_MAX_LEVEL = 100
 
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
@@ -54,6 +54,9 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   // ── Getters ──────────────────────────────────────────────────────────────────
+
+  /** Level cap: 100 base, +5 per Transcend prestige stack */
+  const maxLevel = computed(() => BASE_MAX_LEVEL + usePrestigeStore().maxLevelBonus)
 
   const unlockedZones = computed<ZoneId[]>(() => {
     if (!character.value) return ['forest']
@@ -169,6 +172,8 @@ export const useCharacterStore = defineStore('character', () => {
         if (p && p.rewardReady === undefined) p.rewardReady = false
       }
     }
+    // Default pity counters for saves predating the pity system
+    if (!data.pity) data.pity = { sinceRare: 0, sinceEpic: 0, bossKillsSinceBis: 0 }
     // Recalculate xpToNext in case the XP formula changed since the save was written
     data.xpToNext = getXPToNextLevel(data.level)
     // Rehydrate item stats from current templates (stats are curve-generated and
@@ -340,7 +345,7 @@ export const useCharacterStore = defineStore('character', () => {
     let levelsGained = 0
     const prestigeStore = usePrestigeStore()
 
-    while (char.xp >= char.xpToNext && char.level < MAX_LEVEL) {
+    while (char.xp >= char.xpToNext && char.level < maxLevel.value) {
       char.xp -= char.xpToNext
       char.level += 1
       levelsGained++
@@ -360,7 +365,7 @@ export const useCharacterStore = defineStore('character', () => {
     }
 
     // At max level cap XP at xpToNext
-    if (char.level >= MAX_LEVEL) {
+    if (char.level >= maxLevel.value) {
       char.xp = Math.min(char.xp, char.xpToNext)
     }
 
@@ -545,7 +550,7 @@ export const useCharacterStore = defineStore('character', () => {
 
     // Silent level-ups — apply stat gains but no upgrade choices yet
     const offlinePrestigeStore = usePrestigeStore()
-    while (char.xp >= char.xpToNext && char.level < MAX_LEVEL) {
+    while (char.xp >= char.xpToNext && char.level < maxLevel.value) {
       char.xp -= char.xpToNext
       char.level++
       char.skillPoints = (char.skillPoints ?? 0) + 1
@@ -562,7 +567,7 @@ export const useCharacterStore = defineStore('character', () => {
       char.xpToNext = getXPToNextLevel(char.level)
     }
 
-    if (char.level >= MAX_LEVEL) {
+    if (char.level >= maxLevel.value) {
       char.xp = Math.min(char.xp, char.xpToNext)
     }
 
@@ -599,6 +604,7 @@ export const useCharacterStore = defineStore('character', () => {
     setScrapMode,
     autoEquip,
     toggleAutoEquip,
+    maxLevel,
     unlockedZones,
     effectiveWeaponStats,
     effectiveArmorStats,

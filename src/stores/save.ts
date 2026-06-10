@@ -204,6 +204,7 @@ export const useSaveStore = defineStore('save', () => {
       char.currentZone,
       elapsedMs,
       prestigeStore.offlineEfficiencyBonus,
+      prestigeStore.difficultyTier,
     )
     characterStore.applyOfflineRewards(result)
     characterStore.pendingOfflineResult = result

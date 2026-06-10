@@ -99,6 +99,11 @@ export interface Character {
   lifetime: LifetimeStats
   zoneAchievements?: Partial<Record<ZoneId, ZoneAchievementProgress>>
   discoveredItems?: string[]
+  pity?: {
+    sinceRare: number          // drops since the last rare+ drop
+    sinceEpic: number          // drops since the last epic+ drop
+    bossKillsSinceBis: number  // boss kills since the last BiS legendary
+  }
 }
 
 export interface Enemy {
@@ -154,6 +159,8 @@ export type PrestigeBonusId =
   | 'startingLevel'
   | 'hpBonus'
   | 'dropRateBonus'
+  | 'transcend'
+  | 'lootMastery'
 
 export interface OfflineResult {
   durationMs: number
@@ -203,6 +210,7 @@ export interface PrestigeState {
   totalTokensEarned: number
   bonuses: Partial<Record<PrestigeBonusId, number>>
   ascensionBonuses?: Partial<Record<AscensionBonusId, number>>
+  masteryPoints?: number  // unspent class-mastery points (1 earned per prestige)
 }
 
 export type AscensionBonusId =
