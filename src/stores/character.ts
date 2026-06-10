@@ -5,7 +5,7 @@ import { usePrestigeStore } from './prestige'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
 import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
-import { applyUpgrade, rollUpgradeChoices, autoPickUpgrade, UPGRADE_DEFINITIONS } from '../game/upgrades'
+import { applyUpgrade, applyStatUpgrades, rollUpgradeChoices, autoPickUpgrade, UPGRADE_DEFINITIONS } from '../game/upgrades'
 import { LS_KEYS } from '../utils/storage'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
@@ -182,7 +182,7 @@ export const useCharacterStore = defineStore('character', () => {
     _rehydrateItem(data.gear.armor)
     for (const item of data.inventory) _rehydrateItem(item)
     character.value = data
-    _recalcMaxHP()
+    recalcStats()
   }
 
   /**
@@ -236,7 +236,7 @@ export const useCharacterStore = defineStore('character', () => {
     char.inventory = char.inventory.filter((i) => i.id !== item.id)
 
     // Recalculate maxHP if armor changed (hpBonus)
-    _recalcMaxHP()
+    recalcStats()
   }
 
   function unequipItem(slot: 'weapon' | 'armor'): void {
@@ -253,7 +253,7 @@ export const useCharacterStore = defineStore('character', () => {
     }
 
     char.gear[slot] = null
-    _recalcMaxHP()
+    recalcStats()
   }
 
   /**
@@ -271,7 +271,7 @@ export const useCharacterStore = defineStore('character', () => {
       const current = char.gear[slot]
       if (current && isBetterThan(item, current, char.class)) {
         char.gear[slot] = item
-        _recalcMaxHP()
+        recalcStats()
         // Run the displaced item through scrap logic instead of blindly pushing to inventory
         const displaced = current
         let scrapped = false
@@ -343,26 +343,15 @@ export const useCharacterStore = defineStore('character', () => {
 
     char.xp += amount
     let levelsGained = 0
-    const prestigeStore = usePrestigeStore()
 
     while (char.xp >= char.xpToNext && char.level < maxLevel.value) {
       char.xp -= char.xpToNext
       char.level += 1
       levelsGained++
       char.skillPoints = (char.skillPoints ?? 0) + 1
-
-      const newStats = getStatsAtLevel(char.class, char.level)
-      const newMaxHP = prestigeStore.hpMultiplier > 1
-        ? Math.floor(newStats.maxHP * prestigeStore.hpMultiplier)
-        : newStats.maxHP
-      const hpDiff = newMaxHP - char.maxHP
-      char.maxHP = newMaxHP
-      char.currentHP = Math.min(char.maxHP, char.currentHP + hpDiff)
-      char.stats.str = newStats.str + (char.upgrades?.['str-up'] ?? 0) * 2
-      char.stats.dex = newStats.dex + (char.upgrades?.['dex-up'] ?? 0) * 2
-      char.stats.int = newStats.int + (char.upgrades?.['int-up'] ?? 0) * 2
       char.xpToNext = getXPToNextLevel(char.level)
     }
+    if (levelsGained > 0) recalcStats()
 
     // At max level cap XP at xpToNext
     if (char.level >= maxLevel.value) {
@@ -449,7 +438,33 @@ export const useCharacterStore = defineStore('character', () => {
     if (current >= def.maxPicks) return 'maxed'
     char.skillPoints = (char.skillPoints ?? 0) - 1
     applyUpgrade(char, upgradeId)
+    recalcStats()
     return 'spent'
+  }
+
+  /** Gold cost to refund all spent skill points — scales with level */
+  const RESPEC_GOLD_PER_LEVEL = 150
+
+  function getRespecCost(): number {
+    return (character.value?.level ?? 1) * RESPEC_GOLD_PER_LEVEL
+  }
+
+  /**
+   * Refunds every spent upgrade pick back to unspent skill points for gold.
+   * Returns 'respecced', 'no_gold', or 'no_picks'.
+   */
+  function respecUpgrades(): 'respecced' | 'no_gold' | 'no_picks' {
+    const char = character.value
+    if (!char) return 'no_picks'
+    const totalPicks = Object.values(char.upgrades ?? {}).reduce((a, b) => a + (b ?? 0), 0)
+    if (totalPicks === 0) return 'no_picks'
+    const cost = getRespecCost()
+    if (char.gold < cost) return 'no_gold'
+    char.gold -= cost
+    char.upgrades = {}
+    char.skillPoints = (char.skillPoints ?? 0) + totalPicks
+    recalcStats()
+    return 'respecced'
   }
 
   /**
@@ -460,6 +475,7 @@ export const useCharacterStore = defineStore('character', () => {
     const char = character.value
     if (!char || (char.pendingLevelUps ?? 0) <= 0) return 'invalid'
     applyUpgrade(char, upgradeId)
+    recalcStats()
     char.pendingLevelUps = (char.pendingLevelUps ?? 1) - 1
     return 'ok'
   }
@@ -549,23 +565,15 @@ export const useCharacterStore = defineStore('character', () => {
     }
 
     // Silent level-ups — apply stat gains but no upgrade choices yet
-    const offlinePrestigeStore = usePrestigeStore()
+    let offlineLevels = 0
     while (char.xp >= char.xpToNext && char.level < maxLevel.value) {
       char.xp -= char.xpToNext
       char.level++
+      offlineLevels++
       char.skillPoints = (char.skillPoints ?? 0) + 1
-      const newStats = getStatsAtLevel(char.class, char.level)
-      const newMaxHP = offlinePrestigeStore.hpMultiplier > 1
-        ? Math.floor(newStats.maxHP * offlinePrestigeStore.hpMultiplier)
-        : newStats.maxHP
-      const hpDiff = newMaxHP - char.maxHP
-      char.maxHP = newMaxHP
-      char.currentHP = Math.min(char.maxHP, char.currentHP + Math.max(0, hpDiff))
-      char.stats.str = newStats.str + (char.upgrades?.['str-up'] ?? 0) * 2
-      char.stats.dex = newStats.dex + (char.upgrades?.['dex-up'] ?? 0) * 2
-      char.stats.int = newStats.int + (char.upgrades?.['int-up'] ?? 0) * 2
       char.xpToNext = getXPToNextLevel(char.level)
     }
+    if (offlineLevels > 0) recalcStats()
 
     if (char.level >= maxLevel.value) {
       char.xp = Math.min(char.xp, char.xpToNext)
@@ -578,23 +586,34 @@ export const useCharacterStore = defineStore('character', () => {
     })
   }
 
-  // ── Private helpers ──────────────────────────────────────────────────────────
-
-  function _recalcMaxHP(): void {
+  /**
+   * Recomputes str/dex/int and maxHP from scratch:
+   * base stats at level → percentage stat upgrades → prestige HP multiplier
+   * → armor HP bonus. The single source of truth for derived stats — called
+   * on level-up, gear change, upgrade spend, respec, restore, and prestige.
+   */
+  function recalcStats(): void {
     const char = character.value
     if (!char) return
     const prestigeStore = usePrestigeStore()
-    const baseStats = getStatsAtLevel(char.class, char.level)
+    const base = getStatsAtLevel(char.class, char.level)
+    const upgraded = applyStatUpgrades(
+      { str: base.str, dex: base.dex, int: base.int, maxHP: base.maxHP },
+      char.upgrades ?? {},
+    )
+    char.stats.str = upgraded.str
+    char.stats.dex = upgraded.dex
+    char.stats.int = upgraded.int
+
     const baseHP = prestigeStore.hpMultiplier > 1
-      ? Math.floor(baseStats.maxHP * prestigeStore.hpMultiplier)
-      : baseStats.maxHP
+      ? Math.floor(upgraded.maxHP * prestigeStore.hpMultiplier)
+      : upgraded.maxHP
     const armorHpBonus = char.gear.armor?.stats.hpBonus ?? 0
     const penalty = char.gear.armor ? getOffClassPenalty(char.gear.armor, char.class) : 1
-    const effectiveHpBonus = Math.floor(armorHpBonus * penalty)
-    const newMax = baseHP + effectiveHpBonus
+    const newMax = baseHP + Math.floor(armorHpBonus * penalty)
     const diff = newMax - char.maxHP
     char.maxHP = newMax
-    char.currentHP = Math.min(newMax, char.currentHP + Math.max(0, diff))
+    char.currentHP = Math.min(newMax, Math.max(1, char.currentHP + Math.max(0, diff)))
   }
 
   return {
@@ -622,6 +641,9 @@ export const useCharacterStore = defineStore('character', () => {
     applyDeathPenalty,
     setZone,
     spendSkillPoint,
+    respecUpgrades,
+    getRespecCost,
+    recalcStats,
     selectUpgrade,
     autoSelectUpgrade,
     getUpgradeChoices,

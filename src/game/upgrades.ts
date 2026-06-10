@@ -21,12 +21,17 @@ export interface UpgradeBonuses {
   attackSpeedReduction: number  // ms to subtract from attack interval
 }
 
+/** Percentage bonus per pick for str/dex/int upgrades — scales with level */
+export const STAT_UPGRADE_PCT = 0.02
+/** Percentage bonus per pick for max HP upgrades */
+export const HP_UPGRADE_PCT = 0.02
+
 export const UPGRADE_DEFINITIONS: UpgradeDef[] = [
   // ── Stat upgrades ────────────────────────────────────────────────────────
-  { id: 'str-up',    name: 'Raw Strength',   description: '+2 STR',             maxPicks: 20, allowedClasses: 'any' },
-  { id: 'dex-up',    name: 'Nimble Fingers', description: '+2 DEX',             maxPicks: 20, allowedClasses: 'any' },
-  { id: 'int-up',    name: 'Arcane Focus',   description: '+2 INT',             maxPicks: 20, allowedClasses: 'any' },
-  { id: 'hp-up',     name: 'Fortitude',      description: '+15 max HP',         maxPicks: 20, allowedClasses: 'any' },
+  { id: 'str-up',    name: 'Raw Strength',   description: '+2% STR',            maxPicks: 20, allowedClasses: 'any' },
+  { id: 'dex-up',    name: 'Nimble Fingers', description: '+2% DEX',            maxPicks: 20, allowedClasses: 'any' },
+  { id: 'int-up',    name: 'Arcane Focus',   description: '+2% INT',            maxPicks: 20, allowedClasses: 'any' },
+  { id: 'hp-up',     name: 'Fortitude',      description: '+2% max HP',         maxPicks: 20, allowedClasses: 'any' },
   { id: 'flat-def',  name: 'Iron Skin',      description: '+3 effective DEF',   maxPicks: 10, allowedClasses: 'any' },
   { id: 'atk-speed', name: 'Swift Strikes',  description: '−80ms attack speed', maxPicks: 5,  allowedClasses: 'any' },
   // ── Special upgrades ─────────────────────────────────────────────────────
@@ -87,21 +92,29 @@ export function autoPickUpgrade(classId: ClassId, choices: UpgradeDef[]): Upgrad
   return choices[0]
 }
 
-/** Mutates character in place — apply once per pick. */
+/**
+ * Mutates character in place — apply once per pick.
+ * Only increments the picks record; stat upgrades are percentage-based and
+ * take effect when the character store recalculates stats (recalcStats).
+ */
 export function applyUpgrade(char: Character, upgradeId: UpgradeId): void {
   if (!char.upgrades) char.upgrades = {}
   char.upgrades[upgradeId] = (char.upgrades[upgradeId] ?? 0) + 1
+}
 
-  // Direct stat mutations for base-stat upgrades (engine already reads these)
-  switch (upgradeId) {
-    case 'str-up': char.stats.str += 2; break
-    case 'dex-up': char.stats.dex += 2; break
-    case 'int-up': char.stats.int += 2; break
-    case 'hp-up':
-      char.maxHP += 15
-      char.currentHP = Math.min(char.maxHP, char.currentHP + 15)
-      break
-    // All others are engine-only bonuses — the upgrades record is the source of truth
+/**
+ * Applies percentage-based stat upgrades to a base stat block.
+ * Pure — used by the character store whenever stats are recalculated.
+ */
+export function applyStatUpgrades(
+  base: { str: number; dex: number; int: number; maxHP: number },
+  upgrades: Partial<Record<UpgradeId, number>>,
+): { str: number; dex: number; int: number; maxHP: number } {
+  return {
+    str: Math.floor(base.str * (1 + (upgrades['str-up'] ?? 0) * STAT_UPGRADE_PCT)),
+    dex: Math.floor(base.dex * (1 + (upgrades['dex-up'] ?? 0) * STAT_UPGRADE_PCT)),
+    int: Math.floor(base.int * (1 + (upgrades['int-up'] ?? 0) * STAT_UPGRADE_PCT)),
+    maxHP: Math.floor(base.maxHP * (1 + (upgrades['hp-up'] ?? 0) * HP_UPGRADE_PCT)),
   }
 }
 

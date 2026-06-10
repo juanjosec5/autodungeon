@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCharacterStore } from '../stores/character'
-import { UPGRADE_DEFINITIONS } from '../game/upgrades'
+import { UPGRADE_DEFINITIONS, getUpgradeBonuses } from '../game/upgrades'
+import { SPECIAL_CAPS, getSpecial } from '../game/formulas'
+import { CLASS_DEFINITIONS } from '../game/classes'
+import { getActiveSet } from '../game/sets'
 import type { UpgradeDef } from '../game/upgrades'
 import type { UpgradeId } from '../types/index'
 
@@ -9,6 +12,63 @@ const characterStore = useCharacterStore()
 
 const char = computed(() => characterStore.character)
 const skillPoints = computed(() => char.value?.skillPoints ?? 0)
+
+// ── Live totals vs hard caps ─────────────────────────────────────────────────
+// Mirrors the engine's stacking (gear + class passives + upgrades + sets) so
+// players can see when more picks in a capped upgrade stop paying off.
+
+const capInfo = computed<Partial<Record<UpgradeId, string>>>(() => {
+  const c = char.value
+  if (!c) return {}
+  const ub = getUpgradeBonuses(c.upgrades ?? {})
+  const weapon = c.gear.weapon
+  const armor = c.gear.armor
+  const classDef = CLASS_DEFINITIONS[c.class]
+  const set = getActiveSet(weapon, armor)?.bonus ?? null
+
+  const pct = (v: number) => `${Math.round(v * 100)}%`
+  const line = (total: number, cap: number) =>
+    `Total now: ${pct(Math.min(cap, total))} / cap ${pct(cap)}${total >= cap ? ' ⚠ capped' : ''}`
+
+  const dodgeTotal = (getSpecial(armor?.stats.special, 'dodge')?.chance ?? 0)
+    + ub.dodgeBonus + (set?.type === 'dodge' ? set.value : 0)
+  const blockTotal = (getSpecial(armor?.stats.special, 'block')?.chance ?? 0) + ub.blockBonus
+  const lifestealTotal = (getSpecial(weapon?.stats.special, 'lifesteal')?.value ?? 0)
+    + (classDef.passives.lifestealBase ?? 0) + ub.lifestealBonus
+    + (set?.type === 'lifesteal' ? set.value : 0)
+  const spellAmpTotal = (getSpecial(weapon?.stats.special, 'spellAmp')?.percent ?? 0)
+    + (getSpecial(armor?.stats.special, 'spellAmp')?.percent ?? 0)
+    + ub.spellAmpBonus + (set?.type === 'spell_amp' ? set.value : 0)
+  const defIgnoreTotal = (classDef.passives.defIgnore ?? 0)
+    + (getSpecial(weapon?.stats.special, 'defIgnore')?.percent ?? 0) + ub.defIgnoreBonus
+
+  const baseThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
+    ?? classDef.passives.critThreshold ?? 20
+  const threshold = Math.max(SPECIAL_CAPS.critThresholdFloor, baseThreshold - ub.critThresholdReduction)
+
+  return {
+    dodge: line(dodgeTotal, SPECIAL_CAPS.dodge),
+    block: line(blockTotal, SPECIAL_CAPS.block),
+    lifesteal: line(lifestealTotal, SPECIAL_CAPS.lifesteal),
+    'spell-amp': line(spellAmpTotal, SPECIAL_CAPS.spellAmp),
+    'def-ignore': line(defIgnoreTotal, SPECIAL_CAPS.defIgnore),
+    'crit-chance': `Crits on roll ≥ ${threshold}${threshold <= SPECIAL_CAPS.critThresholdFloor ? ' ⚠ at floor' : ''}`,
+  }
+})
+
+// ── Respec ───────────────────────────────────────────────────────────────────
+
+const totalPicks = computed(() =>
+  Object.values(char.value?.upgrades ?? {}).reduce((a, b) => a + (b ?? 0), 0),
+)
+const respecCost = computed(() => characterStore.getRespecCost())
+const canRespec = computed(() =>
+  totalPicks.value > 0 && (char.value?.gold ?? 0) >= respecCost.value,
+)
+
+function respec() {
+  characterStore.respecUpgrades()
+}
 
 const OFFENSE_IDS: UpgradeId[] = ['str-up', 'dex-up', 'int-up', 'crit-chance', 'crit-damage', 'def-ignore', 'spell-amp']
 const DEFENSE_IDS: UpgradeId[] = ['flat-def', 'hp-up', 'block', 'dodge', 'lifesteal']
@@ -41,6 +101,13 @@ function spend(id: UpgradeId) {
       Skills
       <span v-if="skillPoints > 0" class="points-badge">{{ skillPoints }} point{{ skillPoints !== 1 ? 's' : '' }} available</span>
       <span v-else class="points-empty">0 unspent points</span>
+      <button
+        v-if="totalPicks > 0"
+        class="pixel-btn respec-btn"
+        :disabled="!canRespec"
+        :title="`Refund all ${totalPicks} picks`"
+        @click="respec"
+      >↺ Respec ({{ respecCost }}g)</button>
     </div>
 
     <div class="columns">
@@ -55,6 +122,7 @@ function spend(id: UpgradeId) {
         >
           <div class="upg-name">{{ def.name }}</div>
           <div class="upg-desc">{{ def.description }}</div>
+          <div v-if="capInfo[def.id]" class="upg-cap">{{ capInfo[def.id] }}</div>
           <div class="upg-footer">
             <span class="upg-stacks">{{ stacksFor(def.id) }}/{{ def.maxPicks }}</span>
             <button
@@ -79,6 +147,7 @@ function spend(id: UpgradeId) {
         >
           <div class="upg-name">{{ def.name }}</div>
           <div class="upg-desc">{{ def.description }}</div>
+          <div v-if="capInfo[def.id]" class="upg-cap">{{ capInfo[def.id] }}</div>
           <div class="upg-footer">
             <span class="upg-stacks">{{ stacksFor(def.id) }}/{{ def.maxPicks }}</span>
             <button
@@ -103,6 +172,7 @@ function spend(id: UpgradeId) {
         >
           <div class="upg-name">{{ def.name }}</div>
           <div class="upg-desc">{{ def.description }}</div>
+          <div v-if="capInfo[def.id]" class="upg-cap">{{ capInfo[def.id] }}</div>
           <div class="upg-footer">
             <span class="upg-stacks">{{ stacksFor(def.id) }}/{{ def.maxPicks }}</span>
             <button
@@ -141,6 +211,24 @@ function spend(id: UpgradeId) {
 .points-empty {
   font-size: 7px;
   color: var(--text-dim);
+}
+
+.respec-btn {
+  font-size: 6px;
+  padding: 3px 8px;
+  margin-left: auto;
+  background: #281818;
+  border-color: #a05040;
+  color: #e08060;
+}
+.respec-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; top: 0; left: 0; }
+
+.upg-cap {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  color: #8090c0;
+  margin-bottom: 6px;
+  line-height: 1.6;
 }
 
 .columns {

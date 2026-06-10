@@ -490,6 +490,77 @@ describe('restoreCharacter', () => {
   })
 })
 
+// ── Skill points: percent stats & respec ─────────────────────────────────────
+
+describe('percentage stat upgrades', () => {
+  it('spendSkillPoint on str-up raises STR by the percentage of base', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const char = store.character!
+    char.skillPoints = 10
+    const baseStr = char.stats.str
+    for (let i = 0; i < 10; i++) store.spendSkillPoint('str-up')
+    // +2% per pick → +20% of base, floored
+    expect(char.stats.str).toBe(Math.floor(baseStr * 1.2))
+  })
+
+  it('hp-up bonus survives level-ups (recalculated, not overwritten)', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const char = store.character!
+    char.skillPoints = 10
+    for (let i = 0; i < 10; i++) store.spendSkillPoint('hp-up')
+    const hpWithBonus = char.maxHP
+    store.applyXP(char.xpToNext) // level up
+    expect(char.level).toBe(2)
+    expect(char.maxHP).toBeGreaterThan(hpWithBonus) // level growth + bonus retained
+  })
+})
+
+describe('respecUpgrades', () => {
+  it('refunds all picks for gold', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const char = store.character!
+    char.skillPoints = 12
+    for (let i = 0; i < 10; i++) store.spendSkillPoint('str-up')
+    store.spendSkillPoint('dodge')
+    char.gold = store.getRespecCost()
+    const strWithBonus = char.stats.str
+
+    expect(store.respecUpgrades()).toBe('respecced')
+    expect(char.gold).toBe(0)
+    expect(char.skillPoints).toBe(12) // 1 unspent + 11 refunded
+    expect(char.upgrades).toEqual({})
+    expect(char.stats.str).toBeLessThan(strWithBonus) // percentage bonus removed
+  })
+
+  it('fails without gold', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const char = store.character!
+    char.skillPoints = 1
+    store.spendSkillPoint('str-up')
+    char.gold = store.getRespecCost() - 1
+    expect(store.respecUpgrades()).toBe('no_gold')
+    expect(char.upgrades['str-up']).toBe(1)
+  })
+
+  it('fails with no picks', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    expect(store.respecUpgrades()).toBe('no_picks')
+  })
+
+  it('cost scales with level', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const costAt1 = store.getRespecCost()
+    store.character!.level = 50
+    expect(store.getRespecCost()).toBe(costAt1 * 50)
+  })
+})
+
 // ── Helpers (used in addToInventory tests) ────────────────────────────────────
 
 function makeWeapon(statsOverrides: Partial<Item['stats']> = {}): Item {
