@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "sim:report": "VITE_SIM_REPORT=1 vitest run src/game/__tests__/sim-report.test.ts --reporter=verbose --silent=false",
     "coverage": "vitest run --coverage"
   },
   "dependencies": {

@@ -430,7 +430,8 @@ function toggleZone(zone: string) {
         <ul class="passive-list">
           <li>Unlocked by reaching <span class="gold-text">level 50</span></li>
           <li>Tokens earned per prestige = <span class="gold-text">floor(level / 10 × (1 + 0.5 × NG+ tier))</span></li>
-          <li>Each prestige raises the <span class="gold-text">NG+ tier</span>: enemies gain +25% HP and +18% ATK per tier, and XP/gold rewards rise +15% per tier to match</li>
+          <li>Each prestige raises the <span class="gold-text">NG+ tier</span>: enemies gain +12% HP and +10% ATK per tier (compounding), and XP/gold rewards rise +10% per tier to match</li>
+          <li><span class="gold-text">NG+ Attunement</span>: you gain +10% damage and +10% max HP per NG+ tier, automatically</li>
           <li>Each prestige also grants 1 <span class="gold-text">Mastery Point</span> to spend on any class's mastery bonus</li>
           <li>Spend tokens on permanent bonuses that persist across all future runs — each stack costs ×1.5 more than the last</li>
           <li>Ascension panel stays unlocked permanently after your first prestige</li>

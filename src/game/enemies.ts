@@ -6,10 +6,16 @@ const ENEMY_HP_MULTIPLIER = 2.2
 // tier = prestige count. HP/ATK and rewards grow per tier; DEF stays flat on
 // purpose — DEF doubles as the hit DC, and scaling it would recreate the
 // unhittable-boss wall the base curve was tuned to avoid.
+//
+// Growth is tuned against NG+ Attunement (the player's +10% damage/HP per
+// tier, see NG_TIER_PLAYER_POWER in combat-core.ts): enemies compound slowly
+// while the player grows linearly, so difficulty creeps up each prestige
+// without ever hard-walling a maxed character in an at-level zone. The
+// simulator suite (simulate.test.ts / npm run sim:report) guards this balance.
 
-export const TIER_HP_GROWTH = 1.25
-export const TIER_ATK_GROWTH = 1.18
-export const TIER_REWARD_GROWTH = 1.15
+export const TIER_HP_GROWTH = 1.12
+export const TIER_ATK_GROWTH = 1.1
+export const TIER_REWARD_GROWTH = 1.1
 
 function applyTier(enemy: Enemy, tier: number): Enemy {
   if (tier <= 0) return enemy

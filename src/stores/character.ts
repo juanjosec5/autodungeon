@@ -6,6 +6,7 @@ import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
 import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
 import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
 import { applyUpgrade, applyStatUpgrades, rollUpgradeChoices, autoPickUpgrade, UPGRADE_DEFINITIONS } from '../game/upgrades'
+import { NG_TIER_PLAYER_POWER } from '../game/combat-core'
 import { LS_KEYS } from '../utils/storage'
 
 const STARTER_GEAR: Record<ClassId, { weaponId: string; armorId: string }> = {
@@ -134,6 +135,9 @@ export const useCharacterStore = defineStore('character', () => {
       lastSaved: new Date().toISOString(),
       lifetime: _blankLifetime(),
     }
+    // Derive maxHP through the single source of truth (incl. NG+ Attunement)
+    recalcStats()
+    character.value.currentHP = character.value.maxHP
   }
 
   function restoreCharacter(data: Character): void {
@@ -610,7 +614,9 @@ export const useCharacterStore = defineStore('character', () => {
       : upgraded.maxHP
     const armorHpBonus = char.gear.armor?.stats.hpBonus ?? 0
     const penalty = char.gear.armor ? getOffClassPenalty(char.gear.armor, char.class) : 1
-    const newMax = baseHP + Math.floor(armorHpBonus * penalty)
+    // NG+ Attunement: +10% max HP per prestige tier (counterpart of enemy tier growth)
+    const tierMult = 1 + prestigeStore.difficultyTier * NG_TIER_PLAYER_POWER
+    const newMax = Math.floor((baseHP + Math.floor(armorHpBonus * penalty)) * tierMult)
     const diff = newMax - char.maxHP
     char.maxHP = newMax
     char.currentHP = Math.min(newMax, Math.max(1, char.currentHP + Math.max(0, diff)))
