@@ -1,10 +1,8 @@
 import type { Character, Enemy, ZoneId, RarityId } from '../types/index'
-import { d20, calcHit, calcCrit, calcPlayerDamage, calcEnemyDamage, calcRegenAmount, getSpecial, rollDamage, SPECIAL_CAPS } from './formulas'
+import { rollDamage } from './formulas'
 import { rollLoot, rollBisLoot, blankPity, DROP_CHANCE, BIS_CHANCE, PITY_BIS } from './items'
-import { CLASS_DEFINITIONS } from './classes'
 import { spawnEnemy, getBossForZone } from './enemies'
-import { getUpgradeBonuses } from './upgrades'
-import { getActiveSet } from './sets'
+import { playerAttackIntervalMs, resolvePlayerAttack, resolveEnemyAttack, resolveKillRegen, type CombatBuffs } from './combat-core'
 import { useShopStore } from '../stores/shop'
 
 // ─── Exported types ───────────────────────────────────────────────────────────
@@ -162,18 +160,23 @@ export class CombatEngine {
     }
   }
 
+  /** Live shop buffs + ascension bonuses packed for the shared combat core */
+  private getBuffs(): CombatBuffs {
+    const shop = useShopStore()
+    return {
+      shopDamageBonus: shop.damageBonus,
+      shopDefBonus: shop.defBonus,
+      shopAtkSpeedBonus: shop.atkSpeedBonus,
+      hitChanceBonus: this.state?.hitChanceBonus ?? 0,
+      damageReduction: this.state?.damageReduction ?? 0,
+      ngTier: this.state?.difficultyTier ?? 0,
+    }
+  }
+
   private getPlayerAttackInterval(): number {
     if (!this.state) return 1000
     const { character, speed } = this.state
-    const weapon = character.gear.weapon
-    const ub = getUpgradeBonuses(character.upgrades ?? {})
-    const baseInterval = CLASS_DEFINITIONS[character.class].attackSpeed
-    const speedBonus = getSpecial(weapon?.stats.special, 'attackSpeedBonus')?.percent ?? 0
-    const setBonus = getActiveSet(character.gear.weapon, character.gear.armor)
-    const setSpeedReduction = setBonus?.bonus.type === 'atk_speed' ? setBonus.bonus.value : 0
-    const shopSpeedBonus = useShopStore().atkSpeedBonus
-    const speedPct = Math.min(SPECIAL_CAPS.attackSpeedPct, speedBonus + shopSpeedBonus)
-    const interval = Math.max(200, (baseInterval * (1 - speedPct)) - ub.attackSpeedReduction - setSpeedReduction)
+    const interval = playerAttackIntervalMs(character, useShopStore().atkSpeedBonus)
     return Math.floor(interval / speed)
   }
 
@@ -193,112 +196,42 @@ export class CombatEngine {
   private playerTick(): void {
     if (!this.state || this.state.isPaused || this.isDead) return
     const { character, enemy } = this.state
-    const weapon = character.gear.weapon
-    const ub = getUpgradeBonuses(character.upgrades ?? {})
-    const activeSet = getActiveSet(character.gear.weapon, character.gear.armor)
-    const setBonus = activeSet?.bonus ?? null
 
-    // Def ignore: base class passive + weapon special + upgrade bonus
-    const classDef = CLASS_DEFINITIONS[character.class]
-    const baseDefIgnore = classDef.passives.defIgnore ?? 0
-    const weaponDefIgnore = getSpecial(weapon?.stats.special, 'defIgnore')?.percent ?? 0
-    const defIgnorePercent = Math.min(SPECIAL_CAPS.defIgnore, baseDefIgnore + weaponDefIgnore + ub.defIgnoreBonus)
+    const outcome = resolvePlayerAttack(character, enemy, this.getBuffs())
 
-    // Crit threshold from weapon special
-    const extraCritThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
-
-    const roll = d20()
-    // Ghost Strike: hitChanceBonus is stacks × 0.03; ×20 converts to effective DEX (~1 DEX ≈ 0.15% hit)
-    const bonusDex = Math.round((this.state.hitChanceBonus ?? 0) * 20)
-    const hits = calcHit(character.stats.dex + bonusDex, enemy.def)
-    const isCrit = hits && calcCrit(roll, character.class, extraCritThreshold, ub.critThresholdReduction)
-
-    if (!hits) {
+    if (!outcome.hit) {
       this.emit({ type: 'player_miss', payload: { enemyName: enemy.name } })
     } else {
-      const poisonSpecial = getSpecial(weapon?.stats.special, 'poison')
-      const armorSpellAmp = getSpecial(character.gear.armor?.stats.special, 'spellAmp')?.percent ?? 0
-      const setSpellAmp = setBonus?.type === 'spell_amp' ? setBonus.value : 0
+      if (outcome.poisonDamage > 0) enemy.hp -= outcome.poisonDamage
+      enemy.hp -= outcome.damage
 
-      const setCritDamage = setBonus?.type === 'crit_damage' ? setBonus.value : 0
-
-      const dmgParams = {
-        classId: character.class,
-        str: character.stats.str,
-        int: character.stats.int,
-        weapon,
-        isCrit,
-        enemyDef: enemy.def,
-        defIgnorePercent,
-        armorSpellAmp: armorSpellAmp + ub.spellAmpBonus + setSpellAmp,
-        critMultiplier: 1.5 + ub.critDamageBonus + setCritDamage,
+      if (outcome.lifestealHeal > 0) {
+        character.currentHP = Math.min(character.maxHP, character.currentHP + outcome.lifestealHeal)
       }
 
-      let damage = calcPlayerDamage(dmgParams)
-
-      // Set damage_pct bonus applied after base calc
-      if (setBonus?.type === 'damage_pct') {
-        damage = Math.floor(damage * (1 + setBonus.value))
-      }
-
-      // War Potion: +25% damage
-      const shopDamageBonus = useShopStore().damageBonus
-      if (shopDamageBonus > 0) {
-        damage = Math.floor(damage * (1 + shopDamageBonus))
-      }
-
-      // Poison
-      let poisonDamage: number | undefined
-      if (poisonSpecial) {
-        poisonDamage = Math.max(1, Math.floor(damage * poisonSpecial.dpsMultiplier))
-        enemy.hp -= poisonDamage
-      }
-
-      enemy.hp -= damage
-
-      // Lifesteal (weapon special + class innate + upgrade + set)
-      const lifestealSpecial = getSpecial(weapon?.stats.special, 'lifesteal')
-      const lifestealBase = classDef.passives.lifestealBase ?? 0
-      const setLifesteal = setBonus?.type === 'lifesteal' ? setBonus.value : 0
-      const totalLifestealFraction = Math.min(
-        SPECIAL_CAPS.lifesteal,
-        (lifestealSpecial?.value ?? 0) + lifestealBase + ub.lifestealBonus + setLifesteal,
-      )
-      let lifestealHeal = 0
-      if (totalLifestealFraction > 0) {
-        lifestealHeal = Math.floor(damage * totalLifestealFraction)
-        character.currentHP = Math.min(character.maxHP, character.currentHP + lifestealHeal)
-      }
-
-      const eventType = isCrit ? 'player_crit' : 'player_hit'
       this.emit({
-        type: eventType,
+        type: outcome.crit ? 'player_crit' : 'player_hit',
         payload: {
-          damage,
-          poisonDamage,
-          lifestealHeal: lifestealHeal > 0 ? lifestealHeal : undefined,
+          damage: outcome.damage,
+          poisonDamage: outcome.poisonDamage > 0 ? outcome.poisonDamage : undefined,
+          lifestealHeal: outcome.lifestealHeal > 0 ? outcome.lifestealHeal : undefined,
           enemyName: enemy.name,
           enemyHP: enemy.hp,
           enemyMaxHP: enemy.maxHp,
         },
       })
 
-      // Doublecast (mage only)
-      if (character.class === 'mage') {
-        const doublecastSpecial = getSpecial(weapon?.stats.special, 'doublecast')
-        if (doublecastSpecial && Math.random() < Math.min(SPECIAL_CAPS.doublecast, doublecastSpecial.chance)) {
-          const bonusDamage = calcPlayerDamage(dmgParams)
-          enemy.hp -= bonusDamage
-          this.emit({
-            type: 'player_hit',
-            payload: {
-              damage: bonusDamage,
-              enemyName: enemy.name,
-              enemyHP: enemy.hp,
-              enemyMaxHP: enemy.maxHp,
-            },
-          })
-        }
+      if (outcome.doublecastDamage > 0) {
+        enemy.hp -= outcome.doublecastDamage
+        this.emit({
+          type: 'player_hit',
+          payload: {
+            damage: outcome.doublecastDamage,
+            enemyName: enemy.name,
+            enemyHP: enemy.hp,
+            enemyMaxHP: enemy.maxHp,
+          },
+        })
       }
     }
 
@@ -312,35 +245,14 @@ export class CombatEngine {
   private enemyTick(): void {
     if (!this.state || this.state.isPaused || this.isDead) return
     const { character, enemy } = this.state
-    const ub = getUpgradeBonuses(character.upgrades ?? {})
-    const activeSet = getActiveSet(character.gear.weapon, character.gear.armor)
-    const setBonus = activeSet?.bonus ?? null
 
-    // Dodge (armor + upgrade + set)
-    const armorDodge = getSpecial(character.gear.armor?.stats.special, 'dodge')?.chance ?? 0
-    const setDodge = setBonus?.type === 'dodge' ? setBonus.value : 0
-    if (Math.random() < Math.min(SPECIAL_CAPS.dodge, armorDodge + ub.dodgeBonus + setDodge)) {
+    const outcome = resolveEnemyAttack(character, enemy, this.getBuffs())
+    if (outcome.dodged || outcome.blocked) {
       this.scheduleEnemyTick()
       return
     }
 
-    // Block (armor + upgrade)
-    const armorBlock = getSpecial(character.gear.armor?.stats.special, 'block')?.chance ?? 0
-    if (Math.random() < Math.min(SPECIAL_CAPS.block, armorBlock + ub.blockBonus)) {
-      this.scheduleEnemyTick()
-      return
-    }
-
-    // Player DEF: armor base + warrior armorEffectiveness bonus + upgrade flat DEF + set flat DEF
-    const classDef = CLASS_DEFINITIONS[character.class]
-    const armorDef = character.gear.armor?.stats.defBonus ?? 0
-    const armorEffBonus = (classDef.passives.armorEffectiveness ?? 1) - 1
-    const setFlatDef = setBonus?.type === 'flat_def' ? setBonus.value : 0
-    const playerDef = Math.floor(armorDef * (1 + armorEffBonus)) + ub.flatDef + setFlatDef + useShopStore().defBonus
-
-    const rawDamage = calcEnemyDamage(enemy.atk, playerDef)
-    // Dragon Scales: reduce incoming damage by damageReduction (2% per stack, max 10%)
-    const damage = Math.max(1, Math.floor(rawDamage * (1 - (this.state.damageReduction ?? 0))))
+    const { damage } = outcome
     character.currentHP -= damage
     this.emit({
       type: 'enemy_hit',
@@ -425,15 +337,8 @@ export class CombatEngine {
     }
 
     // Regen on kill: class base chance + armor bonus + upgrade bonus + set bonus
-    const regenOnKillBonus = getSpecial(character.gear.armor?.stats.special, 'regenOnKill')?.percent ?? 0
-    const classDef = CLASS_DEFINITIONS[character.class]
-    const ub = getUpgradeBonuses(character.upgrades ?? {})
-    const activeSet = getActiveSet(character.gear.weapon, character.gear.armor)
-    const setRegenBonus = activeSet?.bonus.type === 'hp_regen_pct' ? activeSet.bonus.value : 0
-    const totalRegenChance = Math.min(0.9, classDef.passives.regenChance + regenOnKillBonus + ub.regenOnKillBonus + setRegenBonus)
-    if (Math.random() < totalRegenChance) {
-      const regenPower = classDef.passives.regenPower ?? 1
-      const healAmt = Math.floor(calcRegenAmount(character.maxHP) * regenPower)
+    const healAmt = resolveKillRegen(character)
+    if (healAmt > 0) {
       character.currentHP = Math.min(character.maxHP, character.currentHP + healAmt)
       this.emit({
         type: 'hp_regen',
