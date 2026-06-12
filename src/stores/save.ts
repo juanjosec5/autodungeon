@@ -183,6 +183,37 @@ export const useSaveStore = defineStore('save', () => {
     return false
   }
 
+  /**
+   * Grants offline progress for time spent with the tab hidden. Mobile
+   * browsers freeze timers instead of unloading the page when a tab is
+   * backgrounded, so the on-load offline path never runs for returning
+   * players — this is its visibilitychange counterpart (see GameView).
+   * Returns true if rewards were applied (pendingOfflineResult is set and
+   * the welcome-back modal will show).
+   */
+  async function applyBackgroundProgress(hiddenSinceMs: number): Promise<boolean> {
+    const characterStore = useCharacterStore()
+    const prestigeStore = usePrestigeStore()
+    const char = characterStore.character
+    if (!char) return false
+
+    const elapsedMs = Date.now() - hiddenSinceMs
+    if (elapsedMs <= 60_000) return false
+
+    const { calcOfflineProgress } = await import('../game/offline')
+    const result = calcOfflineProgress(
+      char,
+      char.currentZone,
+      elapsedMs,
+      prestigeStore.offlineEfficiencyBonus,
+      prestigeStore.difficultyTier,
+    )
+    characterStore.applyOfflineRewards(result)
+    characterStore.pendingOfflineResult = result
+    await saveCharacter()
+    return true
+  }
+
   async function _applyOfflineProgress(
     characterStore: ReturnType<typeof useCharacterStore>,
     prestigeStore: ReturnType<typeof usePrestigeStore>,
@@ -210,5 +241,5 @@ export const useSaveStore = defineStore('save', () => {
     characterStore.pendingOfflineResult = result
   }
 
-  return { lastSaved, isSaving, saveCharacter, loadCharacter, loadAllSaves, loadCharacterById, deleteCharacter }
+  return { lastSaved, isSaving, saveCharacter, loadCharacter, loadAllSaves, loadCharacterById, deleteCharacter, applyBackgroundProgress }
 })

@@ -104,7 +104,46 @@ function handleUnlockConfirm(_panelId: PanelId): void {
   }
 }
 
+// Mobile browsers freeze JS timers instead of unloading the page when a tab
+// is backgrounded, so combat silently stops AND the on-load offline path never
+// runs. Pause cleanly when the tab hides; on return, grant offline catch-up
+// for the hidden window (>60s) via the welcome-back modal.
+let hiddenAt: number | null = null
+let pausedByVisibility = false
+
+async function handleVisibilityChange(): Promise<void> {
+  if (document.hidden) {
+    hiddenAt = Date.now()
+    if (combatStore.isRunning && !combatStore.isPaused) {
+      combatStore.pauseCombat()
+      pausedByVisibility = true
+    }
+    saveStore.saveCharacter()
+    return
+  }
+
+  const since = hiddenAt
+  hiddenAt = null
+  const shouldResume = pausedByVisibility
+  pausedByVisibility = false
+
+  // Skip catch-up while dead (DeathModal flow owns the respawn)
+  if (since && (characterStore.character?.currentHP ?? 0) > 0) {
+    const applied = await saveStore.applyBackgroundProgress(since)
+    if (applied) {
+      // OfflineRewardModal is showing now; it restarts combat on dismiss
+      combatStore.stopCombat()
+      return
+    }
+  }
+  if (shouldResume && !progressionStore.pendingUnlockModal) {
+    combatStore.resumeCombat()
+  }
+}
+
 onMounted(async () => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
   // Always load prestige data first — covers new-character creation path where
   // loadCharacter() is skipped and prestige multipliers must apply from the start.
   prestigeStore.loadPrestige()
@@ -141,6 +180,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   combatStore.stopCombat()
 })
 </script>
