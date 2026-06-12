@@ -7,7 +7,7 @@ import { usePrestigeStore } from '../stores/prestige'
 import { CLASS_DEFINITIONS } from '../game/classes'
 import { getUpgradeBonuses } from '../game/upgrades'
 import { getActiveSet } from '../game/sets'
-import { getSpecial } from '../game/formulas'
+import { getEffectTotals, type CappedEffectType } from '../game/effect-totals'
 import { buildClassSpriteStyle } from '../game/class-sprites'
 import { fmtNum } from '../utils/format'
 import { LS_KEYS } from '../utils/storage'
@@ -85,17 +85,24 @@ const combatStats = computed(() => {
   const weaponMax = wep?.maxDmg ?? 3
   const statBonus = CLASS_DEFINITIONS[classId].damageStat === 'int' ? stats.int : stats.str
 
+  // Build-wide totals clamped to the engine's hard caps — same source of
+  // truth as combat, SkillsPanel, and EnchantPanel, so the panel never shows
+  // a number the engine won't actually use (e.g. spell amp past 50%).
+  const totals = getEffectTotals(char.value)
+  const cappedPct = (type: CappedEffectType): number => {
+    const t = totals.byType[type]!
+    return Math.round(Math.min(t.total, t.cap) * 100)
+  }
+
   // DPS vs active target (no crit)
-  const defIgnoreBase = passives.defIgnore ?? 0
-  const defIgnore = Math.min(0.9, defIgnoreBase + ub.defIgnoreBonus)
+  const defIgnoreTotal = totals.byType.defIgnore!
+  const defIgnore = Math.min(defIgnoreTotal.total, defIgnoreTotal.cap)
   const effEnemyDef = Math.floor(activeDef * (1 - defIgnore))
   const minDPS = Math.max(1, weaponMin + statBonus - effEnemyDef)
   const maxDPS = Math.max(1, weaponMax + statBonus - effEnemyDef)
 
-  // Crit chance
-  const baseCritThreshold = passives.critThreshold ?? 20
-  const effectiveCritThreshold = Math.max(2, baseCritThreshold - ub.critThresholdReduction)
-  const critPct = Math.round((21 - effectiveCritThreshold) / 20 * 100)
+  // Crit chance (weapon special + class passive − upgrades, floor-clamped)
+  const critPct = Math.round((21 - totals.critThreshold) / 20 * 100)
 
   // Crit multiplier
   const setCritDamage = setBonus?.type === 'crit_damage' ? setBonus.value : 0
@@ -110,34 +117,14 @@ const combatStats = computed(() => {
   const setFlatDef = setBonus?.type === 'flat_def' ? setBonus.value : 0
   const effDef = Math.floor(baseArmorDef * armorEff) + ub.flatDef + setFlatDef
 
-  // Dodge & block (weapon + armor specials + upgrade bonuses)
-  const weapon = char.value.gear.weapon
-  const armor = char.value.gear.armor
-  const weaponDodge = getSpecial(weapon?.stats.special, 'dodge')?.chance ?? 0
-  const weaponBlock = getSpecial(weapon?.stats.special, 'block')?.chance ?? 0
-  const armorDodge = getSpecial(armor?.stats.special, 'dodge')?.chance ?? 0
-  const armorBlock = getSpecial(armor?.stats.special, 'block')?.chance ?? 0
-  const setDodge = setBonus?.type === 'dodge' ? setBonus.value : 0
-  const effDodge = Math.round(Math.min(0.75, weaponDodge + armorDodge + ub.dodgeBonus + setDodge) * 100)
-  const effBlock = Math.round(Math.min(0.75, weaponBlock + armorBlock + ub.blockBonus) * 100)
-
-  // Lifesteal (weapon + armor specials + upgrades)
-  const weaponLifesteal = getSpecial(weapon?.stats.special, 'lifesteal')?.value ?? 0
-  const armorLifesteal  = getSpecial(armor?.stats.special,  'lifesteal')?.value ?? 0
-  const setLifesteal = setBonus?.type === 'lifesteal' ? setBonus.value : 0
-  const effLifesteal = Math.round((weaponLifesteal + armorLifesteal + ub.lifestealBonus + setLifesteal) * 100)
-
-  // DEF ignore %
+  const effDodge = cappedPct('dodge')
+  const effBlock = cappedPct('block')
+  const effLifesteal = cappedPct('lifesteal')
   const defIgnorePct = Math.round(defIgnore * 100)
 
   // Spell amp (mage/priest only)
   const isSpellClass = CLASS_DEFINITIONS[classId].damageStat === 'int'
-  const setSpellAmp = setBonus?.type === 'spell_amp' ? setBonus.value : 0
-  const weaponSpellAmp = getSpecial(weapon?.stats.special, 'spellAmp')?.percent ?? 0
-  const armorSpellAmp  = getSpecial(armor?.stats.special,  'spellAmp')?.percent ?? 0
-  const effSpellAmp = isSpellClass
-    ? Math.round((weaponSpellAmp + armorSpellAmp + ub.spellAmpBonus + setSpellAmp) * 100)
-    : 0
+  const effSpellAmp = isSpellClass ? cappedPct('spellAmp') : 0
 
   return { minDPS, maxDPS, critPct, critMultiplier, hitPct, effDef, effDodge, effBlock, effLifesteal, defIgnorePct, effSpellAmp, vsEnemy }
 })
