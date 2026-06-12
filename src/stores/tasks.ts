@@ -19,6 +19,8 @@ const EMPTY_TRACKER = (): TaskTracker => ({
 interface PersistedTasks {
   dailySeed: number
   weeklySeed: number
+  dailyTasks: TaskInstance[]
+  weeklyTasks: TaskInstance[]
   dailyTracker: TaskTracker
   weeklyTracker: TaskTracker
   claimedDaily: string[]
@@ -33,6 +35,14 @@ function weekSeed(): number {
   return Math.floor(Date.now() / (86_400_000 * 7))
 }
 
+/**
+ * Daily/weekly tasks are account-wide, not per character: one task list,
+ * one progress tracker, and one claim list shared by every save slot.
+ * Progress accumulates no matter which character is active, and rewards are
+ * claimed by whoever is active (tokens are global anyway). Task targets and
+ * rewards are scaled to the level of the character active at generation time
+ * (first session of the day/week).
+ */
 export const useTaskStore = defineStore('tasks', () => {
   const characterStore = useCharacterStore()
   const prestigeStore = usePrestigeStore()
@@ -102,6 +112,13 @@ export const useTaskStore = defineStore('tasks', () => {
       claimedWeekly.value = []
       lastWeeklySeed.value = currentWeek
     }
+
+    // Safety net: saves written before task lists were persisted have a
+    // current seed but no lists — regenerate without resetting progress
+    // (generation is seeded by day/week, so the picks are identical).
+    if (dailyTasks.value.length === 0) dailyTasks.value = generateDailyTasks(level)
+    if (weeklyTasks.value.length === 0) weeklyTasks.value = generateWeeklyTasks(level)
+
     _save()
   }
 
@@ -144,6 +161,8 @@ export const useTaskStore = defineStore('tasks', () => {
     const data: PersistedTasks = {
       dailySeed: lastDailySeed.value,
       weeklySeed: lastWeeklySeed.value,
+      dailyTasks: dailyTasks.value,
+      weeklyTasks: weeklyTasks.value,
       dailyTracker: dailyTracker.value,
       weeklyTracker: weeklyTracker.value,
       claimedDaily: claimedDaily.value,
@@ -159,6 +178,8 @@ export const useTaskStore = defineStore('tasks', () => {
         const data = JSON.parse(raw) as Partial<PersistedTasks>
         lastDailySeed.value = data.dailySeed ?? 0
         lastWeeklySeed.value = data.weeklySeed ?? 0
+        dailyTasks.value = data.dailyTasks ?? []
+        weeklyTasks.value = data.weeklyTasks ?? []
         dailyTracker.value = { ...EMPTY_TRACKER(), ...(data.dailyTracker ?? {}) }
         weeklyTracker.value = { ...EMPTY_TRACKER(), ...(data.weeklyTracker ?? {}) }
         claimedDaily.value = data.claimedDaily ?? []
