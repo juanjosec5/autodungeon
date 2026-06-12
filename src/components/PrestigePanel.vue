@@ -7,6 +7,7 @@ import { useCombatStore } from '../stores/combat'
 import { useZoneStore } from '../stores/zone'
 import { CLASS_ASCENSION_BONUS } from '../stores/prestige'
 import { TIER_HP_GROWTH, TIER_ATK_GROWTH } from '../game/enemies'
+import { NG_TIER_PLAYER_POWER } from '../game/combat-core'
 import type { PrestigeBonusId, ClassId } from '../types/index'
 
 const prestigeStore = usePrestigeStore()
@@ -117,7 +118,9 @@ function doPrestige(): void {
       <div v-if="prestigeStore.difficultyTier > 0" class="tier-note">
         Enemies: ×{{ Math.pow(TIER_HP_GROWTH, prestigeStore.difficultyTier).toFixed(2) }} HP,
         ×{{ Math.pow(TIER_ATK_GROWTH, prestigeStore.difficultyTier).toFixed(2) }} ATK
-        — rewards scale to match
+        — rewards scale to match.
+        Attunement: +{{ Math.round(prestigeStore.difficultyTier * NG_TIER_PLAYER_POWER * 100) }}%
+        damage &amp; max HP
       </div>
 
       <!-- Bonus shop -->
@@ -199,7 +202,9 @@ function doPrestige(): void {
         <div v-if="canPrestige" class="prestige-preview">
           Next prestige: <span class="gold">+{{ tokensOnNextPrestige }} tokens</span>
           (level {{ char?.level }}) · NG+{{ prestigeStore.difficultyTier + 1 }}:
-          enemies ×{{ nextTierHpMult }} HP / ×{{ nextTierAtkMult }} ATK
+          enemies ×{{ nextTierHpMult }} HP / ×{{ nextTierAtkMult }} ATK ·
+          you +{{ Math.round((prestigeStore.difficultyTier + 1) * NG_TIER_PLAYER_POWER * 100) }}%
+          damage &amp; HP
         </div>
         <div v-else class="prestige-locked">
           Reach level 50 to unlock Ascension
