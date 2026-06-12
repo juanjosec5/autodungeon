@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import type { Character, Item, ZoneId, ClassId, RarityId, LifetimeStats, UpgradeId, ScrapMode, OfflineResult } from '../types/index'
 import { usePrestigeStore } from './prestige'
 import { getStatsAtLevel, getXPToNextLevel } from '../game/classes'
-import { getItemById, getSellPrice, getBuyPrice, WEAPON_ENCHANTS, ARMOR_ENCHANTS, calcEnchantCost } from '../game/items'
+import { getItemById, getSellPrice, getBuyPrice, calcEnchantCost, applyEnchant, previewEnchant, migrateEnchantedSpecials } from '../game/items'
 import { getOffClassPenalty, isBetterThan, calcDeathPenalty } from '../game/formulas'
 import { applyUpgrade, applyStatUpgrades, rollUpgradeChoices, autoPickUpgrade, UPGRADE_DEFINITIONS } from '../game/upgrades'
 import { NG_TIER_PLAYER_POWER } from '../game/combat-core'
@@ -206,6 +206,9 @@ export const useCharacterStore = defineStore('character', () => {
     item.zoneTier = template.zoneTier
     if (!(item.enchantCount && item.enchantCount > 0)) {
       item.stats.special = structuredClone(template.stats.special)
+    } else {
+      // Legacy reroll-era enchants: dedupe, re-grant scaled values, restore naturals
+      migrateEnchantedSpecials(item)
     }
   }
 
@@ -279,7 +282,8 @@ export const useCharacterStore = defineStore('character', () => {
         // Run the displaced item through scrap logic instead of blindly pushing to inventory
         const displaced = current
         let scrapped = false
-        if (scrapMode.value !== 'off') {
+        // Enchanted gear represents gold investment — never auto-scrap it
+        if (scrapMode.value !== 'off' && !(displaced.enchantCount && displaced.enchantCount > 0)) {
           // displaced is always worse than the newly equipped item
           let eligible = true
           if (scrapMode.value !== 'smart') {
@@ -305,8 +309,9 @@ export const useCharacterStore = defineStore('character', () => {
       }
     }
 
-    // Smart scrap: sell if worse than equipped (penalty-aware), optionally capped by rarity
-    if (scrapMode.value !== 'off') {
+    // Smart scrap: sell if worse than equipped (penalty-aware), optionally capped
+    // by rarity. Enchanted items are exempt — they carry gold investment.
+    if (scrapMode.value !== 'off' && !(item.enchantCount && item.enchantCount > 0)) {
       const slot = item.type === 'weapon' ? 'weapon' : 'armor'
       const equipped = char.gear[slot]
       if (equipped) {
@@ -504,11 +509,12 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   /**
-   * Enchants an item (in inventory or equipped) by adding/rerolling a special effect.
-   * Cost: getBuyPrice(rarity, zoneTier) × 1.5 × 1.6^enchantCount
-   * Returns 'enchanted', 'no_gold', or 'not_found'.
+   * Enchants an item (in inventory or equipped): adds a tier/rarity-scaled
+   * special, or steps up the existing effect with the most headroom.
+   * Cost: calcEnchantCost. Fully-saturated items return 'maxed' free of charge.
+   * Returns 'enchanted', 'maxed', 'no_gold', or 'not_found'.
    */
-  function enchantItem(itemId: string): 'enchanted' | 'no_gold' | 'not_found' {
+  function enchantItem(itemId: string): 'enchanted' | 'maxed' | 'no_gold' | 'not_found' {
     const char = character.value
     if (!char) return 'not_found'
 
@@ -517,27 +523,12 @@ export const useCharacterStore = defineStore('character', () => {
     const item = [...char.inventory, ...gearItems].find((i) => i.id === itemId)
     if (!item) return 'not_found'
 
+    if (previewEnchant(item).kind === 'maxed') return 'maxed'
+
     const cost = calcEnchantCost(item)
     if (char.gold < cost) return 'no_gold'
 
-    const pool = item.type === 'weapon' ? WEAPON_ENCHANTS : ARMOR_ENCHANTS
-    if (!item.stats.special) item.stats.special = []
-
-    const existingTypes = new Set(item.stats.special.map((s) => s.type))
-    const available = pool.filter((e) => !existingTypes.has(e.type))
-
-    if (available.length > 0 && item.stats.special.length < 3) {
-      // Add a new effect not already present
-      const effect = available[Math.floor(Math.random() * available.length)]
-      item.stats.special.push(structuredClone(effect))
-    } else {
-      // Reroll a random existing effect from the pool
-      const replaceIdx = Math.floor(Math.random() * item.stats.special.length)
-      const newEffect = pool[Math.floor(Math.random() * pool.length)]
-      item.stats.special[replaceIdx] = structuredClone(newEffect)
-    }
-
-    item.enchantCount = (item.enchantCount ?? 0) + 1
+    applyEnchant(item)
     char.gold -= cost
     return 'enchanted'
   }

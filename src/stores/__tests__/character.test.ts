@@ -574,3 +574,82 @@ function makeWeapon(statsOverrides: Partial<Item['stats']> = {}): Item {
     stats: { minDmg: 5, maxDmg: 10, ...statsOverrides },
   }
 }
+
+// ── Enchanting (deterministic upgrade engine) ─────────────────────────────────
+
+describe('enchantItem', () => {
+  it('charges gold and strictly improves the item each level', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const char = store.character!
+    char.gold = 1_000_000
+    const weapon = char.gear.weapon!
+    weapon.zoneTier = 0
+
+    const goldBefore = char.gold
+    expect(store.enchantItem(weapon.id)).toBe('enchanted')
+    expect(char.gold).toBeLessThan(goldBefore)
+    expect(weapon.enchantCount).toBe(1)
+    expect(weapon.stats.special!.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("returns 'maxed' without charging once nothing can improve", () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const char = store.character!
+    char.gold = 1_000_000_000
+    const weapon = char.gear.weapon!
+    weapon.zoneTier = 0
+
+    let guard = 0
+    while (store.enchantItem(weapon.id) === 'enchanted') {
+      expect(++guard).toBeLessThan(60)
+    }
+    const goldAtMax = char.gold
+    const countAtMax = weapon.enchantCount
+
+    expect(store.enchantItem(weapon.id)).toBe('maxed')
+    expect(char.gold).toBe(goldAtMax)
+    expect(weapon.enchantCount).toBe(countAtMax)
+  })
+
+  it("returns 'no_gold' when the cost is unaffordable", () => {
+    const store = getStore()
+    createTestCharacter(store)
+    const char = store.character!
+    char.gold = 0
+    expect(store.enchantItem(char.gear.weapon!.id)).toBe('no_gold')
+  })
+})
+
+describe('enchanted gear scrap protection', () => {
+  it('smart scrap never sells an enchanted drop, regardless of stats', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    store.setScrapMode('smart')
+    store.character!.gear.weapon = makeWeapon({ minDmg: 50, maxDmg: 60 })
+
+    const worseButEnchanted = { ...makeWeapon({ minDmg: 1, maxDmg: 2 }), enchantCount: 3 }
+    const result = store.addToInventory(worseButEnchanted)
+    expect(result.sold).toBe(false)
+    expect(store.character!.inventory.some((i) => i.id === worseButEnchanted.id)).toBe(true)
+  })
+
+  it('auto-equip never scraps a displaced enchanted weapon', () => {
+    const store = getStore()
+    createTestCharacter(store)
+    if (!store.autoEquip) store.toggleAutoEquip()
+    store.setScrapMode('smart')
+
+    const equipped = { ...makeWeapon({ minDmg: 10, maxDmg: 12 }), enchantCount: 2 }
+    store.character!.gear.weapon = equipped
+
+    // Big upgrade: displaces the enchanted weapon despite its +3%/level shield
+    const upgrade = makeWeapon({ minDmg: 100, maxDmg: 120 })
+    const result = store.addToInventory(upgrade)
+    expect(result.sold).toBe(false)
+    expect(store.character!.gear.weapon!.id).toBe(upgrade.id)
+    // Displaced enchanted item must be kept, not sold
+    expect(store.character!.inventory.some((i) => i.id === equipped.id)).toBe(true)
+  })
+})
