@@ -3,10 +3,12 @@ import { computed, ref, onBeforeUnmount } from 'vue'
 import { useCharacterStore } from '../stores/character'
 import { useSaveStore } from '../stores/save'
 import { useProgressionStore } from '../stores/progression'
+import { previewEnchant, type EnchantPreview } from '../game/items'
+import { getEffectTotals, type CappedEffectType } from '../game/effect-totals'
 import { fmtNum } from '../utils/format'
 import { LS_KEYS } from '../utils/storage'
 import TutorialToast from './TutorialToast.vue'
-import type { Item } from '../types/index'
+import type { Item, SpecialEffect } from '../types/index'
 
 const characterStore = useCharacterStore()
 const saveStore = useSaveStore()
@@ -15,22 +17,89 @@ const char = computed(() => characterStore.character)
 
 function rarityClass(rarity: string) { return `r-${rarity}` }
 
+const EFFECT_LABELS: Record<SpecialEffect['type'], string> = {
+  lifesteal: 'Lifesteal',
+  poison: 'Poison',
+  dodge: 'Dodge',
+  block: 'Block',
+  defIgnore: 'Armor ignore',
+  spellAmp: 'Spell amp',
+  critThreshold: 'Crit on',
+  doublecast: 'Doublecast',
+  attackSpeedBonus: 'Atk speed',
+  regenOnKill: 'Regen on kill',
+}
+
+function fmtEffect(type: SpecialEffect['type'], value: number): string {
+  if (type === 'critThreshold') return `${EFFECT_LABELS[type]} ${value}+`
+  return `${EFFECT_LABELS[type]} ${Math.round(value * 100)}%`
+}
+
 function specialLine(item: Item): string {
   return (item.stats.special ?? []).map((fx) => {
     switch (fx.type) {
-      case 'lifesteal':        return `Lifesteal ${Math.round(fx.value * 100)}%`
-      case 'poison':           return `Poison ${Math.round(fx.dpsMultiplier * 100)}%`
-      case 'dodge':            return `Dodge ${Math.round(fx.chance * 100)}%`
-      case 'block':            return `Block ${Math.round(fx.chance * 100)}%`
-      case 'defIgnore':        return `Armor ignore ${Math.round(fx.percent * 100)}%`
-      case 'spellAmp':         return `Spell amp ${Math.round(fx.percent * 100)}%`
-      case 'critThreshold':    return `Crit on ${fx.rollsAt}+`
-      case 'doublecast':       return `Doublecast ${Math.round(fx.chance * 100)}%`
-      case 'attackSpeedBonus': return `Atk speed +${Math.round(fx.percent * 100)}%`
-      case 'regenOnKill':      return `Regen on kill ${Math.round(fx.percent * 100)}%`
+      case 'lifesteal':        return fmtEffect(fx.type, fx.value)
+      case 'poison':           return fmtEffect(fx.type, fx.dpsMultiplier)
+      case 'dodge':
+      case 'block':
+      case 'doublecast':       return fmtEffect(fx.type, fx.chance)
+      case 'defIgnore':
+      case 'spellAmp':
+      case 'attackSpeedBonus':
+      case 'regenOnKill':      return fmtEffect(fx.type, fx.percent)
+      case 'critThreshold':    return fmtEffect(fx.type, fx.rollsAt)
       default: return ''
     }
   }).filter(Boolean).join(', ')
+}
+
+/** Build-wide saturation per effect type — flags enchants that add nothing */
+const effectTotals = computed(() => (char.value ? getEffectTotals(char.value) : null))
+
+function isSaturated(type: SpecialEffect['type']): boolean {
+  const totals = effectTotals.value
+  if (!totals) return false
+  if (type === 'critThreshold') return totals.critAtFloor
+  return totals.byType[type as CappedEffectType]?.saturated ?? false
+}
+
+interface NextInfo {
+  preview: EnchantPreview
+  /** Human line describing the next enchant */
+  line: string
+  /** True when every possible outcome is already cap-saturated for this build */
+  capped: boolean
+  maxed: boolean
+}
+
+function nextInfo(item: Item): NextInfo {
+  const preview = previewEnchant(item)
+  if (preview.kind === 'maxed') {
+    return { preview, line: 'Fully enchanted', capped: false, maxed: true }
+  }
+  if (preview.kind === 'upgrade') {
+    const line = preview.type === 'critThreshold'
+      ? `Next: ${EFFECT_LABELS[preview.type]} ${preview.from}+ → ${preview.to}+`
+      : `Next: ${EFFECT_LABELS[preview.type]} ${Math.round(preview.from * 100)}% → ${Math.round(preview.to * 100)}%`
+    return { preview, line, capped: isSaturated(preview.type), maxed: false }
+  }
+  const names = preview.candidates.map((c) => {
+    switch (c.type) {
+      case 'lifesteal':        return fmtEffect(c.type, c.value)
+      case 'poison':           return fmtEffect(c.type, c.dpsMultiplier)
+      case 'dodge':
+      case 'block':
+      case 'doublecast':       return fmtEffect(c.type, c.chance)
+      case 'critThreshold':    return fmtEffect(c.type, c.rollsAt)
+      default:                 return fmtEffect(c.type, 'percent' in c ? c.percent : 0)
+    }
+  })
+  return {
+    preview,
+    line: `Next adds one of: ${names.join(', ')}`,
+    capped: preview.candidates.every((c) => isSaturated(c.type)),
+    maxed: false,
+  }
 }
 
 const enchantableItems = computed<Item[]>(() => {
@@ -48,6 +117,8 @@ function doEnchant(item: Item) {
   if (result === 'enchanted') {
     enchantFlash.value = `${item.name} enchanted!`
     saveStore.saveCharacter()
+  } else if (result === 'maxed') {
+    enchantFlash.value = 'Already fully enchanted!'
   } else if (result === 'no_gold') {
     enchantFlash.value = 'Not enough gold!'
   } else {
@@ -80,8 +151,8 @@ function toggleCollapse() {
         title="Enchanting"
         @dismiss="progressionStore.markTutorialSeen('enchant')"
       >
-        Spend gold to add a random special effect to any item. Enchanting again <b>rerolls</b> the effect — you can't stack multiple enchants.<br>
-        Higher rarity items cost more to enchant but can roll more powerful effects.<br>
+        Spend gold to enchant any item: it gains a new special effect scaled to its zone tier and rarity.<br>
+        Once an item holds 3 effects, enchanting <b>upgrades</b> the weakest one — it never replaces or weakens what's there.<br>
         Enchanting your equipped gear is fine — the item stays equipped.
       </TutorialToast>
 
@@ -90,7 +161,7 @@ function toggleCollapse() {
         <span class="gold-val">{{ fmtNum(char?.gold ?? 0) }}g</span>
         <span v-if="enchantFlash" class="flash-msg">{{ enchantFlash }}</span>
       </div>
-      <p class="enchant-hint">Add or reroll a special effect on any owned item. Cost doubles each enchant.</p>
+      <p class="enchant-hint">Add or upgrade a special effect on any owned item. Effects scale with the item's tier and rarity; cost grows each enchant.</p>
       <div v-if="enchantableItems.length === 0" class="enchant-empty">No items to enchant.</div>
       <div
         v-for="item in enchantableItems"
@@ -102,14 +173,23 @@ function toggleCollapse() {
           <span class="enchant-item-name">{{ item.name }}</span>
           <span class="enchant-item-specials">{{ specialLine(item) || 'No specials' }}</span>
           <span v-if="(item.enchantCount ?? 0) > 0" class="enchant-count">Enchanted ×{{ item.enchantCount }}</span>
+          <template v-for="info in [nextInfo(item)]" :key="item.id + '-next'">
+            <span class="enchant-next" :class="{ maxed: info.maxed }">{{ info.line }}</span>
+            <span v-if="info.capped" class="enchant-capped">⚠ capped for your build — adds nothing right now</span>
+          </template>
         </div>
         <div class="enchant-item-right">
-          <span class="enchant-cost">{{ characterStore.getEnchantCost(item) }}g</span>
-          <button
-            class="pixel-btn btn-gold enchant-btn"
-            :disabled="(char?.gold ?? 0) < characterStore.getEnchantCost(item)"
-            @click="doEnchant(item)"
-          >✦</button>
+          <template v-if="nextInfo(item).maxed">
+            <button class="pixel-btn enchant-btn" disabled>✦</button>
+          </template>
+          <template v-else>
+            <span class="enchant-cost">{{ characterStore.getEnchantCost(item) }}g</span>
+            <button
+              class="pixel-btn btn-gold enchant-btn"
+              :disabled="(char?.gold ?? 0) < characterStore.getEnchantCost(item)"
+              @click="doEnchant(item)"
+            >✦</button>
+          </template>
         </div>
       </div>
     </div>
@@ -159,6 +239,9 @@ function toggleCollapse() {
 .enchant-item-name     { font-size: 7px; color: var(--text-hi); }
 .enchant-item-specials { font-size: 6px; color: #a080d0; }
 .enchant-count         { font-size: 6px; color: var(--gold-dim, #c09030); }
+.enchant-next          { font-size: 6px; color: #6fae6f; }
+.enchant-next.maxed    { color: var(--text-dim); }
+.enchant-capped        { font-size: 6px; color: #c08040; }
 .enchant-item-right {
   display: flex;
   align-items: center;
