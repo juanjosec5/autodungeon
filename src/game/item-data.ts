@@ -1578,20 +1578,28 @@ export const ZONE_BIS_IDS: Record<ZoneId, string[]> = {
 
 // ── Item enchant pools ────────────────────────────────────────────────────────
 
-export const WEAPON_ENCHANTS: SpecialEffect[] = [
-  { type: 'lifesteal', value: 0.08 },
-  { type: 'poison', dpsMultiplier: 0.12 },
-  { type: 'critThreshold', rollsAt: 18 },
-  { type: 'attackSpeedBonus', percent: 0.08 },
-  { type: 'defIgnore', percent: 0.12 },
-]
+/** Effect types an enchant can ADD to an item with a free special slot */
+export const WEAPON_ENCHANT_TYPES: SpecialEffect['type'][] = ['lifesteal', 'poison', 'critThreshold', 'attackSpeedBonus', 'defIgnore']
+export const ARMOR_ENCHANT_TYPES: SpecialEffect['type'][] = ['dodge', 'block', 'regenOnKill', 'spellAmp']
 
-export const ARMOR_ENCHANTS: SpecialEffect[] = [
-  { type: 'dodge', chance: 0.08 },
-  { type: 'block', chance: 0.08 },
-  { type: 'regenOnKill', percent: 0.08 },
-  { type: 'spellAmp', percent: 0.08 },
-]
+/**
+ * Base values for enchant effects at zone tier 0, common rarity. Covers every
+ * SpecialEffect type (not just the add pools) so enchant upgrade-steps can
+ * also improve natural-only effects like doublecast. critThreshold is a
+ * rollsAt anchor (lower = better) and does not scale with tier/rarity.
+ */
+export const ENCHANT_EFFECT_BASES: Record<SpecialEffect['type'], number> = {
+  lifesteal: 0.08,
+  poison: 0.12,
+  attackSpeedBonus: 0.08,
+  defIgnore: 0.12,
+  dodge: 0.08,
+  block: 0.08,
+  regenOnKill: 0.08,
+  spellAmp: 0.08,
+  doublecast: 0.08,
+  critThreshold: 18,
+}
 
 // ── Shop item pool (id + minimum zone index to appear) ────────────────────────
 
