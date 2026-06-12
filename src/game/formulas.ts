@@ -113,12 +113,20 @@ export function getOffClassPenalty(item: Item, classId: ClassId): number {
 }
 
 /**
- * Compares two same-slot items using effective stats (off-class penalty applied to both).
+ * Auto-equip comparison weight per enchant level: enchanted gear's effective
+ * score is shielded by +3%/level so a marginal same-tier base-stat sidegrade
+ * doesn't displace real gold investment. A next-tier drop (+50% base) still wins.
+ */
+export const ENCHANT_EQUIP_WEIGHT = 0.03
+
+/**
+ * Compares two same-slot items using effective stats (off-class penalty and
+ * enchant-investment weight applied to both).
  * Weapons: effective average damage. Armor: weighted DEF×3 + HP.
  */
 export function isBetterThan(newItem: Item, equipped: Item, classId: ClassId): boolean {
-  const newPenalty = getOffClassPenalty(newItem, classId)
-  const eqPenalty  = getOffClassPenalty(equipped, classId)
+  const newPenalty = getOffClassPenalty(newItem, classId) * (1 + ENCHANT_EQUIP_WEIGHT * (newItem.enchantCount ?? 0))
+  const eqPenalty  = getOffClassPenalty(equipped, classId) * (1 + ENCHANT_EQUIP_WEIGHT * (equipped.enchantCount ?? 0))
   if (newItem.type === 'weapon') {
     const newEff = ((newItem.stats.minDmg ?? 0) + (newItem.stats.maxDmg ?? 0)) / 2 * newPenalty
     const eqEff  = ((equipped.stats.minDmg ?? 0) + (equipped.stats.maxDmg ?? 0)) / 2 * eqPenalty

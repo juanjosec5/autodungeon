@@ -2,8 +2,9 @@ import type { Character, Enemy, Item, ZoneId, ClassId, RarityId, UpgradeId, Asce
 import { rollDamage } from './formulas'
 import { getStatsAtLevel, getXPToNextLevel } from './classes'
 import { applyStatUpgrades, getEligibleUpgrades, rollUpgradeChoices, autoPickUpgrade } from './upgrades'
-import { spawnEnemy, getBossForZone } from './enemies'
+import { spawnEnemy, getBossForZone, getEnemiesForZone, TIER_REWARD_GROWTH } from './enemies'
 import { weaponDamage, armorStats } from './item-curves'
+import { applyEnchant, calcEnchantCost } from './items'
 import { playerAttackIntervalMs, resolvePlayerAttack, resolveEnemyAttack, resolveKillRegen, NO_BUFFS, NG_TIER_PLAYER_POWER, type CombatBuffs } from './combat-core'
 
 /**
@@ -33,6 +34,16 @@ export const ZONE_PROGRESSION: { zone: ZoneId; tier: number; unlockLevel: number
 
 // ── Deterministic RNG ─────────────────────────────────────────────────────────
 
+function mulberry32(seed: number): () => number {
+  let s = seed >>> 0
+  return () => {
+    s = (s + 0x6d2b79f5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
 /**
  * Runs `fn` with Math.random swapped for a seeded mulberry32 PRNG, restoring
  * the original afterwards. Keeps simulations reproducible without threading an
@@ -40,13 +51,7 @@ export const ZONE_PROGRESSION: { zone: ZoneId; tier: number; unlockLevel: number
  */
 export function withSeededRandom<T>(seed: number, fn: () => T): T {
   const original = Math.random
-  let s = seed >>> 0
-  Math.random = () => {
-    s = (s + 0x6d2b79f5) | 0
-    let t = Math.imul(s ^ (s >>> 15), 1 | s)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
+  Math.random = mulberry32(seed)
   try {
     return fn()
   } finally {
@@ -98,17 +103,24 @@ export function makeSimArmor(zoneTier: number, rarity: RarityId, special: Specia
   }
 }
 
-/** Representative fully-enchanted specials (drawn from the enchant pools) */
-export const ENCHANTED_WEAPON_SPECIALS: SpecialEffect[] = [
-  { type: 'lifesteal', value: 0.08 },
-  { type: 'critThreshold', rollsAt: 18 },
-  { type: 'attackSpeedBonus', percent: 0.08 },
-]
-export const ENCHANTED_ARMOR_SPECIALS: SpecialEffect[] = [
-  { type: 'spellAmp', percent: 0.08 },
-  { type: 'dodge', chance: 0.08 },
-  { type: 'block', chance: 0.08 },
-]
+/**
+ * Applies up to `levels` enchant levels through the real enchant engine,
+ * stopping early once the item is maxed. Returns an enchanted clone.
+ */
+export function applyEnchantLevels(item: Item, levels: number, rng: () => number = Math.random): Item {
+  const result = structuredClone(item)
+  for (let i = 0; i < levels; i++) {
+    if (applyEnchant(result, rng).kind === 'maxed') break
+  }
+  return result
+}
+
+/** Expected gold per normal kill in a zone at an NG+ tier (engine: xpReward × 0.35) */
+export function zoneGoldPerKill(zone: ZoneId, tier: number): number {
+  const normals = getEnemiesForZone(zone)
+  const meanXp = normals.reduce((a, e) => a + e.xpReward, 0) / normals.length
+  return Math.max(1, meanXp * Math.pow(TIER_REWARD_GROWTH, tier) * 0.35)
+}
 
 /** Every eligible upgrade at max picks — a fully invested level-100+ character */
 export function maxedUpgrades(classId: ClassId): Partial<Record<UpgradeId, number>> {
@@ -367,6 +379,8 @@ export interface RunResult {
 }
 
 const RUN_CHUNK_MS = 10 * 60_000
+/** Enchant levels an "enchanted" full-run player maintains per gear piece */
+const RUN_ENCHANT_LEVELS = 6
 
 function bestZoneFor(level: number): { zone: ZoneId; tier: number } {
   let best = ZONE_PROGRESSION[0]
@@ -436,8 +450,12 @@ export function simulateFullRun(config: RunConfig): RunResult {
         upgrades: { ...upgrades },
         vitalityStacks,
         ascension,
-        weapon: makeSimWeapon(zoneTier, gearRarity, enchanted ? ENCHANTED_WEAPON_SPECIALS : []),
-        armor: makeSimArmor(zoneTier, gearRarity, enchanted ? ENCHANTED_ARMOR_SPECIALS : []),
+        weapon: enchanted
+          ? applyEnchantLevels(makeSimWeapon(zoneTier, gearRarity), RUN_ENCHANT_LEVELS)
+          : makeSimWeapon(zoneTier, gearRarity),
+        armor: enchanted
+          ? applyEnchantLevels(makeSimArmor(zoneTier, gearRarity), RUN_ENCHANT_LEVELS)
+          : makeSimArmor(zoneTier, gearRarity),
       }
 
       const chunk = simulateZoneSession(build, { zone, tier, durationMs: RUN_CHUNK_MS })
@@ -472,7 +490,7 @@ export function simulateFullRun(config: RunConfig): RunResult {
   })
 }
 
-/** Convenience: the bug-report build — maxed lvl-100 character in legendary enchanted at-zone gear */
+/** Convenience: a fully invested lvl-100 character in max-enchanted legendary at-zone gear */
 export function maxedBuild(classId: ClassId, zoneTier: number, vitalityStacks = 12): SimBuild {
   return {
     classId,
@@ -483,7 +501,78 @@ export function maxedBuild(classId: ClassId, zoneTier: number, vitalityStacks = 
       'overkill': 5, 'ghost-strike': 5, 'arcane-surge': 5,
       'blessed-regen': 5, 'death-pact': 5, 'dragon-scales': 5,
     },
-    weapon: makeSimWeapon(zoneTier, 'legendary', ENCHANTED_WEAPON_SPECIALS),
-    armor: makeSimArmor(zoneTier, 'legendary', ENCHANTED_ARMOR_SPECIALS),
+    weapon: applyEnchantLevels(makeSimWeapon(zoneTier, 'legendary'), 30, mulberry32(101)),
+    armor: applyEnchantLevels(makeSimArmor(zoneTier, 'legendary'), 30, mulberry32(102)),
   }
+}
+
+// ── Enchant ROI measurement ───────────────────────────────────────────────────
+
+export interface EnchantROIRow {
+  /** Enchant levels applied to BOTH weapon and armor */
+  level: number
+  /** Gold paid for this level (weapon + armor enchant costs) */
+  cost: number
+  cumulativeCost: number
+  killsPerMinute: number
+  /** Kill-rate gain vs level 0, in percent */
+  kpmDeltaPct: number
+  /** Kills needed to earn back this level's cost at this zone's gold rate */
+  paybackKills: number
+  /** Minutes of farming at this level's own kill rate to pay it back */
+  paybackMinutes: number
+}
+
+/**
+ * Measures what each enchant level is worth: farms the zone with weapon+armor
+ * enchanted to 0..levels and reports kill-rate gains and gold payback. Gear is
+ * enchanted incrementally with a seeded rng so level n is a strict superset of
+ * level n−1.
+ */
+export function measureEnchantROI(
+  build: SimBuild,
+  zone: ZoneId,
+  opts: { tier: number; levels: number; durationMs?: number; seed?: number },
+): EnchantROIRow[] {
+  const { tier, levels, durationMs = 10 * 60_000, seed = 1 } = opts
+  const goldPerKill = zoneGoldPerKill(zone, tier)
+  const enchantRng = mulberry32(seed)
+
+  const weapon = structuredClone(build.weapon)
+  const armor = structuredClone(build.armor)
+  const rows: EnchantROIRow[] = []
+  let baseKpm = 0
+  let cumulativeCost = 0
+
+  for (let level = 0; level <= levels; level++) {
+    let cost = 0
+    if (level > 0) {
+      for (const item of [weapon, armor]) {
+        if (!item) continue
+        const price = calcEnchantCost(item)
+        // applyEnchant is free ('maxed') once nothing can improve
+        if (applyEnchant(item, enchantRng).kind !== 'maxed') cost += price
+      }
+      cumulativeCost += cost
+    }
+
+    const session = withSeededRandom(seed + level, () =>
+      simulateZoneSession(
+        { ...build, weapon: structuredClone(weapon), armor: structuredClone(armor) },
+        { zone, tier, durationMs },
+      ),
+    )
+    if (level === 0) baseKpm = session.killsPerMinute
+
+    rows.push({
+      level,
+      cost,
+      cumulativeCost,
+      killsPerMinute: session.killsPerMinute,
+      kpmDeltaPct: baseKpm > 0 ? ((session.killsPerMinute - baseKpm) / baseKpm) * 100 : 0,
+      paybackKills: Math.ceil(cost / goldPerKill),
+      paybackMinutes: session.killsPerMinute > 0 ? cost / goldPerKill / session.killsPerMinute : Infinity,
+    })
+  }
+  return rows
 }

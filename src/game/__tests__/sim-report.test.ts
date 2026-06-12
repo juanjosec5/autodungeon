@@ -1,9 +1,14 @@
 import { describe, it } from 'vitest'
-import type { ClassId } from '../../types/index'
+import type { ClassId, RarityId } from '../../types/index'
 import {
   ZONE_PROGRESSION,
+  type SimBuild,
+  makeSimWeapon,
+  makeSimArmor,
+  maxedUpgrades,
   maxedBuild,
   maxSustainableTier,
+  measureEnchantROI,
   simulateZoneSession,
   simulateFullRun,
   withSeededRandom,
@@ -28,7 +33,7 @@ describe.runIf(import.meta.env.VITE_SIM_REPORT)('simulation report', () => {
       }
     }
     console.table(rows)
-  })
+  }, 60_000)
 
   it('bug repro — prestige-18 maxed mage in shadowrealm, 15 virtual minutes', () => {
     const build = maxedBuild('mage', 4)
@@ -69,4 +74,35 @@ describe.runIf(import.meta.env.VITE_SIM_REPORT)('simulation report', () => {
       }
     }
   }, 120_000)
+
+  it('enchant ROI — kill-rate gain and gold payback per enchant level', () => {
+    const spots: { zoneIdx: number; level: number; rarity: RarityId }[] = [
+      { zoneIdx: 0, level: 4, rarity: 'epic' },
+      { zoneIdx: 4, level: 60, rarity: 'epic' },
+      { zoneIdx: 4, level: 60, rarity: 'legendary' },
+      { zoneIdx: 7, level: 100, rarity: 'legendary' },
+    ]
+    for (const { zoneIdx, level, rarity } of spots) {
+      const { zone, tier } = ZONE_PROGRESSION[zoneIdx]
+      const build: SimBuild = {
+        classId: 'warrior',
+        level,
+        upgrades: maxedUpgrades('warrior'),
+        vitalityStacks: 0,
+        ascension: {},
+        weapon: makeSimWeapon(tier, rarity),
+        armor: makeSimArmor(tier, rarity),
+      }
+      const rows = measureEnchantROI(build, zone, { tier: 0, levels: 12, seed: 5 })
+      console.log(`\n${zone} / ${rarity} (warrior L${level}):`)
+      console.table(rows.map((r) => ({
+        level: r.level,
+        cost: Math.round(r.cost),
+        cumulative: Math.round(r.cumulativeCost),
+        'kills/min': r.killsPerMinute.toFixed(1),
+        'Δkpm%': r.kpmDeltaPct.toFixed(1),
+        'payback(min)': Number.isFinite(r.paybackMinutes) ? r.paybackMinutes.toFixed(1) : '∞',
+      })))
+    }
+  }, 60_000)
 })

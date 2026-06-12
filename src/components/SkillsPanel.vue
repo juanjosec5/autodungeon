@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCharacterStore } from '../stores/character'
-import { UPGRADE_DEFINITIONS, getUpgradeBonuses } from '../game/upgrades'
-import { SPECIAL_CAPS, getSpecial } from '../game/formulas'
-import { CLASS_DEFINITIONS } from '../game/classes'
-import { getActiveSet } from '../game/sets'
+import { UPGRADE_DEFINITIONS } from '../game/upgrades'
+import { getEffectTotals, type CappedEffectType } from '../game/effect-totals'
 import type { UpgradeDef } from '../game/upgrades'
 import type { UpgradeId } from '../types/index'
 
@@ -14,45 +12,27 @@ const char = computed(() => characterStore.character)
 const skillPoints = computed(() => char.value?.skillPoints ?? 0)
 
 // ── Live totals vs hard caps ─────────────────────────────────────────────────
-// Mirrors the engine's stacking (gear + class passives + upgrades + sets) so
+// Build-wide totals come from effect-totals.ts (shared with EnchantPanel) so
 // players can see when more picks in a capped upgrade stop paying off.
 
 const capInfo = computed<Partial<Record<UpgradeId, string>>>(() => {
   const c = char.value
   if (!c) return {}
-  const ub = getUpgradeBonuses(c.upgrades ?? {})
-  const weapon = c.gear.weapon
-  const armor = c.gear.armor
-  const classDef = CLASS_DEFINITIONS[c.class]
-  const set = getActiveSet(weapon, armor)?.bonus ?? null
+  const totals = getEffectTotals(c)
 
   const pct = (v: number) => `${Math.round(v * 100)}%`
-  const line = (total: number, cap: number) =>
-    `Total now: ${pct(Math.min(cap, total))} / cap ${pct(cap)}${total >= cap ? ' ⚠ capped' : ''}`
-
-  const dodgeTotal = (getSpecial(armor?.stats.special, 'dodge')?.chance ?? 0)
-    + ub.dodgeBonus + (set?.type === 'dodge' ? set.value : 0)
-  const blockTotal = (getSpecial(armor?.stats.special, 'block')?.chance ?? 0) + ub.blockBonus
-  const lifestealTotal = (getSpecial(weapon?.stats.special, 'lifesteal')?.value ?? 0)
-    + (classDef.passives.lifestealBase ?? 0) + ub.lifestealBonus
-    + (set?.type === 'lifesteal' ? set.value : 0)
-  const spellAmpTotal = (getSpecial(weapon?.stats.special, 'spellAmp')?.percent ?? 0)
-    + (getSpecial(armor?.stats.special, 'spellAmp')?.percent ?? 0)
-    + ub.spellAmpBonus + (set?.type === 'spell_amp' ? set.value : 0)
-  const defIgnoreTotal = (classDef.passives.defIgnore ?? 0)
-    + (getSpecial(weapon?.stats.special, 'defIgnore')?.percent ?? 0) + ub.defIgnoreBonus
-
-  const baseThreshold = getSpecial(weapon?.stats.special, 'critThreshold')?.rollsAt
-    ?? classDef.passives.critThreshold ?? 20
-  const threshold = Math.max(SPECIAL_CAPS.critThresholdFloor, baseThreshold - ub.critThresholdReduction)
+  const line = (type: CappedEffectType) => {
+    const t = totals.byType[type]!
+    return `Total now: ${pct(Math.min(t.cap, t.total))} / cap ${pct(t.cap)}${t.saturated ? ' ⚠ capped' : ''}`
+  }
 
   return {
-    dodge: line(dodgeTotal, SPECIAL_CAPS.dodge),
-    block: line(blockTotal, SPECIAL_CAPS.block),
-    lifesteal: line(lifestealTotal, SPECIAL_CAPS.lifesteal),
-    'spell-amp': line(spellAmpTotal, SPECIAL_CAPS.spellAmp),
-    'def-ignore': line(defIgnoreTotal, SPECIAL_CAPS.defIgnore),
-    'crit-chance': `Crits on roll ≥ ${threshold}${threshold <= SPECIAL_CAPS.critThresholdFloor ? ' ⚠ at floor' : ''}`,
+    dodge: line('dodge'),
+    block: line('block'),
+    lifesteal: line('lifesteal'),
+    'spell-amp': line('spellAmp'),
+    'def-ignore': line('defIgnore'),
+    'crit-chance': `Crits on roll ≥ ${totals.critThreshold}${totals.critAtFloor ? ' ⚠ at floor' : ''}`,
   }
 })
 
