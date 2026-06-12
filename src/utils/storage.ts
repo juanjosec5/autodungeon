@@ -13,4 +13,5 @@ export const LS_KEYS = {
   scrapMode:   'scrapMode',
   autoEquip:   'autoEquip',
   combatSpeed: 'combatSpeed',
+  uiScale:     'uiScale',
 } as const

@@ -10,6 +10,7 @@ import { useTaskStore } from '../stores/tasks'
 import { useProgressionStore } from '../stores/progression'
 import { usePrestigeStore } from '../stores/prestige'
 import { useShopStore } from '../stores/shop'
+import { useSettingsStore, UI_SCALES } from '../stores/settings'
 import { ZONE_META } from '../game/zones'
 import CharacterPanel from '../components/CharacterPanel.vue'
 import EnemyPanel from '../components/EnemyPanel.vue'
@@ -38,6 +39,7 @@ const taskStore = useTaskStore()
 const progressionStore = useProgressionStore()
 const prestigeStore = usePrestigeStore()
 const shopStore = useShopStore()
+const settingsStore = useSettingsStore()
 
 const activePanel = ref<PanelId>('items')
 const skillPoints = computed(() => characterStore.character?.skillPoints ?? 0)
@@ -227,6 +229,16 @@ onUnmounted(() => {
                 :title="s === 4 && !canUse4x ? 'Unlock after 3 prestiges' : ''"
                 @click="setSpeed(s)"
               >{{ s }}×{{ s === 4 && !canUse4x ? ' 🔒' : '' }}</button>
+            </div>
+            <div class="ctrl-label">UI Size</div>
+            <div class="speed-row">
+              <button
+                v-for="scale in UI_SCALES"
+                :key="scale"
+                class="pixel-btn speed-btn"
+                :class="settingsStore.uiScale === scale ? 'btn-gold' : ''"
+                @click="settingsStore.setUiScale(scale)"
+              >{{ Math.round(scale * 100) }}%</button>
             </div>
           </div>
         </div>
@@ -466,6 +478,7 @@ onUnmounted(() => {
 .pause-btn  { width: 100%; text-align: center; font-size: 7px; }
 .speed-row  { display: flex; gap: 4px; }
 .speed-btn  { flex: 1; text-align: center; font-size: 7px; padding: 4px 2px; }
+.ctrl-label { font-size: 6px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
 .btn-locked { opacity: 0.45; cursor: not-allowed; }
 
 /* Mobile: side nav becomes horizontal tab bar */
